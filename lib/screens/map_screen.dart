@@ -16,7 +16,7 @@ class MapScreen extends StatefulWidget {
 
 class _MapScreenState extends State<MapScreen> {
 
-  final LatLng _initialCenter = const LatLng(14.212601, 121.181149);
+  final LatLng _initialCenter = const LatLng(14.2050462, 121.1582127);
   final MapController _mapController = MapController();
 
   void _showReportDetails(Report report) {
@@ -30,13 +30,14 @@ class _MapScreenState extends State<MapScreen> {
             color: Colors.white,
             borderRadius: BorderRadius.circular(20),
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-            
-              Row(
-                children: [
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+              
+                Row(
+                  children: [
                   Icon(
                     MapHelper.getReportIcon(report.type),
                     color: MapHelper.getRiskColor(report.risk),
@@ -49,48 +50,91 @@ class _MapScreenState extends State<MapScreen> {
                   ),
                 ],
               ),
-              const Divider(height: 30),
+              const Divider(height: 16),
               
-              // Image Section
-              if (report.imageUrl != null && report.imageUrl!.isNotEmpty)
-                Container(
-                  height: 180,
-                  width: double.infinity,
-                  margin: const EdgeInsets.only(bottom: 16),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(12),
-                    image: DecorationImage(
-                      image: NetworkImage(report.imageUrl!),
-                      fit: BoxFit.cover,
-                    ),
-                  ),
-                )
-              else
-                Container(
-                  height: 120,
-                  width: double.infinity,
-                  margin: const EdgeInsets.only(bottom: 16),
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade100,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.grey.shade300),
-                  ),
-                  child: Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.image_not_supported, color: Colors.grey.shade400, size: 40),
-                        const SizedBox(height: 8),
-                        Text('No image provided', style: TextStyle(color: Colors.grey.shade500)),
-                      ],
-                    ),
-                  ),
+              // Image Section (with loading and error fallback)
+              Container(
+                height: 220,
+                width: double.infinity,
+                margin: const EdgeInsets.only(bottom: 12),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  color: Colors.grey.shade50,
+                  border: Border.all(color: Colors.grey.shade200),
                 ),
+                clipBehavior: Clip.hardEdge,
+                child: report.imageUrl != null && report.imageUrl!.isNotEmpty
+                    ? Image.network(
+                        report.imageUrl!,
+                        fit: BoxFit.cover,
+                        loadingBuilder: (context, child, loadingProgress) {
+                          if (loadingProgress == null) return child;
+                          return const Center(child: CircularProgressIndicator());
+                        },
+                        errorBuilder: (context, error, stackTrace) {
+                          return Center(child: Icon(Icons.broken_image, size: 48, color: Colors.grey.shade400));
+                        },
+                      )
+                    : Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.image_not_supported, color: Colors.grey.shade400, size: 40),
+                            const SizedBox(height: 8),
+                            Text('No image provided', style: TextStyle(color: Colors.grey.shade500)),
+                          ],
+                        ),
+                      ),
+              ),
+              Center(child: Text('Image 1 of 1', style: TextStyle(color: Colors.grey.shade500, fontSize: 12))),
+              const SizedBox(height: 12),
+
+              // Info card
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                margin: const EdgeInsets.only(top: 12, bottom: 12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey.shade200),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Flood Level', style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                          const SizedBox(height: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: Colors.blue.shade50,
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(report.floodLevel ?? 'N/A', style: const TextStyle(fontWeight: FontWeight.bold)),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Reported By', style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                          const SizedBox(height: 8),
+                          Text(report.userId ?? 'Anonymous', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13), maxLines: 1, overflow: TextOverflow.ellipsis),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
 
               // Details Section
               _buildDetailRow(Icons.warning_amber_rounded, 'Risk Level', MapHelper.getRiskLevelName(report.risk)),
-              const SizedBox(height: 12),
-              _buildDetailRow(Icons.location_on_outlined, 'Location', '${report.latitude.toStringAsFixed(6)}, ${report.longitude.toStringAsFixed(6)}'),
               const SizedBox(height: 12),
               _buildDetailRow(Icons.description_outlined, 'Description', report.description.isNotEmpty ? report.description : "No description provided"),
               const SizedBox(height: 12),
@@ -113,6 +157,7 @@ class _MapScreenState extends State<MapScreen> {
             ],
           ),
         ),
+      ),
       ),
     );
   }
@@ -269,8 +314,8 @@ class _MapScreenState extends State<MapScreen> {
                               
                               markers.add(
                                 Marker(
-                                  width: 40.0,
-                                  height: 40.0,
+                                  width: 60.0,
+                                  height: 60.0,
                                   point: LatLng(report.latitude, report.longitude),
                                   child: GestureDetector(
                                     onTap: () => _showReportDetails(report),
@@ -381,22 +426,7 @@ class _MapScreenState extends State<MapScreen> {
         ],
       ),
       
-      // Bottom Navigation Bar
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.map_outlined), label: 'Map'),
-          BottomNavigationBarItem(icon: Icon(Icons.notifications_none), label: 'Notification'),
-          BottomNavigationBarItem(icon: Icon(Icons.settings), label: 'Settings'),
-        ],
-        currentIndex: 1,
-        selectedItemColor: Colors.blueAccent.shade400,
-        unselectedItemColor: Colors.grey,
-        onTap: (index) {
-      
-        },
-      ),
+      // Bottom Navigation Bar is now handled by MainWrapper
     );
   }
 }
