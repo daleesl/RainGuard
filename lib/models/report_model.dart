@@ -13,6 +13,7 @@ class Report {
   final String description;
   final String? imageUrl;
   final String? floodLevel;
+  final String? userId;
   final DateTime createdAt;
 
   Report({
@@ -24,6 +25,7 @@ class Report {
     required this.description,
     this.imageUrl,
     this.floodLevel,
+    this.userId,
     required this.createdAt,
   });
 
@@ -37,6 +39,7 @@ class Report {
       description: data['description'] ?? '',
       imageUrl: data['image_url'],
       floodLevel: data['flood_level'],
+      userId: data['user_id'],
       createdAt: data['created_at'] != null 
           ? (data['created_at'] as Timestamp).toDate()
           : DateTime.now(),
@@ -61,11 +64,12 @@ class Report {
     switch (riskStr?.toLowerCase()) {
       case 'safe':
         return RiskLevel.safe;
-      case 'risk':
-        return RiskLevel.risk;
       case 'flood':
-      default:
         return RiskLevel.flood;
+      case 'risk':
+      default:
+        // Default to "risk" if missing or invalid, per requirements
+        return RiskLevel.risk;
     }
   }
 
@@ -78,6 +82,7 @@ class Report {
       'description': description,
       'image_url': imageUrl,
       'flood_level': floodLevel,
+      'user_id': userId,
       'created_at': Timestamp.fromDate(createdAt),
     };
   }
