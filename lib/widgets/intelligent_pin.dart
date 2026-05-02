@@ -13,36 +13,35 @@ class IntelligentPin extends StatelessWidget {
     IconData reportIcon = MapHelper.getReportIcon(report.type);
 
     return SizedBox(
-      width: 40,
-      height: 40,
-      child: Stack(
-        alignment: Alignment.center,
+      width: 44,
+      height: 44,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-
+          // Pin head
           Container(
-            width: 32,
-            height: 32,
+            width: 36,
+            height: 36,
             decoration: BoxDecoration(
-              color: riskColor.withOpacity(0.8),
+              color: riskColor,
               shape: BoxShape.circle,
               boxShadow: [
-                BoxShadow(
-                  color: Colors.black26,
-                  blurRadius: 4.0,
-                  offset: const Offset(0, 2),
-                ),
+                BoxShadow(color: Colors.black26, blurRadius: 4.0, offset: const Offset(0, 2)),
               ],
-              border: Border.all(
-                color: Colors.white,
-                width: 2.0,
-              )
+              border: Border.all(color: Colors.white, width: 2.0),
+            ),
+            child: Center(
+              child: Icon(reportIcon, color: Colors.white, size: 18),
             ),
           ),
-          // Foreground Icon (Report Type)
-          Icon(
-            reportIcon,
-            color: Colors.white,
-            size: 20,
+          // Pin tail
+          Container(
+            width: 6,
+            height: 8,
+            decoration: BoxDecoration(
+              color: riskColor,
+              borderRadius: BorderRadius.circular(3),
+            ),
           ),
         ],
       ),
