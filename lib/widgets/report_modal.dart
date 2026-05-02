@@ -1,5 +1,11 @@
+import 'dart:io';
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:image_picker/image_picker.dart';
 import '../models/report_model.dart';
@@ -14,9 +20,11 @@ class ReportModal extends StatefulWidget {
 
 class _ReportModalState extends State<ReportModal> {
   ReportType selectedType = ReportType.rain;
+  String? selectedFloodLevel;
   final TextEditingController _descriptionController = TextEditingController();
   bool _isSubmitting = false;
   String _fileName = "No file chosen";
+  XFile? _pickedImage;
 
   Future<void> _pickImage() async {
     final ImagePicker picker = ImagePicker();
@@ -24,28 +32,12 @@ class _ReportModalState extends State<ReportModal> {
     if (image != null) {
       setState(() {
         _fileName = image.name;
+        _pickedImage = image;
       });
     }
   }
 
   Future<Position> _determinePosition() async {
-    // For CAPSTONE Testing: Override the actual device GPS (which is returning Digos/Davao)
-    // and force the pin to drop at Brgy. Lingga, Calamba, Laguna City.
-    return Position(
-      longitude: 121.1582127,
-      latitude: 14.2050462,
-      timestamp: DateTime.now(),
-      accuracy: 0.0,
-      altitude: 0.0,
-      altitudeAccuracy: 0.0,
-      heading: 0.0,
-      headingAccuracy: 0.0,
-      speed: 0.0,
-      speedAccuracy: 0.0,
-    );
-    
-    // NOTE: Below is the real GPS code, commented out for your presentation.
-    /*
     bool serviceEnabled;
     LocationPermission permission;
 
@@ -67,7 +59,6 @@ class _ReportModalState extends State<ReportModal> {
     } 
 
     return await Geolocator.getCurrentPosition();
-    */
   }
 
   Future<void> _submitReport() async {
@@ -77,21 +68,40 @@ class _ReportModalState extends State<ReportModal> {
 
     try {
       Position position = await _determinePosition();
-      
-      // Creating the standard report data representation
-      Report newReport = Report(
-        id: '', // Will be assigned by Firestore
-        latitude: position.latitude,
-        longitude: position.longitude,
-        type: selectedType,
-        risk: RiskLevel.risk, // Default risk level
-        description: _descriptionController.text.trim(),
-        createdAt: DateTime.now(),
-      );
+      // Upload image (if any) to Firebase Storage first
+      String? downloadUrl;
+      if (_pickedImage != null) {
+        final storageRef = FirebaseStorage.instance.ref();
+        String path = 'reports/${DateTime.now().millisecondsSinceEpoch}_${_pickedImage!.name}';
+        final fileRef = storageRef.child(path);
+        
+        // Use kIsWeb to avoid dart:io File unsupported operation on Web
+        if (!kIsWeb && _pickedImage!.path.isNotEmpty) {
+          await fileRef.putFile(File(_pickedImage!.path));
+        } else {
+          final bytes = await _pickedImage!.readAsBytes();
+          await fileRef.putData(bytes);
+        }
+        downloadUrl = await fileRef.getDownloadURL();
+      }
 
-      await FirebaseFirestore.instance
-          .collection('reports')
-          .add(newReport.toFirestore());
+      // Determine current user id if any
+      String userId = FirebaseAuth.instance.currentUser?.uid ?? 'anonymous';
+
+      // Creating the standard report data map
+      Map<String, dynamic> reportData = {
+        'user_id': userId,
+        'latitude': position.latitude,
+        'longitude': position.longitude,
+        'report_type': selectedType.name,
+        'flood_level': selectedType == ReportType.flood ? selectedFloodLevel : null,
+        'risk_level': RiskLevel.risk.name,
+        'description': _descriptionController.text.trim(),
+        'image_url': downloadUrl,
+        'created_at': Timestamp.fromDate(DateTime.now()),
+      };
+
+      await FirebaseFirestore.instance.collection('reports').add(reportData);
 
       if (mounted) {
         Navigator.pop(context);
@@ -194,24 +204,63 @@ class _ReportModalState extends State<ReportModal> {
             ),
             const SizedBox(height: 20),
             
-            // Report Type Selection
+            // Report Type Selection (icon-based dropdown)
             const Text(
               'Report Type',
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
             ),
             const SizedBox(height: 10),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                _buildTypeCard(ReportType.rain),
-                _buildTypeCard(ReportType.wind),
-                _buildTypeCard(ReportType.brownout),
-                _buildTypeCard(ReportType.flood),
-              ],
+            DropdownButtonFormField<ReportType>(
+              value: selectedType,
+              decoration: InputDecoration(
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Colors.grey.shade300)),
+                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Colors.grey.shade300)),
+              ),
+              items: ReportType.values.map((type) {
+                return DropdownMenuItem<ReportType>(
+                  value: type,
+                  child: Row(
+                    children: [
+                      Icon(MapHelper.getReportIcon(type), color: Colors.black54),
+                      const SizedBox(width: 10),
+                      Text(MapHelper.getReportTypeName(type)),
+                    ],
+                  ),
+                );
+              }).toList(),
+              onChanged: (v) {
+                setState(() {
+                  selectedType = v ?? ReportType.rain;
+                  if (selectedType != ReportType.flood) selectedFloodLevel = null;
+                });
+              },
             ),
-            
-            const SizedBox(height: 20),
-            
+
+            const SizedBox(height: 16),
+
+            // Conditional flood level dropdown
+            if (selectedType == ReportType.flood) ...[
+              const Text('Flood Level', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+              const SizedBox(height: 8),
+              DropdownButtonFormField<String>(
+                value: selectedFloodLevel,
+                decoration: InputDecoration(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Colors.grey.shade300)),
+                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Colors.grey.shade300)),
+                ),
+                items: [
+                  'ankle level',
+                  'knee level',
+                  'waist level',
+                  'above waist level',
+                ].map((s) => DropdownMenuItem(value: s, child: Text(s[0].toUpperCase() + s.substring(1)))).toList(),
+                onChanged: (v) => setState(() => selectedFloodLevel = v),
+              ),
+              const SizedBox(height: 16),
+            ],
+
             // Location
             const Text(
               'Location',
@@ -270,32 +319,58 @@ class _ReportModalState extends State<ReportModal> {
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
             ),
             const SizedBox(height: 8),
-            InkWell(
-              onTap: _pickImage,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+            if (_pickedImage != null) ...[
+              // preview
+              Container(
+                height: 160,
+                width: double.infinity,
                 decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: Colors.grey.shade300),
-                  borderRadius: BorderRadius.circular(8),
+                  color: Colors.grey.shade50,
                 ),
-                child: Row(
-                  children: [
-                    const Text(
-                      'Choose File',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        _fileName,
-                        style: TextStyle(color: Colors.grey.shade600),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
+                clipBehavior: Clip.hardEdge,
+                child: kIsWeb
+                    ? Image.network(_pickedImage!.path, fit: BoxFit.cover)
+                    : Image.file(File(_pickedImage!.path), fit: BoxFit.cover),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  ElevatedButton.icon(
+                    onPressed: _pickImage,
+                    icon: const Icon(Icons.photo_library),
+                    label: const Text('Change'),
+                    style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent.shade700),
+                  ),
+                  const SizedBox(width: 12),
+                  TextButton(
+                    onPressed: () => setState(() { _pickedImage = null; _fileName = 'No file chosen'; }),
+                    child: const Text('Remove'),
+                  )
+                ],
+              ),
+            ] else ...[
+              InkWell(
+                onTap: _pickImage,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.grey.shade300),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.upload_file, color: Colors.black54),
+                      const SizedBox(width: 12),
+                      const Text('Choose photo from gallery', style: TextStyle(fontWeight: FontWeight.bold)),
+                      const Spacer(),
+                      Text(_fileName, style: TextStyle(color: Colors.grey.shade600), overflow: TextOverflow.ellipsis),
+                    ],
+                  ),
                 ),
               ),
-            ),
+            ],
 
             const SizedBox(height: 25),
             
