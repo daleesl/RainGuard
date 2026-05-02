@@ -22,7 +22,7 @@ class MapHelper {
       case ReportType.brownout:
         return Icons.flash_on;
       case ReportType.flood:
-        return Icons.water_drop;
+        return Icons.waves;
     }
   }
 
