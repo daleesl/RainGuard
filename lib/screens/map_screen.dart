@@ -8,7 +8,7 @@ import '../widgets/report_modal.dart';
 import '../utils/map_helper.dart';
 
 class MapScreen extends StatefulWidget {
-  const MapScreen({Key? key}) : super(key: key);
+  const MapScreen({super.key});
 
   @override
   State<MapScreen> createState() => _MapScreenState();

@@ -6,7 +6,7 @@ import '../widgets/report_details_dialog.dart';
 import 'package:timeago/timeago.dart' as timeago;
 
 class NotificationScreen extends StatelessWidget {
-  const NotificationScreen({Key? key}) : super(key: key);
+  const NotificationScreen({super.key});
 
   @override
   Widget build(BuildContext context) {

@@ -5,7 +5,7 @@ import '../utils/map_helper.dart';
 class IntelligentPin extends StatelessWidget {
   final Report report;
 
-  const IntelligentPin({Key? key, required this.report}) : super(key: key);
+  const IntelligentPin({super.key, required this.report});
 
   @override
   Widget build(BuildContext context) {
