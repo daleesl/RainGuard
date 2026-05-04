@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'firebase_options.dart';
 import 'screens/main_wrapper.dart';
 
@@ -17,7 +18,7 @@ void main() async {
 }
 
 class RainGuardApp extends StatelessWidget {
-  const RainGuardApp({Key? key}) : super(key: key);
+  const RainGuardApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -27,6 +28,7 @@ class RainGuardApp extends StatelessWidget {
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.blueAccent.shade400),
         useMaterial3: true,
+        textTheme: GoogleFonts.poppinsTextTheme(Theme.of(context).textTheme),
       ),
       home: const MainWrapper(),
     );

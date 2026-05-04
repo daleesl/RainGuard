@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:geolocator/geolocator.dart';
 import '../services/weather_service.dart';
+import '../services/geocoding_service.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({Key? key}) : super(key: key);
+  const HomeScreen({super.key});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -71,10 +72,18 @@ class _HomeScreenState extends State<HomeScreen> {
       // 3. Fetch weather from OpenWeather via Service Cache
       final weatherData = await WeatherService.getWeather(lat, lon);
       
+      // 4. Fetch precise barangay name via free Nominatim Cache
+      final addressName = await GeocodingService.getAddressFromCoordinates(lat, lon);
+      
       setState(() {
         _weatherTemp = '${weatherData['temp'].round()} °C';
         _weatherDesc = weatherData['description'];
-        _locationName = weatherData['location']; // dynamically setting location
+        
+        // If Nominatim fails entirely, fallback to OpenWeather's city label
+        _locationName = (addressName != 'Location Error' && addressName != 'Unknown Location') 
+            ? addressName 
+            : weatherData['location']; 
+            
         _isLoadingWeather = false;
       });
     } catch (e) {
