@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -12,7 +11,7 @@ import '../models/report_model.dart';
 import '../utils/map_helper.dart';
 
 class ReportModal extends StatefulWidget {
-  const ReportModal({Key? key}) : super(key: key);
+  const ReportModal({super.key});
 
   @override
   State<ReportModal> createState() => _ReportModalState();
@@ -72,17 +71,39 @@ class _ReportModalState extends State<ReportModal> {
       String? downloadUrl;
       if (_pickedImage != null) {
         final storageRef = FirebaseStorage.instance.ref();
-        String path = 'reports/${DateTime.now().millisecondsSinceEpoch}_${_pickedImage!.name}';
+        
+        // Clean the file name to avoid any special character issues in Firebase
+        String cleanName = _pickedImage!.name.replaceAll(RegExp(r'[^a-zA-Z0-9\.]'), '_');
+        String path = 'reports/${DateTime.now().millisecondsSinceEpoch}_$cleanName';
         final fileRef = storageRef.child(path);
         
-        // Use kIsWeb to avoid dart:io File unsupported operation on Web
-        if (!kIsWeb && _pickedImage!.path.isNotEmpty) {
-          await fileRef.putFile(File(_pickedImage!.path));
-        } else {
-          final bytes = await _pickedImage!.readAsBytes();
-          await fileRef.putData(bytes);
+        try {
+          // Define metadata for ALL platforms to ensure the image displays properly
+          final metadata = SettableMetadata(
+            contentType: _pickedImage!.mimeType ?? 'image/jpeg',
+          );
+
+          TaskSnapshot snapshot;
+          // Use kIsWeb to seamlessly route between Mobile (Android/iOS) and Web
+          if (!kIsWeb && _pickedImage!.path.isNotEmpty) {
+            // For Android and iOS: Stream directly from the local file storage (Best Performance)
+            snapshot = await fileRef.putFile(File(_pickedImage!.path), metadata);
+          } else {
+            // For Web: Read bytes into memory since browsers don't have direct filesystem access
+            final bytes = await _pickedImage!.readAsBytes();
+            snapshot = await fileRef.putData(bytes, metadata);
+          }
+          
+          // Get the URL safely from the snapshot directly indicating it actually reached the server
+          downloadUrl = await snapshot.ref.getDownloadURL();
+        } catch (e) {
+          debugPrint("Firebase Storage Upload Error: $e");
+          String errorMsg = e.toString();
+          if (errorMsg.contains('object-not-found')) {
+             throw Exception("Upload silently failed. Check Firebase Storage Rules (must allow read/write).");
+          }
+          throw Exception("Failed to upload image: $e");
         }
-        downloadUrl = await fileRef.getDownloadURL();
       }
 
       // Determine current user id if any
@@ -211,7 +232,7 @@ class _ReportModalState extends State<ReportModal> {
             ),
             const SizedBox(height: 10),
             DropdownButtonFormField<ReportType>(
-              value: selectedType,
+              initialValue: selectedType,
               decoration: InputDecoration(
                 contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Colors.grey.shade300)),
@@ -244,7 +265,7 @@ class _ReportModalState extends State<ReportModal> {
               const Text('Flood Level', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
               const SizedBox(height: 8),
               DropdownButtonFormField<String>(
-                value: selectedFloodLevel,
+                initialValue: selectedFloodLevel,
                 decoration: InputDecoration(
                   contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Colors.grey.shade300)),
