@@ -1,9 +1,9 @@
-import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/material.dart';
+import 'package:timeago/timeago.dart' as timeago;
 import '../models/report_model.dart';
 import '../utils/map_helper.dart';
 import '../widgets/report_details_dialog.dart';
-import 'package:timeago/timeago.dart' as timeago;
 
 class NotificationScreen extends StatelessWidget {
   const NotificationScreen({super.key});
@@ -11,27 +11,26 @@ class NotificationScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFF4FAFD),
       appBar: AppBar(
+        elevation: 0,
         backgroundColor: Colors.blueAccent.shade400,
-        title: Row(
+        foregroundColor: Colors.white,
+        title: const Row(
           children: [
-            const Icon(Icons.shield_outlined, color: Colors.white),
-            const SizedBox(width: 8),
-            const Text(
+            Icon(Icons.shield_outlined),
+            SizedBox(width: 8),
+            Text(
               'RainGuard',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontWeight: FontWeight.w800),
             ),
           ],
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.menu, color: Colors.white),
+            icon: const Icon(Icons.menu_rounded),
             onPressed: () {},
-          )
+          ),
         ],
       ),
       body: StreamBuilder<QuerySnapshot>(
@@ -49,149 +48,261 @@ class NotificationScreen extends StatelessWidget {
           }
 
           final docs = snapshot.data?.docs ?? [];
-          
-          if (docs.isEmpty) {
-            return const Center(
-              child: Text(
-                'No notifications available',
-                style: TextStyle(fontSize: 16, color: Colors.grey),
-              ),
-            );
+          final reports = <Report>[];
+
+          for (final doc in docs) {
+            try {
+              reports.add(
+                Report.fromFirestore(doc.data() as Map<String, dynamic>, doc.id),
+              );
+            } catch (e) {
+              debugPrint('Error parsing notification report ${doc.id}: $e');
+            }
           }
 
-          return ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: docs.length + 1, // +1 for the header
-            itemBuilder: (context, index) {
-              if (index == 0) {
-                return const Padding(
-                  padding: EdgeInsets.only(bottom: 16.0),
-                  child: Text(
-                    'Notifications',
-                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+          return ListView(
+            padding: const EdgeInsets.fromLTRB(16, 18, 16, 24),
+            children: [
+              const Text(
+                'Notifications',
+                style: TextStyle(
+                  fontSize: 26,
+                  fontWeight: FontWeight.w900,
+                  color: Color(0xFF102033),
+                ),
+              ),
+              const SizedBox(height: 6),
+              const Text(
+                'Tap an alert to see images, description, risk level, and report time.',
+                style: TextStyle(color: Color(0xFF697B8C), height: 1.35),
+              ),
+              const SizedBox(height: 18),
+              if (reports.isEmpty)
+                const _EmptyNotifications()
+              else
+                ...reports.map(
+                  (report) => _NotificationCard(
+                    report: report,
+                    onTap: () => ReportDetailsDialog.show(context, report),
                   ),
-                );
-              }
-
-              final doc = docs[index - 1];
-              Report report;
-              try {
-                report = Report.fromFirestore(doc.data() as Map<String, dynamic>, doc.id);
-              } catch (e) {
-                return const SizedBox.shrink(); // Skip unparseable reports
-              }
-
-              return _buildNotificationCard(context, report);
-            },
+                ),
+            ],
           );
         },
       ),
     );
   }
+}
 
-  Widget _buildNotificationCard(BuildContext context, Report report) {
-    // Determine colors matching the screenshot style based on risk level
-    Color cardColor;
-    Color iconColor;
-    Color pillColor;
-    
-    if (report.risk == RiskLevel.flood) {
-      cardColor = Colors.red.shade100.withOpacity(0.5);
-      iconColor = Colors.red.shade800;
-      pillColor = Colors.red.shade200.withOpacity(0.5);
-    } else if (report.risk == RiskLevel.risk || report.type == ReportType.rain) {
-      cardColor = Colors.amber.shade100.withOpacity(0.5);
-      iconColor = Colors.orange.shade800;
-      pillColor = Colors.amber.shade200.withOpacity(0.5);
-    } else {
-      cardColor = Colors.green.shade100.withOpacity(0.5);
-      iconColor = Colors.green.shade800;
-      pillColor = Colors.green.shade200.withOpacity(0.5);
-    }
+class _NotificationCard extends StatelessWidget {
+  const _NotificationCard({required this.report, required this.onTap});
 
-    final String timeAgoString = timeago.format(report.createdAt);
-    
-    // Description text processing
-    String descriptionText = report.description.isNotEmpty 
-        ? report.description 
-        : "${MapHelper.getReportTypeName(report.type)} reported in the area.";
+  final Report report;
+  final VoidCallback onTap;
 
-    // Get report title
-    String titleText = '${MapHelper.getReportTypeName(report.type)} Detected';
+  @override
+  Widget build(BuildContext context) {
+    final color = _statusColor(report);
+    final bgColor = color.withOpacity(0.10);
+    final reportName = MapHelper.getReportTypeName(report.type);
+    final title = report.risk == RiskLevel.flood
+        ? '$reportName Report Detected'
+        : '$reportName Alert Detected';
 
-    return GestureDetector(
-      onTap: () {
-        ReportDetailsDialog.show(context, report);
-      },
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: cardColor,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.grey.shade300, width: 1.0),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(20),
+          child: Ink(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: bgColor,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: color.withOpacity(0.45)),
+            ),
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(Icons.warning_amber_rounded, color: Colors.black87),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        titleText,
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.72),
+                        borderRadius: BorderRadius.circular(13),
                       ),
-                      const SizedBox(height: 2),
-                      Text(
-                        'Reported by ${report.userId ?? 'User'}',
-                        style: TextStyle(fontSize: 12, color: Colors.grey.shade800),
+                      child: Icon(
+                        MapHelper.getReportIcon(report.type),
+                        color: color,
+                        size: 21,
                       ),
-                    ],
-                  ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            title,
+                            style: TextStyle(
+                              color: report.risk == RiskLevel.flood
+                                  ? color
+                                  : const Color(0xFF102033),
+                              fontWeight: FontWeight.w900,
+                              fontSize: 16,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'Reported by ${report.userId ?? 'Anonymous'}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Color(0xFF102033),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Icon(
+                      Icons.chevron_right_rounded,
+                      color: Color(0xFF697B8C),
+                    ),
+                  ],
                 ),
-                const Icon(Icons.chevron_right, color: Colors.black54),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Text(
-              descriptionText,
-              style: const TextStyle(fontSize: 14, color: Colors.black87),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                if (report.floodLevel != null) ...[
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: pillColor,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      '${report.floodLevel}',
-                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                ],
-                const Icon(Icons.access_time, size: 14, color: Colors.black87),
-                const SizedBox(width: 4),
+                const SizedBox(height: 14),
                 Text(
-                  timeAgoString,
-                  style: const TextStyle(fontSize: 12, color: Colors.black87),
+                  report.description.isNotEmpty
+                      ? report.description
+                      : '$reportName was reported near your monitored area.',
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    height: 1.35,
+                    color: Color(0xFF102033),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 10,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    if (report.floodLevel != null)
+                      _MetaPill(
+                        color: color,
+                        icon: Icons.water_drop_outlined,
+                        label: report.floodLevel!,
+                      ),
+                    _MetaPill(
+                      color: Colors.blueGrey,
+                      icon: Icons.access_time_rounded,
+                      label: timeago.format(report.createdAt),
+                    ),
+                    _MetaPill(
+                      color: color,
+                      icon: Icons.warning_amber_rounded,
+                      label: MapHelper.getRiskLevelName(report.risk),
+                    ),
+                  ],
                 ),
               ],
-            )
-          ],
+            ),
+          ),
         ),
+      ),
+    );
+  }
+
+  Color _statusColor(Report report) {
+    if (report.risk == RiskLevel.flood) return Colors.red.shade700;
+    if (report.risk == RiskLevel.risk || report.type == ReportType.rain) {
+      return Colors.amber.shade800;
+    }
+    return Colors.green.shade700;
+  }
+}
+
+class _MetaPill extends StatelessWidget {
+  const _MetaPill({
+    required this.color,
+    required this.icon,
+    required this.label,
+  });
+
+  final Color color;
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.72),
+        borderRadius: BorderRadius.circular(99),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: color),
+          const SizedBox(width: 5),
+          Text(
+            label,
+            style: TextStyle(
+              color: color,
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _EmptyNotifications extends StatelessWidget {
+  const _EmptyNotifications();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(22),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: const Color(0xFFD9E7EF)),
+      ),
+      child: Column(
+        children: [
+          Icon(
+            Icons.notifications_none_rounded,
+            size: 44,
+            color: Colors.blueAccent.shade400,
+          ),
+          const SizedBox(height: 12),
+          const Text(
+            'No notifications yet',
+            style: TextStyle(
+              fontWeight: FontWeight.w900,
+              fontSize: 17,
+              color: Color(0xFF102033),
+            ),
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            'RainGuard will show community reports and weather alerts here.',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Color(0xFF697B8C), height: 1.4),
+          ),
+        ],
       ),
     );
   }

@@ -4,166 +4,339 @@ import '../utils/map_helper.dart';
 
 class ReportDetailsDialog {
   static void show(BuildContext context, Report report) {
-    showDialog(
+    showModalBottomSheet(
       context: context,
-      builder: (context) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        child: Container(
-          padding: const EdgeInsets.all(24.0),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => _ReportDetailsSheet(report: report),
+    );
+  }
+}
+
+class _ReportDetailsSheet extends StatelessWidget {
+  const _ReportDetailsSheet({required this.report});
+
+  final Report report;
+
+  @override
+  Widget build(BuildContext context) {
+    final riskColor = MapHelper.getRiskColor(report.risk);
+    final reportName = MapHelper.getReportTypeName(report.type);
+
+    return DraggableScrollableSheet(
+      initialChildSize: 0.82,
+      minChildSize: 0.5,
+      maxChildSize: 0.94,
+      builder: (context, scrollController) {
+        return Container(
+          decoration: const BoxDecoration(
+            color: Color(0xFFF4FAFD),
+            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
           ),
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-              
-                Row(
-                  children: [
-                  Icon(
-                    MapHelper.getReportIcon(report.type),
-                    color: MapHelper.getRiskColor(report.risk),
-                    size: 32,
+          child: ListView(
+            controller: scrollController,
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
+            children: [
+              Center(
+                child: Container(
+                  width: 44,
+                  height: 5,
+                  decoration: BoxDecoration(
+                    color: Colors.blueGrey.shade200,
+                    borderRadius: BorderRadius.circular(99),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 18),
+              Row(
+                children: [
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: riskColor.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Icon(
+                      MapHelper.getReportIcon(report.type),
+                      color: riskColor,
+                      size: 28,
+                    ),
                   ),
                   const SizedBox(width: 12),
-                  Text(
-                    MapHelper.getReportTypeName(report.type),
-                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '$reportName Report',
+                          style: const TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w800,
+                            color: Color(0xFF102033),
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          'Reported by ${report.userId ?? 'Anonymous'}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Color(0xFF697B8C),
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close_rounded),
                   ),
                 ],
               ),
-              const Divider(height: 16),
-              
-              // Image Section
-              Container(
-                height: 220,
-                width: double.infinity,
-                margin: const EdgeInsets.only(bottom: 12),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                  color: Colors.grey.shade50,
-                  border: Border.all(color: Colors.grey.shade200),
-                ),
-                clipBehavior: Clip.hardEdge,
-                child: report.imageUrl != null && report.imageUrl!.isNotEmpty
-                    ? Image.network(
-                        report.imageUrl!,
-                        fit: BoxFit.cover,
-                        loadingBuilder: (context, child, loadingProgress) {
-                          if (loadingProgress == null) return child;
-                          return const Center(child: CircularProgressIndicator());
-                        },
-                        errorBuilder: (context, error, stackTrace) {
-                          return Center(child: Icon(Icons.broken_image, size: 48, color: Colors.grey.shade400));
-                        },
-                      )
-                    : Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.image_not_supported, color: Colors.grey.shade400, size: 40),
-                            const SizedBox(height: 8),
-                            Text('No image provided', style: TextStyle(color: Colors.grey.shade500)),
-                          ],
-                        ),
-                      ),
+              const SizedBox(height: 18),
+              _ReportImage(imageUrl: report.imageUrl),
+              const SizedBox(height: 18),
+              Row(
+                children: [
+                  Expanded(
+                    child: _InfoTile(
+                      label: 'Risk level',
+                      value: MapHelper.getRiskLevelName(report.risk),
+                      color: riskColor,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _InfoTile(
+                      label: 'Flood level',
+                      value: report.floodLevel ?? 'Not set',
+                      color: Colors.blueAccent.shade400,
+                    ),
+                  ),
+                ],
               ),
-              Center(child: Text('Image 1 of 1', style: TextStyle(color: Colors.grey.shade500, fontSize: 12))),
               const SizedBox(height: 12),
-
-              // Info card
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(12),
-                margin: const EdgeInsets.only(top: 12, bottom: 12),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.grey.shade200),
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Flood Level', style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
-                          const SizedBox(height: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: Colors.blue.shade50,
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: Text(report.floodLevel ?? 'N/A', style: const TextStyle(fontWeight: FontWeight.bold)),
-                          ),
-                        ],
-                      ),
+              Row(
+                children: [
+                  Expanded(
+                    child: _InfoTile(
+                      label: 'Latitude',
+                      value: report.latitude.toStringAsFixed(5),
+                      color: Colors.teal,
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Reported By', style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
-                          const SizedBox(height: 8),
-                          Text(report.userId ?? 'Anonymous', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13), maxLines: 1, overflow: TextOverflow.ellipsis),
-                        ],
-                      ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _InfoTile(
+                      label: 'Longitude',
+                      value: report.longitude.toStringAsFixed(5),
+                      color: Colors.teal,
                     ),
-                  ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 18),
+              _SectionCard(
+                title: 'Description',
+                icon: Icons.description_outlined,
+                child: Text(
+                  report.description.isNotEmpty
+                      ? report.description
+                      : 'No description provided for this report.',
+                  style: const TextStyle(
+                    height: 1.45,
+                    fontSize: 15,
+                    color: Color(0xFF102033),
+                  ),
                 ),
               ),
-
-              // Details Section
-              _buildDetailRow(Icons.warning_amber_rounded, 'Risk Level', MapHelper.getRiskLevelName(report.risk)),
               const SizedBox(height: 12),
-              _buildDetailRow(Icons.description_outlined, 'Description', report.description.isNotEmpty ? report.description : "No description provided"),
-              const SizedBox(height: 12),
-              _buildDetailRow(Icons.access_time, 'Time', report.createdAt.toString().split('.')[0]),
-              
-              const SizedBox(height: 24),
-            
+              _SectionCard(
+                title: 'Report time',
+                icon: Icons.access_time_rounded,
+                child: Text(
+                  report.createdAt.toString().split('.').first,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    color: Color(0xFF102033),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
               SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
+                height: 52,
+                child: FilledButton.icon(
+                  style: FilledButton.styleFrom(
                     backgroundColor: Colors.blueAccent.shade400,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
                   ),
                   onPressed: () => Navigator.pop(context),
-                  child: const Text('Close', style: TextStyle(color: Colors.white, fontSize: 16)),
+                  icon: const Icon(Icons.check_circle_outline_rounded),
+                  label: const Text(
+                    'Done',
+                    style: TextStyle(fontWeight: FontWeight.w800),
+                  ),
                 ),
               ),
             ],
           ),
-        ),
+        );
+      },
+    );
+  }
+}
+
+class _ReportImage extends StatelessWidget {
+  const _ReportImage({required this.imageUrl});
+
+  final String? imageUrl;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 230,
+      width: double.infinity,
+      clipBehavior: Clip.hardEdge,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: const Color(0xFFD9E7EF)),
       ),
+      child: imageUrl != null && imageUrl!.isNotEmpty
+          ? Image.network(
+              imageUrl!,
+              fit: BoxFit.cover,
+              loadingBuilder: (context, child, progress) {
+                if (progress == null) return child;
+                return const Center(child: CircularProgressIndicator());
+              },
+              errorBuilder: (context, error, stackTrace) {
+                return const _EmptyImageState(
+                  icon: Icons.broken_image_outlined,
+                  label: 'Image could not be loaded',
+                );
+              },
+            )
+          : const _EmptyImageState(
+              icon: Icons.image_not_supported_outlined,
+              label: 'No image attached',
+            ),
+    );
+  }
+}
+
+class _EmptyImageState extends StatelessWidget {
+  const _EmptyImageState({required this.icon, required this.label});
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(icon, size: 44, color: Colors.blueGrey.shade200),
+        const SizedBox(height: 10),
+        Text(label, style: const TextStyle(color: Color(0xFF697B8C))),
+      ],
+    );
+  }
+}
+
+class _InfoTile extends StatelessWidget {
+  const _InfoTile({
+    required this.label,
+    required this.value,
+    required this.color,
+  });
+
+  final String label;
+  final String value;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFD9E7EF)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 12,
+              color: Color(0xFF697B8C),
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: 16,
+              color: color,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
       ),
     );
   }
+}
 
-  static Widget _buildDetailRow(IconData icon, String title, String value) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Icon(icon, size: 20, color: Colors.grey.shade600),
-        const SizedBox(width: 12),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(title, style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey.shade700)),
-            const SizedBox(height: 2),
-            SizedBox(
-              width: 200, // constrain width for description
-              child: Text(value, style: const TextStyle(fontSize: 15)),
-            ),
-          ],
-        ),
-      ],
+class _SectionCard extends StatelessWidget {
+  const _SectionCard({
+    required this.title,
+    required this.icon,
+    required this.child,
+  });
+
+  final String title;
+  final IconData icon;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFD9E7EF)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 18, color: Colors.blueAccent.shade400),
+              const SizedBox(width: 8),
+              Text(
+                title,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w800,
+                  color: Color(0xFF102033),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          child,
+        ],
+      ),
     );
   }
 }

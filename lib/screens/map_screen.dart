@@ -1,11 +1,13 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:timeago/timeago.dart' as timeago;
 import '../models/report_model.dart';
-import '../widgets/intelligent_pin.dart';
-import '../widgets/report_modal.dart';
 import '../utils/map_helper.dart';
+import '../widgets/intelligent_pin.dart';
+import '../widgets/report_details_dialog.dart';
+import '../widgets/report_modal.dart';
 
 class MapScreen extends StatefulWidget {
   const MapScreen({super.key});
@@ -15,179 +17,23 @@ class MapScreen extends StatefulWidget {
 }
 
 class _MapScreenState extends State<MapScreen> {
-
   final LatLng _initialCenter = const LatLng(14.2050462, 121.1582127);
   final MapController _mapController = MapController();
 
+  Stream<QuerySnapshot> get _reportsStream => FirebaseFirestore.instance
+      .collection('reports')
+      .orderBy('created_at', descending: true)
+      .snapshots();
+
   void _showReportDetails(Report report) {
-    showDialog(
-      context: context,
-      builder: (context) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        child: Container(
-          padding: const EdgeInsets.all(24.0),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-              
-                Row(
-                  children: [
-                  Icon(
-                    MapHelper.getReportIcon(report.type),
-                    color: MapHelper.getRiskColor(report.risk),
-                    size: 32,
-                  ),
-                  const SizedBox(width: 12),
-                  Text(
-                    MapHelper.getReportTypeName(report.type),
-                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                  ),
-                ],
-              ),
-              const Divider(height: 16),
-              
-              // Image Section (with loading and error fallback)
-              Container(
-                height: 220,
-                width: double.infinity,
-                margin: const EdgeInsets.only(bottom: 12),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                  color: Colors.grey.shade50,
-                  border: Border.all(color: Colors.grey.shade200),
-                ),
-                clipBehavior: Clip.hardEdge,
-                child: report.imageUrl != null && report.imageUrl!.isNotEmpty
-                    ? Image.network(
-                        report.imageUrl!,
-                        fit: BoxFit.cover,
-                        loadingBuilder: (context, child, loadingProgress) {
-                          if (loadingProgress == null) return child;
-                          return const Center(child: CircularProgressIndicator());
-                        },
-                        errorBuilder: (context, error, stackTrace) {
-                          return Center(child: Icon(Icons.broken_image, size: 48, color: Colors.grey.shade400));
-                        },
-                      )
-                    : Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.image_not_supported, color: Colors.grey.shade400, size: 40),
-                            const SizedBox(height: 8),
-                            Text('No image provided', style: TextStyle(color: Colors.grey.shade500)),
-                          ],
-                        ),
-                      ),
-              ),
-              Center(child: Text('Image 1 of 1', style: TextStyle(color: Colors.grey.shade500, fontSize: 12))),
-              const SizedBox(height: 12),
-
-              // Info card
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(12),
-                margin: const EdgeInsets.only(top: 12, bottom: 12),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.grey.shade200),
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Flood Level', style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
-                          const SizedBox(height: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: Colors.blue.shade50,
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: Text(report.floodLevel ?? 'N/A', style: const TextStyle(fontWeight: FontWeight.bold)),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Reported By', style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
-                          const SizedBox(height: 8),
-                          Text(report.userId ?? 'Anonymous', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13), maxLines: 1, overflow: TextOverflow.ellipsis),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              // Details Section
-              _buildDetailRow(Icons.warning_amber_rounded, 'Risk Level', MapHelper.getRiskLevelName(report.risk)),
-              const SizedBox(height: 12),
-              _buildDetailRow(Icons.description_outlined, 'Description', report.description.isNotEmpty ? report.description : "No description provided"),
-              const SizedBox(height: 12),
-              _buildDetailRow(Icons.access_time, 'Time', report.createdAt.toString().split('.')[0]),
-              
-              const SizedBox(height: 24),
-            
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blueAccent.shade400,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                  ),
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('Close', style: TextStyle(color: Colors.white, fontSize: 16)),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-      ),
-    );
-  }
-
-  Widget _buildDetailRow(IconData icon, String label, String value) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Icon(icon, size: 20, color: Colors.grey.shade600),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(label, style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
-              Text(value, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500)),
-            ],
-          ),
-        ),
-      ],
-    );
+    ReportDetailsDialog.show(context, report);
   }
 
   void _showAddReportModal() {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
+      backgroundColor: Colors.transparent,
       builder: (context) => Padding(
         padding: EdgeInsets.only(
           bottom: MediaQuery.of(context).viewInsets.bottom,
@@ -197,236 +43,449 @@ class _MapScreenState extends State<MapScreen> {
     );
   }
 
-  Widget _buildLegendItem(Color color, String label) {
-    return Row(
-      children: [
-        Container(
-          width: 16,
-          height: 16,
-          decoration: BoxDecoration(
-            color: color,
-            shape: BoxShape.circle,
-          ),
-        ),
-        const SizedBox(width: 12),
-        Text(
-          label,
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildRecentReportItem(Color color, String title, String subtitle, String timeStr) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12.0),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 12,
-            height: 12,
-            margin: const EdgeInsets.only(top: 4, right: 12),
-            decoration: BoxDecoration(
-              color: color,
-              shape: BoxShape.circle,
-            ),
-          ),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-                Text(
-                  subtitle,
-                  style: TextStyle(fontSize: 14, color: Colors.grey.shade700),
-                ),
-                Text(
-                  timeStr,
-                  style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF4FAFD),
       appBar: AppBar(
-        title: Row(
+        elevation: 0,
+        backgroundColor: Colors.blueAccent.shade400,
+        foregroundColor: Colors.white,
+        title: const Row(
           children: [
-            const Icon(Icons.shield_outlined, color: Colors.white),
-            const SizedBox(width: 8),
-            const Text(
+            Icon(Icons.shield_outlined),
+            SizedBox(width: 8),
+            Text(
               'RainGuard',
-              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+              style: TextStyle(fontWeight: FontWeight.w800),
             ),
           ],
         ),
-        backgroundColor: Colors.blueAccent.shade400,
-        iconTheme: const IconThemeData(color: Colors.white), // For drawer if added
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.menu_rounded),
+            onPressed: () {},
+          ),
+        ],
       ),
-      drawer: const Drawer(),
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-            child: Text(
-              'Flood Map',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
-          ),
-          
-        
-          Expanded(
-            flex: 2,
-            child: Stack(
-              children: [
-                FlutterMap(
-                  mapController: _mapController,
-                  options: MapOptions(
-                    initialCenter: _initialCenter,
-                    initialZoom: 14.0,
-                  ),
-                  children: [
-                    TileLayer(
-                      urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                      userAgentPackageName: 'com.example.rainguard',
-                    ),
-                    StreamBuilder<QuerySnapshot>(
-                      stream: FirebaseFirestore.instance.collection('reports').snapshots(),
-                      builder: (context, snapshot) {
-                        List<Marker> markers = [];
-                        
-                        if (snapshot.hasData) {
-                          for (var doc in snapshot.data!.docs) {
-                            try {
-                              Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
-                              Report report = Report.fromFirestore(data, doc.id);
-                              
-                              markers.add(
-                                Marker(
-                                  width: 60.0,
-                                  height: 60.0,
-                                  point: LatLng(report.latitude, report.longitude),
-                                  child: GestureDetector(
-                                    onTap: () => _showReportDetails(report),
-                                    child: IntelligentPin(report: report),
-                                  ),
-                                ),
-                              );
-                            } catch (e) {
-                              print("Error parsing document ${doc.id}: $e");
-                            }
-                          }
-                        }
+      body: StreamBuilder<QuerySnapshot>(
+        stream: _reportsStream,
+        builder: (context, snapshot) {
+          final reports = _parseReports(snapshot.data?.docs ?? []);
 
-                        return MarkerLayer(
-                          markers: markers,
-                        );
-                      },
-                    ),
-                  ],
+          return ListView(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+            children: [
+              const Text(
+                'Flood Map',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w900,
+                  color: Color(0xFF102033),
                 ),
-            
-                Positioned(
-                  bottom: 16,
-                  right: 16,
-                  child: FloatingActionButton(
-                    onPressed: _showAddReportModal,
-                    backgroundColor: Colors.blueAccent.shade400,
-                    foregroundColor: Colors.white,
-                    elevation: 4.0,
-                    child: const Icon(Icons.add, size: 28),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          
-      
-          Expanded(
-            flex: 2,
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                children: [
-                
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.grey.shade300),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Map Legend',
-                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                        ),
-                        const SizedBox(height: 16),
-                        _buildLegendItem(Colors.red, 'Flood'),
-                        const SizedBox(height: 12),
-                        _buildLegendItem(Colors.yellowAccent.shade700, 'Risk'),
-                        const SizedBox(height: 12),
-                        _buildLegendItem(Colors.green, 'Safe'),
-                      ],
-                    ),
-                  ),
-                  
-                  const SizedBox(height: 16),
-                  
-                  // Recent Reports Card
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.grey.shade300),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Recent Reports',
-                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                        ),
-                        const SizedBox(height: 16),
-                        _buildRecentReportItem(
-                          Colors.red, 
-                          'Flood reported here', 
-                          'Downtown Area', 
-                          '10 mins ago'
-                        ),
-                        _buildRecentReportItem(
-                          Colors.yellowAccent.shade700, 
-                          'Risk are detected', 
-                          'Low lying district', 
-                          '10 mins ago'
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
               ),
+              const SizedBox(height: 12),
+              _MapCard(
+                mapController: _mapController,
+                initialCenter: _initialCenter,
+                reports: reports,
+                onReportTap: _showReportDetails,
+                onAddTap: _showAddReportModal,
+              ),
+              const SizedBox(height: 16),
+              _LegendCard(),
+              const SizedBox(height: 16),
+              _RecentReportsCard(
+                isLoading: snapshot.connectionState == ConnectionState.waiting,
+                reports: reports,
+                onReportTap: _showReportDetails,
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  List<Report> _parseReports(List<QueryDocumentSnapshot> docs) {
+    final reports = <Report>[];
+
+    for (final doc in docs) {
+      try {
+        reports.add(
+          Report.fromFirestore(doc.data() as Map<String, dynamic>, doc.id),
+        );
+      } catch (e) {
+        debugPrint('Error parsing report ${doc.id}: $e');
+      }
+    }
+
+    return reports;
+  }
+}
+
+class _MapCard extends StatelessWidget {
+  const _MapCard({
+    required this.mapController,
+    required this.initialCenter,
+    required this.reports,
+    required this.onReportTap,
+    required this.onAddTap,
+  });
+
+  final MapController mapController;
+  final LatLng initialCenter;
+  final List<Report> reports;
+  final ValueChanged<Report> onReportTap;
+  final VoidCallback onAddTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 310,
+      clipBehavior: Clip.hardEdge,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: const Color(0xFFD9E7EF)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.blueGrey.withOpacity(0.10),
+            blurRadius: 24,
+            offset: const Offset(0, 12),
+          ),
+        ],
+      ),
+      child: Stack(
+        children: [
+          FlutterMap(
+            mapController: mapController,
+            options: MapOptions(
+              initialCenter: initialCenter,
+              initialZoom: 14.0,
+            ),
+            children: [
+              TileLayer(
+                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                userAgentPackageName: 'com.example.rainguard',
+              ),
+              MarkerLayer(
+                markers: reports
+                    .map(
+                      (report) => Marker(
+                        width: 60,
+                        height: 60,
+                        point: LatLng(report.latitude, report.longitude),
+                        child: GestureDetector(
+                          onTap: () => onReportTap(report),
+                          child: IntelligentPin(report: report),
+                        ),
+                      ),
+                    )
+                    .toList(),
+              ),
+            ],
+          ),
+          Positioned(
+            top: 14,
+            left: 14,
+            child: _MapBadge(count: reports.length),
+          ),
+          Positioned(
+            bottom: 18,
+            right: 18,
+            child: FloatingActionButton(
+              heroTag: 'add-report-map',
+              onPressed: onAddTap,
+              backgroundColor: Colors.blueAccent.shade400,
+              foregroundColor: Colors.white,
+              elevation: 4,
+              child: const Icon(Icons.add_rounded, size: 32),
             ),
           ),
         ],
       ),
-      
-      // Bottom Navigation Bar is now handled by MainWrapper
+    );
+  }
+}
+
+class _MapBadge extends StatelessWidget {
+  const _MapBadge({required this.count});
+
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.94),
+        borderRadius: BorderRadius.circular(99),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 16,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.pin_drop_rounded, size: 16, color: Colors.blue.shade700),
+          const SizedBox(width: 6),
+          Text(
+            '$count live reports',
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+              color: Color(0xFF102033),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _LegendCard extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return _SurfaceCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Map Legend',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w900,
+              color: Color(0xFF102033),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              _LegendChip(color: Colors.red.shade600, label: 'Flood'),
+              _LegendChip(color: Colors.amber.shade600, label: 'Risk'),
+              _LegendChip(color: Colors.green.shade600, label: 'Safe'),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _LegendChip extends StatelessWidget {
+  const _LegendChip({required this.color, required this.label});
+
+  final Color color;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.10),
+        borderRadius: BorderRadius.circular(99),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 10,
+            height: 10,
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            label,
+            style: TextStyle(
+              color: color,
+              fontWeight: FontWeight.w800,
+              fontSize: 13,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RecentReportsCard extends StatelessWidget {
+  const _RecentReportsCard({
+    required this.isLoading,
+    required this.reports,
+    required this.onReportTap,
+  });
+
+  final bool isLoading;
+  final List<Report> reports;
+  final ValueChanged<Report> onReportTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final visibleReports = reports.take(4).toList();
+
+    return _SurfaceCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Recent Reports',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w900,
+              color: Color(0xFF102033),
+            ),
+          ),
+          const SizedBox(height: 12),
+          if (isLoading)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 16),
+              child: Center(child: CircularProgressIndicator()),
+            )
+          else if (visibleReports.isEmpty)
+            const _EmptyReports()
+          else
+            ...visibleReports.map(
+              (report) => _RecentReportTile(
+                report: report,
+                onTap: () => onReportTap(report),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RecentReportTile extends StatelessWidget {
+  const _RecentReportTile({required this.report, required this.onTap});
+
+  final Report report;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = MapHelper.getRiskColor(report.risk);
+    final title = '${MapHelper.getReportTypeName(report.type)} reported';
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 34,
+                height: 34,
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  MapHelper.getReportIcon(report.type),
+                  size: 19,
+                  color: color,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF102033),
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      report.description.isNotEmpty
+                          ? report.description
+                          : 'Tap to view report details',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Color(0xFF697B8C),
+                        fontSize: 12,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      timeago.format(report.createdAt),
+                      style: TextStyle(
+                        color: Colors.blueGrey.shade400,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right_rounded, color: Color(0xFF697B8C)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _EmptyReports extends StatelessWidget {
+  const _EmptyReports();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: const Color(0xFFE7F4FF),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: const Text(
+        'No community reports yet. New reports will appear here once submitted.',
+        style: TextStyle(color: Color(0xFF0B3A5B), height: 1.35),
+      ),
+    );
+  }
+}
+
+class _SurfaceCard extends StatelessWidget {
+  const _SurfaceCard({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: const Color(0xFFD9E7EF)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.blueGrey.withOpacity(0.06),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: child,
     );
   }
 }
