@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'map_screen.dart';
 import 'notification_screen.dart';
 import 'home_screen.dart';
+import 'settings_screen.dart';
 
 class MainWrapper extends StatefulWidget {
   const MainWrapper({super.key});
@@ -13,19 +14,25 @@ class MainWrapper extends StatefulWidget {
 class _MainWrapperState extends State<MainWrapper> {
   int _currentIndex = 0;
 
-  final List<Widget> _pages = [
-    const HomeScreen(), // Home
-    const MapScreen(), // Map
-    const NotificationScreen(), // Notifications
-    const PlaceholderWidget('Settings / Placeholder'), // Settings
-  ];
+  void _selectTab(int index) {
+    setState(() {
+      _currentIndex = index;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
+    final pages = [
+      HomeScreen(onNavigate: _selectTab),
+      const MapScreen(),
+      const NotificationScreen(),
+      const SettingsScreen(),
+    ];
+
     return Scaffold(
       body: IndexedStack(
         index: _currentIndex,
-        children: _pages,
+        children: pages,
       ),
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
@@ -44,19 +51,6 @@ class _MainWrapperState extends State<MainWrapper> {
           });
         },
       ),
-    );
-  }
-}
-
-class PlaceholderWidget extends StatelessWidget {
-  final String title;
-  const PlaceholderWidget(this.title, {super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text(title)),
-      body: Center(child: Text(title)),
     );
   }
 }
