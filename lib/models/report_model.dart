@@ -2,7 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 enum RiskLevel { safe, risk, flood }
 
-enum ReportType { rain, wind, brownout, flood }
+enum ReportType { rain, flood }
 
 class Report {
   final String id;
@@ -14,6 +14,8 @@ class Report {
   final String? imageUrl;
   final String? floodLevel;
   final String? userId;
+  final String? reporterName;
+  final String? reporterDisplayName;
   final DateTime createdAt;
 
   Report({
@@ -26,6 +28,8 @@ class Report {
     this.imageUrl,
     this.floodLevel,
     this.userId,
+    this.reporterName,
+    this.reporterDisplayName,
     required this.createdAt,
   });
 
@@ -40,6 +44,8 @@ class Report {
       imageUrl: data['image_url'],
       floodLevel: data['flood_level'],
       userId: data['user_id'],
+      reporterName: data['reporter_name'],
+      reporterDisplayName: data['reporter_display_name'],
       createdAt: data['created_at'] != null 
           ? (data['created_at'] as Timestamp).toDate()
           : DateTime.now(),
@@ -50,10 +56,6 @@ class Report {
     switch (typeStr?.toLowerCase()) {
       case 'rain':
         return ReportType.rain;
-      case 'wind':
-        return ReportType.wind;
-      case 'brownout':
-        return ReportType.brownout;
       case 'flood':
       default:
         return ReportType.flood;
@@ -83,6 +85,8 @@ class Report {
       'image_url': imageUrl,
       'flood_level': floodLevel,
       'user_id': userId,
+      'reporter_name': reporterName,
+      'reporter_display_name': reporterDisplayName,
       'created_at': Timestamp.fromDate(createdAt),
     };
   }
