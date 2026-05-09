@@ -22,6 +22,7 @@ class _ReportDetailsSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final riskColor = MapHelper.getRiskColor(report.risk);
     final reportName = MapHelper.getReportTypeName(report.type);
+    final reporterName = report.reporterName ?? 'Anonymous reporter';
 
     return DraggableScrollableSheet(
       initialChildSize: 0.82,
@@ -78,7 +79,7 @@ class _ReportDetailsSheet extends StatelessWidget {
                         ),
                         const SizedBox(height: 3),
                         Text(
-                          'Reported by ${report.userId ?? 'Anonymous'}',
+                          'Reported by $reporterName',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
