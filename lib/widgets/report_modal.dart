@@ -8,6 +8,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:image_picker/image_picker.dart';
 import '../models/report_model.dart';
+import '../services/user_profile_service.dart';
 import '../utils/map_helper.dart';
 
 class ReportModal extends StatefulWidget {
@@ -106,12 +107,20 @@ class _ReportModalState extends State<ReportModal> {
         }
       }
 
-      // Determine current user id if any
-      String userId = FirebaseAuth.instance.currentUser?.uid ?? 'anonymous';
+      // Determine current user details for accountable community reporting.
+      final currentUser = FirebaseAuth.instance.currentUser;
+      final userProfile = await UserProfileService.getCurrentUserProfile();
+      final userId = currentUser?.uid ?? 'anonymous';
+      final reporterName =
+          userProfile?.publicReporterName ?? currentUser?.displayName ?? 'Anonymous';
+      final reporterDisplayName =
+          userProfile?.displayName ?? currentUser?.displayName ?? 'Anonymous';
 
       // Creating the standard report data map
       Map<String, dynamic> reportData = {
         'user_id': userId,
+        'reporter_name': reporterName,
+        'reporter_display_name': reporterDisplayName,
         'latitude': position.latitude,
         'longitude': position.longitude,
         'report_type': selectedType.name,
@@ -145,40 +154,47 @@ class _ReportModalState extends State<ReportModal> {
     }
   }
 
-  Widget _buildTypeCard(ReportType type) {
-    bool isSelected = selectedType == type;
-    return GestureDetector(
+  Widget _buildTypeCard(ReportType type, {required double width}) {
+    final isSelected = selectedType == type;
+
+    return InkWell(
       onTap: () {
         setState(() {
           selectedType = type;
+          if (selectedType != ReportType.flood) selectedFloodLevel = null;
         });
       },
-      child: Container(
-        width: 75,
-        height: 75,
+      borderRadius: BorderRadius.circular(16),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 160),
+        width: width,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
         decoration: BoxDecoration(
-          color: isSelected ? Colors.blue.shade50 : Colors.white,
+          color: isSelected ? const Color(0xFFE7F4FF) : Colors.white,
           border: Border.all(
-            color: isSelected ? Colors.blue : Colors.grey.shade300,
-            width: 1.5,
+            color: isSelected ? Colors.blueAccent.shade400 : Colors.grey.shade300,
+            width: isSelected ? 1.6 : 1,
           ),
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(16),
         ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+        child: Row(
           children: [
             Icon(
               MapHelper.getReportIcon(type),
-              color: isSelected ? Colors.blue : Colors.black54,
-              size: 28,
+              color: isSelected ? Colors.blueAccent.shade400 : Colors.black54,
+              size: 24,
             ),
-            const SizedBox(height: 6),
-            Text(
-              MapHelper.getReportTypeName(type),
-              style: TextStyle(
-                color: isSelected ? Colors.blue : Colors.black87,
-                fontSize: 12,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+            const SizedBox(width: 9),
+            Expanded(
+              child: Text(
+                MapHelper.getReportTypeName(type),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: isSelected ? Colors.blueAccent.shade700 : Colors.black87,
+                  fontSize: 13,
+                  fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                ),
               ),
             ),
           ],
@@ -225,36 +241,23 @@ class _ReportModalState extends State<ReportModal> {
             ),
             const SizedBox(height: 20),
             
-            // Report Type Selection (icon-based dropdown)
+            // Report Type Selection
             const Text(
               'Report Type',
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
             ),
             const SizedBox(height: 10),
-            DropdownButtonFormField<ReportType>(
-              initialValue: selectedType,
-              decoration: InputDecoration(
-                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Colors.grey.shade300)),
-                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Colors.grey.shade300)),
-              ),
-              items: ReportType.values.map((type) {
-                return DropdownMenuItem<ReportType>(
-                  value: type,
-                  child: Row(
-                    children: [
-                      Icon(MapHelper.getReportIcon(type), color: Colors.black54),
-                      const SizedBox(width: 10),
-                      Text(MapHelper.getReportTypeName(type)),
-                    ],
-                  ),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final cardWidth = (constraints.maxWidth - 10) / 2;
+
+                return Row(
+                  children: [
+                    _buildTypeCard(ReportType.rain, width: cardWidth),
+                    const SizedBox(width: 10),
+                    _buildTypeCard(ReportType.flood, width: cardWidth),
+                  ],
                 );
-              }).toList(),
-              onChanged: (v) {
-                setState(() {
-                  selectedType = v ?? ReportType.rain;
-                  if (selectedType != ReportType.flood) selectedFloodLevel = null;
-                });
               },
             ),
 
