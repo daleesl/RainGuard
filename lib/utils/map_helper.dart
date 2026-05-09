@@ -17,10 +17,6 @@ class MapHelper {
     switch (type) {
       case ReportType.rain:
         return Icons.umbrella;
-      case ReportType.wind:
-        return Icons.air;
-      case ReportType.brownout:
-        return Icons.flash_on;
       case ReportType.flood:
         return Icons.waves;
     }
@@ -30,10 +26,6 @@ class MapHelper {
     switch (type) {
       case ReportType.rain:
         return "Rain";
-      case ReportType.wind:
-        return "Wind";
-      case ReportType.brownout:
-        return "Brownout";
       case ReportType.flood:
         return "Flood";
     }
