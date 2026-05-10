@@ -1,7 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:geolocator/geolocator.dart';
+import '../models/user_profile.dart';
 import '../services/geocoding_service.dart';
+import '../services/user_profile_service.dart';
 import '../services/weather_service.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -112,22 +115,20 @@ class _HomeScreenState extends State<HomeScreen> {
         elevation: 0,
         backgroundColor: Colors.blueAccent.shade400,
         foregroundColor: Colors.white,
-        title: const Row(
+        title: Row(
           children: [
-            Icon(Icons.shield_outlined),
-            SizedBox(width: 8),
-            Text(
+            SvgPicture.asset(
+              'assets/images/rainGuard-Logo.svg',
+              width: 25,
+              height: 32,
+            ),
+            const SizedBox(width: 8),
+            const Text(
               'RainGuard',
               style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18),
             ),
           ],
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.menu_rounded),
-            onPressed: () {},
-          ),
-        ],
       ),
       body: RefreshIndicator(
         onRefresh: () async {
@@ -139,7 +140,16 @@ class _HomeScreenState extends State<HomeScreen> {
         child: ListView(
           padding: EdgeInsets.zero,
           children: [
-            _Header(locationName: _locationName),
+            StreamBuilder<UserProfile?>(
+              stream: UserProfileService.currentUserProfileStream(),
+              builder: (context, snapshot) {
+                final profile = snapshot.data;
+                return _Header(
+                  displayName: profile?.firstNameOrDisplay ?? 'RainGuard user',
+                  locationName: _locationName,
+                );
+              },
+            ),
             Transform.translate(
               offset: const Offset(0, -28),
               child: Padding(
@@ -178,8 +188,12 @@ class _HomeScreenState extends State<HomeScreen> {
 }
 
 class _Header extends StatelessWidget {
-  const _Header({required this.locationName});
+  const _Header({
+    required this.displayName,
+    required this.locationName,
+  });
 
+  final String displayName;
   final String locationName;
 
   @override
@@ -194,9 +208,11 @@ class _Header extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Hello, John Jester!',
-            style: TextStyle(
+          Text(
+            'Hello, $displayName!',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
               color: Colors.white,
               fontSize: 20,
               fontWeight: FontWeight.w900,
