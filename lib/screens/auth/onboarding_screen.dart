@@ -19,6 +19,14 @@ class OnboardingScreen extends StatelessWidget {
   static const _homeIndicator = Color(0xFFB8C8D4);
 
   static const seenPreferenceKey = 'has_seen_onboarding';
+  // Tweak these if you want to adjust the onboarding rhythm later.
+  static const _headerHeightBase = 380.0;
+  static const _brandTopGapBase = 16.0;
+  static const _heroTopBase = 126.0;
+  static const _heroAspectRatio = 1.48;
+  static const _heroWidthFactor = 0.84;
+  static const _copyTopGapBase = 24.0;
+  static const _buttonTopGapBase = 34.0;
 
   Future<void> _goToLogin(BuildContext context) async {
     final navigator = Navigator.of(context);
@@ -47,9 +55,12 @@ class OnboardingScreen extends StatelessWidget {
           builder: (context, constraints) {
             final width = constraints.maxWidth;
             final height = constraints.maxHeight;
-            final scale = (width / 390).clamp(0.86, 1.12);
-            final verticalScale = (height / 844).clamp(0.86, 1.08);
-            final headerHeight = 384.0 * verticalScale;
+            final scale = (width / 390).clamp(0.86, 1.0);
+            final verticalScale = (height / 844).clamp(0.86, 1.0);
+            final headerHeight = _headerHeightBase * verticalScale;
+            final horizontalPadding = 28.0 * scale;
+            final heroWidth = (width * _heroWidthFactor).clamp(328.0, 370.0);
+            final heroHeight = heroWidth / _heroAspectRatio;
 
             return SizedBox(
               width: width,
@@ -77,7 +88,10 @@ class OnboardingScreen extends StatelessWidget {
                   SafeArea(
                     bottom: false,
                     child: Padding(
-                      padding: EdgeInsets.only(left: 28 * scale, top: 21 * scale),
+                      padding: EdgeInsets.only(
+                        left: horizontalPadding,
+                        top: _brandTopGapBase * scale,
+                      ),
                       child: Row(
                         children: [
                           SvgPicture.asset(
@@ -101,11 +115,11 @@ class OnboardingScreen extends StatelessWidget {
                     ),
                   ),
                   Positioned(
-                    left: 33 * scale,
-                    top: 119 * verticalScale,
+                    left: (width - heroWidth) / 2,
+                    top: _heroTopBase * verticalScale,
                     child: Container(
-                      width: 324 * scale,
-                      height: 231 * verticalScale,
+                      width: heroWidth,
+                      height: heroHeight,
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(24 * scale),
                         boxShadow: const [
@@ -123,59 +137,60 @@ class OnboardingScreen extends StatelessWidget {
                       ),
                     ),
                   ),
-                  Positioned(
-                    left: 28 * scale,
-                    right: 28 * scale,
-                    top: headerHeight + (23 * verticalScale),
-                    child: _OnboardingCopy(scale: scale),
-                  ),
-                  Positioned(
-                    left: 28 * scale,
-                    right: 28 * scale,
-                    bottom: 57 * verticalScale,
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        SizedBox(
-                          width: double.infinity,
-                          height: 56 * scale,
-                          child: ElevatedButton(
+                  Positioned.fill(
+                    top: headerHeight,
+                    child: Padding(
+                      padding: EdgeInsets.fromLTRB(
+                        horizontalPadding,
+                        _copyTopGapBase * verticalScale,
+                        horizontalPadding,
+                        24 * verticalScale,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          _OnboardingCopy(scale: scale, availableWidth: width),
+                          SizedBox(height: _buttonTopGapBase * verticalScale),
+                          SizedBox(
+                            height: 56 * scale,
+                            child: ElevatedButton(
+                              onPressed: () => _goToLogin(context),
+                              style: ElevatedButton.styleFrom(
+                                elevation: 0,
+                                backgroundColor: _primaryBlue,
+                                foregroundColor: Colors.white,
+                                shadowColor: const Color(0x29082138),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(18 * scale),
+                                ),
+                                textStyle: GoogleFonts.poppins(
+                                  fontSize: 15 * scale,
+                                  fontWeight: FontWeight.w700,
+                                  height: 1.33,
+                                ),
+                              ),
+                              child: const Text('Get started'),
+                            ),
+                          ),
+                          SizedBox(height: 14 * verticalScale),
+                          TextButton(
                             onPressed: () => _goToLogin(context),
-                            style: ElevatedButton.styleFrom(
-                              elevation: 0,
-                              backgroundColor: _primaryBlue,
-                              foregroundColor: Colors.white,
-                              shadowColor: const Color(0x29082138),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(18 * scale),
+                            style: TextButton.styleFrom(
+                              foregroundColor: _muted,
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 16 * scale,
+                                vertical: 8 * verticalScale,
                               ),
                               textStyle: GoogleFonts.poppins(
-                                fontSize: 15 * scale,
-                                fontWeight: FontWeight.w700,
-                                height: 1.33,
+                                fontSize: 13 * scale,
+                                fontWeight: FontWeight.w600,
+                                height: 1.38,
                               ),
                             ),
-                            child: const Text('Get started'),
+                            child: const Text('I already have an account'),
                           ),
-                        ),
-                        SizedBox(height: 13 * verticalScale),
-                        TextButton(
-                          onPressed: () => _goToLogin(context),
-                          style: TextButton.styleFrom(
-                            foregroundColor: _muted,
-                            padding: EdgeInsets.symmetric(
-                              horizontal: 16 * scale,
-                              vertical: 8 * verticalScale,
-                            ),
-                            textStyle: GoogleFonts.poppins(
-                              fontSize: 13 * scale,
-                              fontWeight: FontWeight.w600,
-                              height: 1.38,
-                            ),
-                          ),
-                          child: const Text('I already have an account'),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                   Positioned(
@@ -201,9 +216,13 @@ class OnboardingScreen extends StatelessWidget {
 }
 
 class _OnboardingCopy extends StatelessWidget {
-  const _OnboardingCopy({required this.scale});
+  const _OnboardingCopy({
+    required this.scale,
+    required this.availableWidth,
+  });
 
   final double scale;
+  final double availableWidth;
 
   @override
   Widget build(BuildContext context) {
@@ -215,7 +234,7 @@ class _OnboardingCopy extends StatelessWidget {
           'STAY AHEAD OF FLOODS',
           style: GoogleFonts.poppins(
             color: OnboardingScreen._primaryBlue,
-            fontSize: 12 * scale,
+            fontSize: (availableWidth * 0.028).clamp(11.2, 12.5),
             fontWeight: FontWeight.w700,
             height: 1.25,
             letterSpacing: 0.84,
@@ -226,23 +245,23 @@ class _OnboardingCopy extends StatelessWidget {
           'Know which\nstreets to avoid\nbefore you leave.',
           style: GoogleFonts.poppins(
             color: OnboardingScreen._ink,
-            fontSize: 35 * scale,
+            fontSize: (availableWidth * 0.079).clamp(30.0, 33.5),
             fontWeight: FontWeight.w800,
-            height: 1.2,
+            height: 1.16,
             letterSpacing: -0.35,
           ),
         ),
-        SizedBox(height: 5 * scale),
+        SizedBox(height: 9 * scale),
         Text(
-          'RainGuard combines weather, location, and\ncommunity reports so every alert feels local\nand useful.',
+          'RainGuard combines weather, location, and community reports so every alert feels local and useful.',
           style: GoogleFonts.poppins(
             color: OnboardingScreen._muted,
-            fontSize: 15 * scale,
+            fontSize: (availableWidth * 0.035).clamp(13.2, 15.0),
             fontWeight: FontWeight.w400,
-            height: 1.6,
+            height: 1.38,
           ),
         ),
-        SizedBox(height: 21 * scale),
+        SizedBox(height: 17 * scale),
         Row(
           children: [
             _FeatureChip(
@@ -254,13 +273,14 @@ class _OnboardingCopy extends StatelessWidget {
               scale: scale,
             ),
             SizedBox(width: 12 * scale),
-            _FeatureChip(
-              width: 178 * scale,
-              background: OnboardingScreen._reportChip,
-              dot: OnboardingScreen._reportDot,
-              textColor: const Color(0xFF0B355E),
-              label: 'Photo reports',
-              scale: scale,
+            Expanded(
+              child: _FeatureChip(
+                background: OnboardingScreen._reportChip,
+                dot: OnboardingScreen._reportDot,
+                textColor: const Color(0xFF0B355E),
+                label: 'Photo reports',
+                scale: scale,
+              ),
             ),
           ],
         ),
@@ -271,15 +291,15 @@ class _OnboardingCopy extends StatelessWidget {
 
 class _FeatureChip extends StatelessWidget {
   const _FeatureChip({
-    required this.width,
     required this.background,
     required this.dot,
     required this.textColor,
     required this.label,
     required this.scale,
+    this.width,
   });
 
-  final double width;
+  final double? width;
   final Color background;
   final Color dot;
   final Color textColor;
