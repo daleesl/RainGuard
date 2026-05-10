@@ -1,10 +1,14 @@
 import 'dart:async';
 
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
+import 'auth/login_screen.dart';
+import 'auth/onboarding_screen.dart';
 import 'main_wrapper.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -19,22 +23,32 @@ class _SplashScreenState extends State<SplashScreen> {
   static const _topCircleFill = Color(0xFF124F7D);
   static const _circleAccent = Color(0xFF149BEE);
   static const _bottomCircleFill = Color(0xFF165D70);
-  static const _mutedText = Color(0xFFB9DCEB);
-  static const _pillFill = Color(0xFF155B85);
-  static const _pillDot = Color(0xFF58D6E8);
 
   Timer? _timer;
 
   @override
   void initState() {
     super.initState();
-    _timer = Timer(const Duration(seconds: 4), _goToApp);
+    _timer = Timer(const Duration(seconds: 4), () {
+      unawaited(_goToApp());
+    });
   }
 
-  void _goToApp() {
+  Future<void> _goToApp() async {
+    final prefs = await SharedPreferences.getInstance();
+    final hasSeenOnboarding =
+        prefs.getBool(OnboardingScreen.seenPreferenceKey) ?? false;
+    final currentUser = FirebaseAuth.instance.currentUser;
+
     if (!mounted) return;
+    final nextScreen = currentUser != null
+        ? const MainWrapper()
+        : hasSeenOnboarding
+            ? const LoginScreen()
+            : const OnboardingScreen();
+
     Navigator.of(context).pushReplacement(
-      MaterialPageRoute<void>(builder: (_) => const MainWrapper()),
+      MaterialPageRoute<void>(builder: (_) => nextScreen),
     );
   }
 
@@ -89,60 +103,26 @@ class _SplashScreenState extends State<SplashScreen> {
                               MediaQuery.paddingOf(context).top -
                               MediaQuery.paddingOf(context).bottom,
                           child: Column(
-                        children: [
-                          const Spacer(flex: 34),
-                          SvgPicture.asset(
-                            'assets/images/rainGuard-Logo.svg',
-                            width: 118 * scale,
-                            height: 148 * scale,
-                          ),
-                          SizedBox(height: 24 * scale),
-                          Text(
-                            'RainGuard',
-                            textAlign: TextAlign.center,
-                            style: GoogleFonts.poppins(
-                              color: Colors.white,
-                              fontSize: 37 * scale,
-                              fontWeight: FontWeight.w800,
-                              height: 1.05,
-                              letterSpacing: -0.8,
-                            ),
-                          ),
-                          SizedBox(height: 26 * scale),
-                          Text(
-                            'Flood alerts before water\nreaches your street.',
-                            textAlign: TextAlign.center,
-                            style: GoogleFonts.poppins(
-                              color: const Color(0xFFD8F2FF),
-                              fontSize: 17 * scale,
-                              fontWeight: FontWeight.w500,
-                              height: 1.45,
-                            ),
-                          ),
-                          SizedBox(height: 54 * scale),
-                          _InfoPill(scale: scale),
-                          SizedBox(height: 20 * scale),
-                          Text(
-                            'Built for community rainfall, flood risk, and\nemergency readiness.',
-                            textAlign: TextAlign.center,
-                            style: GoogleFonts.poppins(
-                              color: _mutedText,
-                              fontSize: 11.5 * scale,
-                              fontWeight: FontWeight.w400,
-                              height: 1.45,
-                            ),
-                          ),
-                          const Spacer(flex: 19),
-                          Container(
-                            width: 124 * scale,
-                            height: 4.5,
-                            margin: EdgeInsets.only(bottom: 18 * scale),
-                            decoration: BoxDecoration(
-                              color: const Color(0xA3FFFFFF),
-                              borderRadius: BorderRadius.circular(999),
-                            ),
-                          ),
-                        ],
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              SvgPicture.asset(
+                                'assets/images/rainGuard-Logo.svg',
+                                width: 118 * scale,
+                                height: 148 * scale,
+                              ),
+                              SizedBox(height: 24 * scale),
+                              Text(
+                                'RainGuard',
+                                textAlign: TextAlign.center,
+                                style: GoogleFonts.poppins(
+                                  color: Colors.white,
+                                  fontSize: 37 * scale,
+                                  fontWeight: FontWeight.w800,
+                                  height: 1.05,
+                                  letterSpacing: -0.8,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ),
@@ -153,47 +133,6 @@ class _SplashScreenState extends State<SplashScreen> {
             );
           },
         ),
-      ),
-    );
-  }
-}
-
-class _InfoPill extends StatelessWidget {
-  const _InfoPill({required this.scale});
-
-  final double scale;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 31 * scale,
-      padding: EdgeInsets.symmetric(horizontal: 15 * scale),
-      decoration: BoxDecoration(
-        color: _SplashScreenState._pillFill,
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 5.5 * scale,
-            height: 5.5 * scale,
-            decoration: const BoxDecoration(
-              color: _SplashScreenState._pillDot,
-              shape: BoxShape.circle,
-            ),
-          ),
-          SizedBox(width: 21 * scale),
-          Text(
-            'Live rain + verified reports',
-            style: GoogleFonts.poppins(
-              color: Colors.white,
-              fontSize: 11.5 * scale,
-              fontWeight: FontWeight.w700,
-              height: 1,
-            ),
-          ),
-        ],
       ),
     );
   }
