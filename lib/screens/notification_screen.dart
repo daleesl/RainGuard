@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import '../models/report_model.dart';
 import '../utils/map_helper.dart';
@@ -16,22 +17,20 @@ class NotificationScreen extends StatelessWidget {
         elevation: 0,
         backgroundColor: Colors.blueAccent.shade400,
         foregroundColor: Colors.white,
-        title: const Row(
+        title: Row(
           children: [
-            Icon(Icons.shield_outlined),
-            SizedBox(width: 8),
-            Text(
+            SvgPicture.asset(
+              'assets/images/rainGuard-Logo.svg',
+              width: 25,
+              height: 32,
+            ),
+            const SizedBox(width: 8),
+            const Text(
               'RainGuard',
               style: TextStyle(fontWeight: FontWeight.w800),
             ),
           ],
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.menu_rounded),
-            onPressed: () {},
-          ),
-        ],
       ),
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance
@@ -159,7 +158,7 @@ class _NotificationCard extends StatelessWidget {
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            'Reported by ${report.userId ?? 'Anonymous'}',
+                            'Reported by ${report.reporterName ?? 'Anonymous reporter'}',
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
