@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import '../models/report_model.dart';
@@ -51,22 +52,20 @@ class _MapScreenState extends State<MapScreen> {
         elevation: 0,
         backgroundColor: Colors.blueAccent.shade400,
         foregroundColor: Colors.white,
-        title: const Row(
+        title: Row(
           children: [
-            Icon(Icons.shield_outlined),
-            SizedBox(width: 8),
-            Text(
+            SvgPicture.asset(
+              'assets/images/rainGuard-Logo.svg',
+              width: 25,
+              height: 32,
+            ),
+            const SizedBox(width: 8),
+            const Text(
               'RainGuard',
               style: TextStyle(fontWeight: FontWeight.w800),
             ),
           ],
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.menu_rounded),
-            onPressed: () {},
-          ),
-        ],
       ),
       body: StreamBuilder<QuerySnapshot>(
         stream: _reportsStream,
@@ -374,6 +373,7 @@ class _RecentReportTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final color = MapHelper.getRiskColor(report.risk);
     final title = '${MapHelper.getReportTypeName(report.type)} reported';
+    final reporterName = report.reporterName ?? 'Anonymous reporter';
 
     return Material(
       color: Colors.transparent,
@@ -408,6 +408,16 @@ class _RecentReportTile extends StatelessWidget {
                       style: const TextStyle(
                         fontWeight: FontWeight.w800,
                         color: Color(0xFF102033),
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      'By $reporterName',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Color(0xFF697B8C),
+                        fontSize: 12,
                       ),
                     ),
                     const SizedBox(height: 3),
