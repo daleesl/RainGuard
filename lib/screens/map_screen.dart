@@ -5,6 +5,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import '../models/report_model.dart';
+import '../theme/rainguard_theme.dart';
 import '../utils/map_helper.dart';
 import '../widgets/intelligent_pin.dart';
 import '../widgets/report_details_dialog.dart';
@@ -47,11 +48,8 @@ class _MapScreenState extends State<MapScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF4FAFD),
+      backgroundColor: RainGuardColors.background,
       appBar: AppBar(
-        elevation: 0,
-        backgroundColor: Colors.blueAccent.shade400,
-        foregroundColor: Colors.white,
         title: Row(
           children: [
             SvgPicture.asset(
@@ -62,7 +60,7 @@ class _MapScreenState extends State<MapScreen> {
             const SizedBox(width: 8),
             const Text(
               'RainGuard',
-              style: TextStyle(fontWeight: FontWeight.w800),
+              style: RainGuardTextStyles.appBarTitle,
             ),
           ],
         ),
@@ -80,7 +78,7 @@ class _MapScreenState extends State<MapScreen> {
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.w900,
-                  color: Color(0xFF102033),
+                  color: RainGuardColors.ink,
                 ),
               ),
               const SizedBox(height: 12),
@@ -146,7 +144,7 @@ class _MapCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: const Color(0xFFD9E7EF)),
+        border: Border.all(color: RainGuardColors.border),
         boxShadow: [
           BoxShadow(
             color: Colors.blueGrey.withOpacity(0.10),
@@ -196,7 +194,7 @@ class _MapCard extends StatelessWidget {
             child: FloatingActionButton(
               heroTag: 'add-report-map',
               onPressed: onAddTap,
-              backgroundColor: Colors.blueAccent.shade400,
+              backgroundColor: RainGuardColors.primary,
               foregroundColor: Colors.white,
               elevation: 4,
               child: const Icon(Icons.add_rounded, size: 32),
@@ -231,14 +229,14 @@ class _MapBadge extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.pin_drop_rounded, size: 16, color: Colors.blue.shade700),
+          Icon(Icons.pin_drop_rounded, size: 16, color: RainGuardColors.primary),
           const SizedBox(width: 6),
           Text(
             '$count live reports',
             style: const TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w800,
-              color: Color(0xFF102033),
+              color: RainGuardColors.ink,
             ),
           ),
         ],
@@ -259,7 +257,7 @@ class _LegendCard extends StatelessWidget {
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w900,
-              color: Color(0xFF102033),
+              color: RainGuardColors.ink,
             ),
           ),
           const SizedBox(height: 16),
@@ -339,7 +337,7 @@ class _RecentReportsCard extends StatelessWidget {
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w900,
-              color: Color(0xFF102033),
+              color: RainGuardColors.ink,
             ),
           ),
           const SizedBox(height: 12),
@@ -407,7 +405,7 @@ class _RecentReportTile extends StatelessWidget {
                       title,
                       style: const TextStyle(
                         fontWeight: FontWeight.w800,
-                        color: Color(0xFF102033),
+                        color: RainGuardColors.ink,
                       ),
                     ),
                     const SizedBox(height: 3),
@@ -416,7 +414,7 @@ class _RecentReportTile extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
-                        color: Color(0xFF697B8C),
+                        color: RainGuardColors.secondaryText,
                         fontSize: 12,
                       ),
                     ),
@@ -428,7 +426,7 @@ class _RecentReportTile extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
-                        color: Color(0xFF697B8C),
+                        color: RainGuardColors.secondaryText,
                         fontSize: 12,
                       ),
                     ),
@@ -444,7 +442,7 @@ class _RecentReportTile extends StatelessWidget {
                   ],
                 ),
               ),
-              const Icon(Icons.chevron_right_rounded, color: Color(0xFF697B8C)),
+              const Icon(Icons.chevron_right_rounded, color: RainGuardColors.secondaryText),
             ],
           ),
         ),
@@ -462,7 +460,7 @@ class _EmptyReports extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: const Color(0xFFE7F4FF),
+        color: RainGuardColors.softBlue,
         borderRadius: BorderRadius.circular(16),
       ),
       child: const Text(
@@ -486,7 +484,7 @@ class _SurfaceCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: const Color(0xFFD9E7EF)),
+        border: Border.all(color: RainGuardColors.border),
         boxShadow: [
           BoxShadow(
             color: Colors.blueGrey.withOpacity(0.06),

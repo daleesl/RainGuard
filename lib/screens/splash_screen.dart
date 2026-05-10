@@ -10,6 +10,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'auth/login_screen.dart';
 import 'auth/onboarding_screen.dart';
 import 'main_wrapper.dart';
+import '../theme/rainguard_theme.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -19,10 +20,10 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> {
-  static const _background = Color(0xFF08243F);
-  static const _topCircleFill = Color(0xFF124F7D);
-  static const _circleAccent = Color(0xFF149BEE);
-  static const _bottomCircleFill = Color(0xFF165D70);
+  static const _background = RainGuardColors.splashBackground;
+  static const _topCircleFill = RainGuardColors.splashTopCircle;
+  static const _circleAccent = RainGuardColors.splashCircleAccent;
+  static const _bottomCircleFill = RainGuardColors.splashBottomCircle;
 
   Timer? _timer;
 

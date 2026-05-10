@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/report_model.dart';
+import '../theme/rainguard_theme.dart';
 import '../utils/map_helper.dart';
 
 class ReportDetailsDialog {
@@ -31,7 +32,7 @@ class _ReportDetailsSheet extends StatelessWidget {
       builder: (context, scrollController) {
         return Container(
           decoration: const BoxDecoration(
-            color: Color(0xFFF4FAFD),
+            color: RainGuardColors.background,
             borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
           ),
           child: ListView(
@@ -74,7 +75,7 @@ class _ReportDetailsSheet extends StatelessWidget {
                           style: const TextStyle(
                             fontSize: 22,
                             fontWeight: FontWeight.w800,
-                            color: Color(0xFF102033),
+                            color: RainGuardColors.ink,
                           ),
                         ),
                         const SizedBox(height: 3),
@@ -83,7 +84,7 @@ class _ReportDetailsSheet extends StatelessWidget {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
-                            color: Color(0xFF697B8C),
+                            color: RainGuardColors.secondaryText,
                             fontSize: 13,
                           ),
                         ),
@@ -113,7 +114,7 @@ class _ReportDetailsSheet extends StatelessWidget {
                     child: _InfoTile(
                       label: 'Flood level',
                       value: report.floodLevel ?? 'Not set',
-                      color: Colors.blueAccent.shade400,
+                      color: RainGuardColors.primary,
                     ),
                   ),
                 ],
@@ -149,7 +150,7 @@ class _ReportDetailsSheet extends StatelessWidget {
                   style: const TextStyle(
                     height: 1.45,
                     fontSize: 15,
-                    color: Color(0xFF102033),
+                    color: RainGuardColors.ink,
                   ),
                 ),
               ),
@@ -161,7 +162,7 @@ class _ReportDetailsSheet extends StatelessWidget {
                   report.createdAt.toString().split('.').first,
                   style: const TextStyle(
                     fontSize: 15,
-                    color: Color(0xFF102033),
+                    color: RainGuardColors.ink,
                   ),
                 ),
               ),
@@ -170,7 +171,7 @@ class _ReportDetailsSheet extends StatelessWidget {
                 height: 52,
                 child: FilledButton.icon(
                   style: FilledButton.styleFrom(
-                    backgroundColor: Colors.blueAccent.shade400,
+                    backgroundColor: RainGuardColors.primary,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
                     ),
@@ -205,7 +206,7 @@ class _ReportImage extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: const Color(0xFFD9E7EF)),
+        border: Border.all(color: RainGuardColors.border),
       ),
       child: imageUrl != null && imageUrl!.isNotEmpty
           ? Image.network(
@@ -243,7 +244,7 @@ class _EmptyImageState extends StatelessWidget {
       children: [
         Icon(icon, size: 44, color: Colors.blueGrey.shade200),
         const SizedBox(height: 10),
-        Text(label, style: const TextStyle(color: Color(0xFF697B8C))),
+        Text(label, style: const TextStyle(color: RainGuardColors.secondaryText)),
       ],
     );
   }
@@ -267,7 +268,7 @@ class _InfoTile extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFD9E7EF)),
+        border: Border.all(color: RainGuardColors.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -276,7 +277,7 @@ class _InfoTile extends StatelessWidget {
             label,
             style: const TextStyle(
               fontSize: 12,
-              color: Color(0xFF697B8C),
+              color: RainGuardColors.secondaryText,
               fontWeight: FontWeight.w700,
             ),
           ),
@@ -316,20 +317,20 @@ class _SectionCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFD9E7EF)),
+        border: Border.all(color: RainGuardColors.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(icon, size: 18, color: Colors.blueAccent.shade400),
+              Icon(icon, size: 18, color: RainGuardColors.primary),
               const SizedBox(width: 8),
               Text(
                 title,
                 style: const TextStyle(
                   fontWeight: FontWeight.w800,
-                  color: Color(0xFF102033),
+                  color: RainGuardColors.ink,
                 ),
               ),
             ],

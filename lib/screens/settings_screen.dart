@@ -3,6 +3,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 
 import '../models/user_profile.dart';
 import '../services/user_profile_service.dart';
+import '../theme/rainguard_theme.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -29,11 +30,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF4FAFD),
+      backgroundColor: RainGuardColors.background,
       appBar: AppBar(
-        elevation: 0,
-        backgroundColor: Colors.blueAccent.shade400,
-        foregroundColor: Colors.white,
         title: Row(
           children: [
             SvgPicture.asset(
@@ -44,7 +42,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             const SizedBox(width: 8),
             const Text(
               'RainGuard',
-              style: TextStyle(fontWeight: FontWeight.w800),
+              style: RainGuardTextStyles.appBarTitle,
             ),
           ],
         ),
@@ -66,13 +64,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 style: TextStyle(
                   fontSize: 30,
                   fontWeight: FontWeight.w900,
-                  color: Color(0xFF102033),
+                  color: RainGuardColors.ink,
                 ),
               ),
               const SizedBox(height: 6),
               const Text(
                 'Manage account, alerts, location, and report verification.',
-                style: TextStyle(color: Color(0xFF697B8C), height: 1.35),
+                style: TextStyle(color: RainGuardColors.secondaryText, height: 1.35),
               ),
               const SizedBox(height: 22),
               _ProfileCard(
@@ -192,7 +190,7 @@ class _ProfileCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: const Color(0xFFD9E7EF)),
+        border: Border.all(color: RainGuardColors.border),
         boxShadow: [
           BoxShadow(
             color: Colors.blueGrey.withOpacity(0.08),
@@ -207,12 +205,12 @@ class _ProfileCard extends StatelessWidget {
             width: 58,
             height: 58,
             decoration: BoxDecoration(
-              color: const Color(0xFFE7F4FF),
+              color: RainGuardColors.softBlue,
               borderRadius: BorderRadius.circular(20),
             ),
             child: Icon(
               Icons.person_rounded,
-              color: Colors.blueAccent.shade400,
+              color: RainGuardColors.primary,
               size: 32,
             ),
           ),
@@ -228,7 +226,7 @@ class _ProfileCard extends StatelessWidget {
                   style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w900,
-                    color: Color(0xFF102033),
+                    color: RainGuardColors.ink,
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -237,7 +235,7 @@ class _ProfileCard extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                    color: Color(0xFF697B8C),
+                    color: RainGuardColors.secondaryText,
                     fontSize: 12,
                   ),
                 ),
@@ -251,13 +249,13 @@ class _ProfileCard extends StatelessWidget {
                       vertical: 6,
                     ),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFFFF5DC),
+                      color: RainGuardColors.warningFill,
                       borderRadius: BorderRadius.circular(99),
                     ),
                     child: Text(
                       _verificationPillLabel(verificationStatus),
                       style: const TextStyle(
-                        color: Color(0xFFB26B00),
+                        color: RainGuardColors.warningText,
                         fontSize: 12,
                         fontWeight: FontWeight.w800,
                       ),
@@ -267,7 +265,7 @@ class _ProfileCard extends StatelessWidget {
               ],
             ),
           ),
-          const Icon(Icons.chevron_right_rounded, color: Color(0xFF697B8C)),
+          const Icon(Icons.chevron_right_rounded, color: RainGuardColors.secondaryText),
         ],
       ),
     );
@@ -300,7 +298,7 @@ class _SectionLabel extends StatelessWidget {
       child: Text(
         label.toUpperCase(),
         style: const TextStyle(
-          color: Color(0xFF526B82),
+          color: RainGuardColors.sectionLabel,
           fontSize: 12,
           fontWeight: FontWeight.w900,
           letterSpacing: 0.6,
@@ -339,7 +337,7 @@ class _SettingsTile extends StatelessWidget {
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: const Color(0xFFD9E7EF)),
+              border: Border.all(color: RainGuardColors.border),
             ),
             child: Row(
               children: [
@@ -352,7 +350,7 @@ class _SettingsTile extends StatelessWidget {
                       Text(
                         title,
                         style: const TextStyle(
-                          color: Color(0xFF102033),
+                          color: RainGuardColors.ink,
                           fontWeight: FontWeight.w800,
                         ),
                       ),
@@ -360,7 +358,7 @@ class _SettingsTile extends StatelessWidget {
                       Text(
                         subtitle,
                         style: const TextStyle(
-                          color: Color(0xFF697B8C),
+                          color: RainGuardColors.secondaryText,
                           fontSize: 12,
                         ),
                       ),
@@ -369,7 +367,7 @@ class _SettingsTile extends StatelessWidget {
                         Text(
                           status!,
                           style: const TextStyle(
-                            color: Color(0xFFB26B00),
+                            color: RainGuardColors.warningText,
                             fontSize: 12,
                             fontWeight: FontWeight.w800,
                           ),
@@ -380,7 +378,7 @@ class _SettingsTile extends StatelessWidget {
                 ),
                 const Icon(
                   Icons.chevron_right_rounded,
-                  color: Color(0xFF697B8C),
+                  color: RainGuardColors.secondaryText,
                 ),
               ],
             ),
@@ -413,7 +411,7 @@ class _SwitchTile extends StatelessWidget {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: const Color(0xFFD9E7EF)),
+          border: Border.all(color: RainGuardColors.border),
         ),
         child: Row(
           children: [
@@ -423,7 +421,7 @@ class _SwitchTile extends StatelessWidget {
               child: Text(
                 title,
                 style: const TextStyle(
-                  color: Color(0xFF102033),
+                  color: RainGuardColors.ink,
                   fontWeight: FontWeight.w800,
                 ),
               ),
@@ -431,7 +429,7 @@ class _SwitchTile extends StatelessWidget {
             Switch(
               value: value,
               activeColor: Colors.white,
-              activeTrackColor: Colors.blueAccent.shade400,
+              activeTrackColor: RainGuardColors.primary,
               onChanged: onChanged,
             ),
           ],
@@ -452,10 +450,10 @@ class _TileIcon extends StatelessWidget {
       width: 38,
       height: 38,
       decoration: BoxDecoration(
-        color: const Color(0xFFE7F4FF),
+        color: RainGuardColors.softBlue,
         borderRadius: BorderRadius.circular(14),
       ),
-      child: Icon(icon, color: Colors.blueAccent.shade400, size: 21),
+      child: Icon(icon, color: RainGuardColors.primary, size: 21),
     );
   }
 }
@@ -495,7 +493,7 @@ class _VerificationSheetState extends State<_VerificationSheet> {
       builder: (context, scrollController) {
         return Container(
           decoration: const BoxDecoration(
-            color: Color(0xFFF4FAFD),
+            color: RainGuardColors.background,
             borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
           ),
           child: ListView(
@@ -518,13 +516,13 @@ class _VerificationSheetState extends State<_VerificationSheet> {
                 style: TextStyle(
                   fontSize: 25,
                   fontWeight: FontWeight.w900,
-                  color: Color(0xFF102033),
+                  color: RainGuardColors.ink,
                 ),
               ),
               const SizedBox(height: 8),
               const Text(
                 'Optional during sign up, required before filing community reports.',
-                style: TextStyle(color: Color(0xFF697B8C), height: 1.4),
+                style: TextStyle(color: RainGuardColors.secondaryText, height: 1.4),
               ),
               const SizedBox(height: 18),
               _IdUploadCard(
@@ -535,13 +533,13 @@ class _VerificationSheetState extends State<_VerificationSheet> {
               Container(
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFE7F4FF),
+                  color: RainGuardColors.softBlue,
                   borderRadius: BorderRadius.circular(18),
                 ),
                 child: const Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(Icons.privacy_tip_outlined, color: Color(0xFF1778D4)),
+                    Icon(Icons.privacy_tip_outlined, color: RainGuardColors.primary),
                     SizedBox(width: 10),
                     Expanded(
                       child: Text(
@@ -562,7 +560,7 @@ class _VerificationSheetState extends State<_VerificationSheet> {
                 height: 52,
                 child: FilledButton.icon(
                   style: FilledButton.styleFrom(
-                    backgroundColor: Colors.blueAccent.shade400,
+                    backgroundColor: RainGuardColors.primary,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
                     ),
@@ -604,7 +602,7 @@ class _IdUploadCard extends StatelessWidget {
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: const Color(0xFFD9E7EF)),
+            border: Border.all(color: RainGuardColors.border),
           ),
           child: hasCapturedId
               ? Column(
@@ -613,9 +611,9 @@ class _IdUploadCard extends StatelessWidget {
                       height: 150,
                       width: double.infinity,
                       decoration: BoxDecoration(
-                        color: const Color(0xFFE7F4FF),
+                        color: RainGuardColors.softBlue,
                         borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: const Color(0xFFD9E7EF)),
+                        border: Border.all(color: RainGuardColors.border),
                       ),
                       child: Stack(
                         children: [
@@ -623,7 +621,7 @@ class _IdUploadCard extends StatelessWidget {
                             child: Icon(
                               Icons.badge_outlined,
                               size: 58,
-                              color: Colors.blueAccent.shade400,
+                              color: RainGuardColors.primary,
                             ),
                           ),
                           Positioned(
@@ -656,7 +654,7 @@ class _IdUploadCard extends StatelessWidget {
                       'Valid ID photo ready',
                       style: TextStyle(
                         fontWeight: FontWeight.w900,
-                        color: Color(0xFF102033),
+                        color: RainGuardColors.ink,
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -664,7 +662,7 @@ class _IdUploadCard extends StatelessWidget {
                       'Tap to retake the photo before submitting.',
                       textAlign: TextAlign.center,
                       style: TextStyle(
-                        color: Color(0xFF697B8C),
+                        color: RainGuardColors.secondaryText,
                         fontSize: 12,
                         height: 1.35,
                       ),
@@ -677,12 +675,12 @@ class _IdUploadCard extends StatelessWidget {
                       width: 58,
                       height: 58,
                       decoration: const BoxDecoration(
-                        color: Color(0xFFE7F4FF),
+                        color: RainGuardColors.softBlue,
                         shape: BoxShape.circle,
                       ),
                       child: Icon(
                         Icons.camera_alt_rounded,
-                        color: Colors.blueAccent.shade400,
+                        color: RainGuardColors.primary,
                         size: 26,
                       ),
                     ),
@@ -691,7 +689,7 @@ class _IdUploadCard extends StatelessWidget {
                       'Upload valid ID',
                       style: TextStyle(
                         fontWeight: FontWeight.w900,
-                        color: Color(0xFF102033),
+                        color: RainGuardColors.ink,
                       ),
                     ),
                     const SizedBox(height: 6),
@@ -699,7 +697,7 @@ class _IdUploadCard extends StatelessWidget {
                       'Barangay ID, school ID, national ID, or any ID with your name',
                       textAlign: TextAlign.center,
                       style: TextStyle(
-                        color: Color(0xFF697B8C),
+                        color: RainGuardColors.secondaryText,
                         fontSize: 12,
                         height: 1.35,
                       ),
@@ -777,7 +775,7 @@ class _IdCameraPreview extends StatelessWidget {
                           width: double.infinity,
                           constraints: const BoxConstraints(maxHeight: 250),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF102033),
+                            color: RainGuardColors.ink,
                             borderRadius: BorderRadius.circular(18),
                             border: Border.all(
                               color: Colors.white.withOpacity(0.72),
@@ -827,7 +825,7 @@ class _IdCameraPreview extends StatelessWidget {
                 height: 54,
                 child: FilledButton.icon(
                   style: FilledButton.styleFrom(
-                    backgroundColor: Colors.blueAccent.shade400,
+                    backgroundColor: RainGuardColors.primary,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(18),
                     ),

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import '../models/report_model.dart';
+import '../theme/rainguard_theme.dart';
 import '../utils/map_helper.dart';
 import '../widgets/report_details_dialog.dart';
 
@@ -12,11 +13,8 @@ class NotificationScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF4FAFD),
+      backgroundColor: RainGuardColors.background,
       appBar: AppBar(
-        elevation: 0,
-        backgroundColor: Colors.blueAccent.shade400,
-        foregroundColor: Colors.white,
         title: Row(
           children: [
             SvgPicture.asset(
@@ -27,7 +25,7 @@ class NotificationScreen extends StatelessWidget {
             const SizedBox(width: 8),
             const Text(
               'RainGuard',
-              style: TextStyle(fontWeight: FontWeight.w800),
+              style: RainGuardTextStyles.appBarTitle,
             ),
           ],
         ),
@@ -67,13 +65,13 @@ class NotificationScreen extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 26,
                   fontWeight: FontWeight.w900,
-                  color: Color(0xFF102033),
+                  color: RainGuardColors.ink,
                 ),
               ),
               const SizedBox(height: 6),
               const Text(
                 'Tap an alert to see images, description, risk level, and report time.',
-                style: TextStyle(color: Color(0xFF697B8C), height: 1.35),
+                style: TextStyle(color: RainGuardColors.secondaryText, height: 1.35),
               ),
               const SizedBox(height: 18),
               if (reports.isEmpty)
@@ -151,7 +149,7 @@ class _NotificationCard extends StatelessWidget {
                             style: TextStyle(
                               color: report.risk == RiskLevel.flood
                                   ? color
-                                  : const Color(0xFF102033),
+                                  : RainGuardColors.ink,
                               fontWeight: FontWeight.w900,
                               fontSize: 16,
                             ),
@@ -163,7 +161,7 @@ class _NotificationCard extends StatelessWidget {
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
                               fontSize: 12,
-                              color: Color(0xFF102033),
+                              color: RainGuardColors.ink,
                             ),
                           ),
                         ],
@@ -171,7 +169,7 @@ class _NotificationCard extends StatelessWidget {
                     ),
                     const Icon(
                       Icons.chevron_right_rounded,
-                      color: Color(0xFF697B8C),
+                      color: RainGuardColors.secondaryText,
                     ),
                   ],
                 ),
@@ -185,7 +183,7 @@ class _NotificationCard extends StatelessWidget {
                   style: const TextStyle(
                     fontSize: 14,
                     height: 1.35,
-                    color: Color(0xFF102033),
+                    color: RainGuardColors.ink,
                   ),
                 ),
                 const SizedBox(height: 14),
@@ -277,14 +275,14 @@ class _EmptyNotifications extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: const Color(0xFFD9E7EF)),
+        border: Border.all(color: RainGuardColors.border),
       ),
       child: Column(
         children: [
           Icon(
             Icons.notifications_none_rounded,
             size: 44,
-            color: Colors.blueAccent.shade400,
+            color: RainGuardColors.primary,
           ),
           const SizedBox(height: 12),
           const Text(
@@ -292,14 +290,14 @@ class _EmptyNotifications extends StatelessWidget {
             style: TextStyle(
               fontWeight: FontWeight.w900,
               fontSize: 17,
-              color: Color(0xFF102033),
+              color: RainGuardColors.ink,
             ),
           ),
           const SizedBox(height: 6),
           const Text(
             'RainGuard will show community reports and weather alerts here.',
             textAlign: TextAlign.center,
-            style: TextStyle(color: Color(0xFF697B8C), height: 1.4),
+            style: TextStyle(color: RainGuardColors.secondaryText, height: 1.4),
           ),
         ],
       ),

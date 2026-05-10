@@ -9,6 +9,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:image_picker/image_picker.dart';
 import '../models/report_model.dart';
 import '../services/user_profile_service.dart';
+import '../theme/rainguard_theme.dart';
 import '../utils/map_helper.dart';
 
 class ReportModal extends StatefulWidget {
@@ -170,9 +171,9 @@ class _ReportModalState extends State<ReportModal> {
         width: width,
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFFE7F4FF) : Colors.white,
+          color: isSelected ? RainGuardColors.softBlue : Colors.white,
           border: Border.all(
-            color: isSelected ? Colors.blueAccent.shade400 : Colors.grey.shade300,
+            color: isSelected ? RainGuardColors.primary : Colors.grey.shade300,
             width: isSelected ? 1.6 : 1,
           ),
           borderRadius: BorderRadius.circular(16),
@@ -181,7 +182,7 @@ class _ReportModalState extends State<ReportModal> {
           children: [
             Icon(
               MapHelper.getReportIcon(type),
-              color: isSelected ? Colors.blueAccent.shade400 : Colors.black54,
+              color: isSelected ? RainGuardColors.primary : Colors.black54,
               size: 24,
             ),
             const SizedBox(width: 9),
@@ -191,7 +192,7 @@ class _ReportModalState extends State<ReportModal> {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  color: isSelected ? Colors.blueAccent.shade700 : Colors.black87,
+                  color: isSelected ? RainGuardColors.primary : Colors.black87,
                   fontSize: 13,
                   fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
                 ),
@@ -365,7 +366,7 @@ class _ReportModalState extends State<ReportModal> {
                     onPressed: _pickImage,
                     icon: const Icon(Icons.photo_library),
                     label: const Text('Change'),
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent.shade700),
+                    style: ElevatedButton.styleFrom(backgroundColor: RainGuardColors.primary),
                   ),
                   const SizedBox(width: 12),
                   TextButton(
@@ -405,7 +406,7 @@ class _ReportModalState extends State<ReportModal> {
               child: ElevatedButton(
                 onPressed: _isSubmitting ? null : _submitReport,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue.shade700,
+                  backgroundColor: RainGuardColors.primary,
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),

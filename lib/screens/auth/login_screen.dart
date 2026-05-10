@@ -1,10 +1,11 @@
-﻿import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../services/auth_service.dart';
+import '../../theme/rainguard_theme.dart';
 import '../main_wrapper.dart';
 import 'signup_screen.dart';
 
@@ -16,13 +17,13 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  static const background = Color(0xFFF4FAFD);
-  static const primaryBlue = Color(0xFF1778D4);
-  static const ink = Color(0xFF102033);
-  static const muted = Color(0xFF667B8F);
-  static const fieldBorder = Color(0xFFD8E8F2);
-  static const noteFill = Color(0xFFE7F4FF);
-  static const noteInk = Color(0xFF0B355E);
+  static const background = RainGuardColors.background;
+  static const primaryBlue = RainGuardColors.primary;
+  static const ink = RainGuardColors.ink;
+  static const muted = RainGuardColors.muted;
+  static const fieldBorder = RainGuardColors.authFieldBorder;
+  static const noteFill = RainGuardColors.softBlue;
+  static const noteInk = RainGuardColors.primaryDark;
 
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();

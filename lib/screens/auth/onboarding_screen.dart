@@ -1,22 +1,23 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../theme/rainguard_theme.dart';
 import 'login_screen.dart';
 
 class OnboardingScreen extends StatelessWidget {
   const OnboardingScreen({super.key});
 
-  static const _background = Color(0xFFF4FAFD);
-  static const _primaryBlue = Color(0xFF1778D4);
-  static const _ink = Color(0xFF102033);
-  static const _muted = Color(0xFF667B8F);
-  static const _mapChip = Color(0xFFE7F4FF);
-  static const _reportChip = Color(0xFFE6F8F1);
-  static const _reportDot = Color(0xFF28C59D);
-  static const _homeIndicator = Color(0xFFB8C8D4);
+  static const _background = RainGuardColors.background;
+  static const _primaryBlue = RainGuardColors.primary;
+  static const _ink = RainGuardColors.ink;
+  static const _muted = RainGuardColors.muted;
+  static const _mapChip = RainGuardColors.softBlue;
+  static const _reportChip = RainGuardColors.softGreen;
+  static const _reportDot = RainGuardColors.success;
+  static const _homeIndicator = RainGuardColors.homeIndicator;
 
   static const seenPreferenceKey = 'has_seen_onboarding';
   // Tweak these if you want to adjust the onboarding rhythm later.

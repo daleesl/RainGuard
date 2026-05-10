@@ -1,9 +1,10 @@
-﻿import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../services/auth_service.dart';
+import '../../theme/rainguard_theme.dart';
 import '../main_wrapper.dart';
 
 class SignupScreen extends StatefulWidget {
@@ -14,13 +15,13 @@ class SignupScreen extends StatefulWidget {
 }
 
 class _SignupScreenState extends State<SignupScreen> {
-  static const background = Color(0xFFF4FAFD);
-  static const primaryBlue = Color(0xFF1778D4);
-  static const ink = Color(0xFF102033);
-  static const muted = Color(0xFF667B8F);
+  static const background = RainGuardColors.background;
+  static const primaryBlue = RainGuardColors.primary;
+  static const ink = RainGuardColors.ink;
+  static const muted = RainGuardColors.muted;
   static const labelColor = Color(0xFF5C7488);
   static const placeholder = Color(0xFF7890A3);
-  static const fieldBorder = Color(0xFFCFE5F2);
+  static const fieldBorder = RainGuardColors.signupFieldBorder;
 
   final _formKey = GlobalKey<FormState>();
   final _firstNameController = TextEditingController();

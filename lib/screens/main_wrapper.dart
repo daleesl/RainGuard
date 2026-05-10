@@ -3,6 +3,7 @@ import 'map_screen.dart';
 import 'notification_screen.dart';
 import 'home_screen.dart';
 import 'settings_screen.dart';
+import '../theme/rainguard_theme.dart';
 
 class MainWrapper extends StatefulWidget {
   const MainWrapper({super.key});
@@ -43,7 +44,7 @@ class _MainWrapperState extends State<MainWrapper> {
           BottomNavigationBarItem(icon: Icon(Icons.settings), label: 'Settings'),
         ],
         currentIndex: _currentIndex,
-        selectedItemColor: Colors.blueAccent.shade400,
+        selectedItemColor: RainGuardColors.primary,
         unselectedItemColor: Colors.grey,
         onTap: (index) {
           setState(() {

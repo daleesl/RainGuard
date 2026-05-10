@@ -6,6 +6,7 @@ import '../models/user_profile.dart';
 import '../services/geocoding_service.dart';
 import '../services/user_profile_service.dart';
 import '../services/weather_service.dart';
+import '../theme/rainguard_theme.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key, required this.onNavigate});
@@ -110,11 +111,8 @@ class _HomeScreenState extends State<HomeScreen> {
     final hasActiveRisk = _floodCount > 0;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF4FAFD),
+      backgroundColor: RainGuardColors.background,
       appBar: AppBar(
-        elevation: 0,
-        backgroundColor: Colors.blueAccent.shade400,
-        foregroundColor: Colors.white,
         title: Row(
           children: [
             SvgPicture.asset(
@@ -125,7 +123,7 @@ class _HomeScreenState extends State<HomeScreen> {
             const SizedBox(width: 8),
             const Text(
               'RainGuard',
-              style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18),
+              style: RainGuardTextStyles.appBarTitle,
             ),
           ],
         ),
@@ -202,7 +200,7 @@ class _Header extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 58),
       decoration: BoxDecoration(
-        color: Colors.blueAccent.shade400,
+        color: RainGuardColors.primary,
         borderRadius: const BorderRadius.vertical(bottom: Radius.circular(24)),
       ),
       child: Column(
@@ -283,7 +281,7 @@ class _WeatherRiskCard extends StatelessWidget {
                             fontSize: 42,
                             fontWeight: FontWeight.w900,
                             height: 1,
-                            color: Color(0xFF0A1422),
+                            color: RainGuardColors.deepInk,
                           ),
                         ),
                       ),
@@ -294,7 +292,7 @@ class _WeatherRiskCard extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                           fontSize: 16,
-                          color: Color(0xFF102033),
+                          color: RainGuardColors.ink,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -306,7 +304,7 @@ class _WeatherRiskCard extends StatelessWidget {
                   width: 70,
                   height: 70,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFE7F4FF),
+                    color: RainGuardColors.softBlue,
                     borderRadius: BorderRadius.circular(23),
                   ),
                   child: Icon(
@@ -334,7 +332,7 @@ class _WeatherRiskCard extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w800,
-                          color: Color(0xFF102033),
+                          color: RainGuardColors.ink,
                         ),
                       ),
                       const SizedBox(height: 7),
@@ -345,7 +343,7 @@ class _WeatherRiskCard extends StatelessWidget {
                           fontWeight: FontWeight.w900,
                           color: hasActiveRisk
                               ? Colors.red.shade700
-                              : const Color(0xFF102033),
+                              : RainGuardColors.ink,
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -356,7 +354,7 @@ class _WeatherRiskCard extends StatelessWidget {
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
-                          color: Color(0xFF526B82),
+                          color: RainGuardColors.sectionLabel,
                           height: 1.3,
                           fontSize: 13,
                         ),
@@ -439,7 +437,7 @@ class _SafetyActionCard extends StatelessWidget {
                       ? 'High risk: Avoid low-lying roads'
                       : 'Clear: Stay updated',
                   style: const TextStyle(
-                    color: Color(0xFF102033),
+                    color: RainGuardColors.ink,
                     fontSize: 15,
                     fontWeight: FontWeight.w900,
                   ),
@@ -450,7 +448,7 @@ class _SafetyActionCard extends StatelessWidget {
                       ? 'Check the map before travelling and keep emergency items ready.'
                       : 'Monitor alerts and keep your safety essentials within reach.',
                   style: const TextStyle(
-                    color: Color(0xFF697B8C),
+                    color: RainGuardColors.secondaryText,
                     fontSize: 12,
                     height: 1.35,
                   ),
@@ -496,7 +494,7 @@ class _QuickActions extends StatelessWidget {
                   icon: Icons.map_outlined,
                   label: 'Map',
                   subtitle: 'View flood areas',
-                  color: Colors.blueAccent.shade400,
+                  color: RainGuardColors.primary,
                   onTap: onMapTap,
                 ),
                 _QuickActionTile(
@@ -563,7 +561,7 @@ class _QuickActionTile extends StatelessWidget {
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: const Color(0xFFD9E7EF)),
+              border: Border.all(color: RainGuardColors.border),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -583,7 +581,7 @@ class _QuickActionTile extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                    color: Color(0xFF102033),
+                    color: RainGuardColors.ink,
                     fontSize: 15,
                     fontWeight: FontWeight.w900,
                   ),
@@ -594,7 +592,7 @@ class _QuickActionTile extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                    color: Color(0xFF697B8C),
+                    color: RainGuardColors.secondaryText,
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
                   ),
@@ -661,10 +659,10 @@ class _TipCard extends StatelessWidget {
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              color: const Color(0xFFE7F4FF),
+              color: RainGuardColors.softBlue,
               borderRadius: BorderRadius.circular(14),
             ),
-            child: Icon(icon, color: Colors.blueAccent, size: 21),
+            child: Icon(icon, color: RainGuardColors.primary, size: 21),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -674,7 +672,7 @@ class _TipCard extends StatelessWidget {
                 Text(
                   title,
                   style: const TextStyle(
-                    color: Color(0xFF102033),
+                    color: RainGuardColors.ink,
                     fontSize: 15,
                     fontWeight: FontWeight.w900,
                   ),
@@ -683,7 +681,7 @@ class _TipCard extends StatelessWidget {
                 Text(
                   body,
                   style: const TextStyle(
-                    color: Color(0xFF697B8C),
+                    color: RainGuardColors.secondaryText,
                     fontSize: 12,
                     height: 1.35,
                   ),
@@ -705,7 +703,7 @@ class _HotlinesSheet extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
       decoration: const BoxDecoration(
-        color: Color(0xFFF4FAFD),
+        color: RainGuardColors.background,
         borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
       child: Column(
@@ -726,7 +724,7 @@ class _HotlinesSheet extends StatelessWidget {
           const Text(
             'Emergency Hotlines',
             style: TextStyle(
-              color: Color(0xFF102033),
+              color: RainGuardColors.ink,
               fontSize: 22,
               fontWeight: FontWeight.w900,
             ),
@@ -762,11 +760,11 @@ class _HotlineRow extends StatelessWidget {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: const Color(0xFFD9E7EF)),
+          border: Border.all(color: RainGuardColors.border),
         ),
         child: Row(
           children: [
-            Icon(Icons.local_phone_outlined, color: Colors.blueAccent.shade400),
+            Icon(Icons.local_phone_outlined, color: RainGuardColors.primary),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
@@ -775,7 +773,7 @@ class _HotlineRow extends StatelessWidget {
                   Text(
                     label,
                     style: const TextStyle(
-                      color: Color(0xFF102033),
+                      color: RainGuardColors.ink,
                       fontWeight: FontWeight.w800,
                     ),
                   ),
@@ -783,7 +781,7 @@ class _HotlineRow extends StatelessWidget {
                   Text(
                     number,
                     style: const TextStyle(
-                      color: Color(0xFF697B8C),
+                      color: RainGuardColors.secondaryText,
                       fontSize: 12,
                     ),
                   ),
@@ -809,7 +807,7 @@ class _SectionHeader extends StatelessWidget {
       style: const TextStyle(
         fontWeight: FontWeight.w900,
         fontSize: 18,
-        color: Color(0xFF102033),
+        color: RainGuardColors.ink,
       ),
     );
   }
@@ -832,7 +830,7 @@ class _SurfaceCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFD9E7EF)),
+        border: Border.all(color: RainGuardColors.border),
         boxShadow: [
           BoxShadow(
             color: Colors.blueGrey.withOpacity(0.07),
