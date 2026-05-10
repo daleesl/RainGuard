@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+
+import '../models/user_profile.dart';
+import '../services/user_profile_service.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -30,119 +34,155 @@ class _SettingsScreenState extends State<SettingsScreen> {
         elevation: 0,
         backgroundColor: Colors.blueAccent.shade400,
         foregroundColor: Colors.white,
-        title: const Row(
+        title: Row(
           children: [
-            Icon(Icons.shield_outlined),
-            SizedBox(width: 8),
-            Text(
+            SvgPicture.asset(
+              'assets/images/rainGuard-Logo.svg',
+              width: 25,
+              height: 32,
+            ),
+            const SizedBox(width: 8),
+            const Text(
               'RainGuard',
               style: TextStyle(fontWeight: FontWeight.w800),
             ),
           ],
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.menu_rounded),
-            onPressed: () {},
-          ),
-        ],
       ),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 24, 20, 28),
-        children: [
-          const Text(
-            'Settings',
-            style: TextStyle(
-              fontSize: 30,
-              fontWeight: FontWeight.w900,
-              color: Color(0xFF102033),
-            ),
-          ),
-          const SizedBox(height: 6),
-          const Text(
-            'Manage account, alerts, location, and report verification.',
-            style: TextStyle(color: Color(0xFF697B8C), height: 1.35),
-          ),
-          const SizedBox(height: 22),
-          _ProfileCard(onVerifyTap: _showVerificationSheet),
-          const SizedBox(height: 22),
-          const _SectionLabel('Account'),
-          _SettingsTile(
-            icon: Icons.person_outline_rounded,
-            title: 'Profile Information',
-            subtitle: 'Name, email, and barangay details',
-            onTap: () {},
-          ),
-          _SettingsTile(
-            icon: Icons.lock_outline_rounded,
-            title: 'Change Password',
-            subtitle: 'Update your login security',
-            onTap: () {},
-          ),
-          _SettingsTile(
-            icon: Icons.verified_user_outlined,
-            title: 'Identity Verification',
-            subtitle: 'Take a photo of a valid ID',
-            status: 'Required to report',
-            onTap: _showVerificationSheet,
-          ),
-          const SizedBox(height: 18),
-          const _SectionLabel('Notifications'),
-          _SwitchTile(
-            icon: Icons.notifications_none_rounded,
-            title: 'Push Notifications',
-            value: pushNotifications,
-            onChanged: (value) => setState(() => pushNotifications = value),
-          ),
-          _SwitchTile(
-            icon: Icons.thunderstorm_outlined,
-            title: 'Weather Alerts',
-            value: weatherAlerts,
-            onChanged: (value) => setState(() => weatherAlerts = value),
-          ),
-          _SwitchTile(
-            icon: Icons.assignment_outlined,
-            title: 'Report Reminders',
-            value: reportReminders,
-            onChanged: (value) => setState(() => reportReminders = value),
-          ),
-          const SizedBox(height: 18),
-          const _SectionLabel('Location'),
-          _SettingsTile(
-            icon: Icons.place_outlined,
-            title: 'Default Barangay Location',
-            subtitle: 'Barangay Lingga, Calamba',
-            onTap: () {},
-          ),
-          _SwitchTile(
-            icon: Icons.my_location_rounded,
-            title: 'Use Current Location',
-            value: useCurrentLocation,
-            onChanged: (value) => setState(() => useCurrentLocation = value),
-          ),
-          const SizedBox(height: 18),
-          const _SectionLabel('App'),
-          _SettingsTile(
-            icon: Icons.palette_outlined,
-            title: 'Theme',
-            subtitle: 'System default',
-            onTap: () {},
-          ),
-          _SettingsTile(
-            icon: Icons.help_outline_rounded,
-            title: 'Help and Emergency Info',
-            subtitle: 'Hotlines and flood safety reminders',
-            onTap: () {},
-          ),
-        ],
+      body: StreamBuilder<UserProfile?>(
+        stream: UserProfileService.currentUserProfileStream(),
+        builder: (context, snapshot) {
+          final profile = snapshot.data;
+          final displayName = profile?.displayName ?? 'RainGuard user';
+          final email = profile?.email ?? 'No email available';
+          final verificationStatus =
+              profile?.verificationStatus ?? 'unverified';
+
+          return ListView(
+            padding: const EdgeInsets.fromLTRB(20, 24, 20, 28),
+            children: [
+              const Text(
+                'Settings',
+                style: TextStyle(
+                  fontSize: 30,
+                  fontWeight: FontWeight.w900,
+                  color: Color(0xFF102033),
+                ),
+              ),
+              const SizedBox(height: 6),
+              const Text(
+                'Manage account, alerts, location, and report verification.',
+                style: TextStyle(color: Color(0xFF697B8C), height: 1.35),
+              ),
+              const SizedBox(height: 22),
+              _ProfileCard(
+                displayName: displayName,
+                email: email,
+                verificationStatus: verificationStatus,
+                onVerifyTap: _showVerificationSheet,
+              ),
+              const SizedBox(height: 22),
+              const _SectionLabel('Account'),
+              _SettingsTile(
+                icon: Icons.person_outline_rounded,
+                title: 'Profile Information',
+                subtitle: '$displayName - $email',
+                onTap: () {},
+              ),
+              _SettingsTile(
+                icon: Icons.lock_outline_rounded,
+                title: 'Change Password',
+                subtitle: 'Update your login security',
+                onTap: () {},
+              ),
+              _SettingsTile(
+                icon: Icons.verified_user_outlined,
+                title: 'Identity Verification',
+                subtitle: 'Take a photo of a valid ID',
+                status: _verificationStatusLabel(verificationStatus),
+                onTap: _showVerificationSheet,
+              ),
+              const SizedBox(height: 18),
+              const _SectionLabel('Notifications'),
+              _SwitchTile(
+                icon: Icons.notifications_none_rounded,
+                title: 'Push Notifications',
+                value: pushNotifications,
+                onChanged: (value) => setState(() => pushNotifications = value),
+              ),
+              _SwitchTile(
+                icon: Icons.thunderstorm_outlined,
+                title: 'Weather Alerts',
+                value: weatherAlerts,
+                onChanged: (value) => setState(() => weatherAlerts = value),
+              ),
+              _SwitchTile(
+                icon: Icons.assignment_outlined,
+                title: 'Report Reminders',
+                value: reportReminders,
+                onChanged: (value) => setState(() => reportReminders = value),
+              ),
+              const SizedBox(height: 18),
+              const _SectionLabel('Location'),
+              _SettingsTile(
+                icon: Icons.place_outlined,
+                title: 'Default Barangay Location',
+                subtitle: 'Barangay Lingga, Calamba',
+                onTap: () {},
+              ),
+              _SwitchTile(
+                icon: Icons.my_location_rounded,
+                title: 'Use Current Location',
+                value: useCurrentLocation,
+                onChanged: (value) => setState(() => useCurrentLocation = value),
+              ),
+              const SizedBox(height: 18),
+              const _SectionLabel('App'),
+              _SettingsTile(
+                icon: Icons.palette_outlined,
+                title: 'Theme',
+                subtitle: 'System default',
+                onTap: () {},
+              ),
+              _SettingsTile(
+                icon: Icons.help_outline_rounded,
+                title: 'Help and Emergency Info',
+                subtitle: 'Hotlines and flood safety reminders',
+                onTap: () {},
+              ),
+            ],
+          );
+        },
       ),
     );
+  }
+
+  String _verificationStatusLabel(String status) {
+    switch (status) {
+      case 'verified':
+        return 'Verified resident';
+      case 'pending':
+        return 'Verification pending';
+      case 'rejected':
+        return 'Verification needs review';
+      case 'unverified':
+      default:
+        return 'Required to report';
+    }
   }
 }
 
 class _ProfileCard extends StatelessWidget {
-  const _ProfileCard({required this.onVerifyTap});
+  const _ProfileCard({
+    required this.displayName,
+    required this.email,
+    required this.verificationStatus,
+    required this.onVerifyTap,
+  });
 
+  final String displayName;
+  final String email;
+  final String verificationStatus;
   final VoidCallback onVerifyTap;
 
   @override
@@ -181,18 +221,25 @@ class _ProfileCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'John Jester',
-                  style: TextStyle(
+                Text(
+                  displayName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w900,
                     color: Color(0xFF102033),
                   ),
                 ),
                 const SizedBox(height: 4),
-                const Text(
-                  'Barangay Lingga, Calamba',
-                  style: TextStyle(color: Color(0xFF697B8C), fontSize: 12),
+                Text(
+                  email,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Color(0xFF697B8C),
+                    fontSize: 12,
+                  ),
                 ),
                 const SizedBox(height: 8),
                 InkWell(
@@ -207,9 +254,9 @@ class _ProfileCard extends StatelessWidget {
                       color: const Color(0xFFFFF5DC),
                       borderRadius: BorderRadius.circular(99),
                     ),
-                    child: const Text(
-                      'Unverified resident',
-                      style: TextStyle(
+                    child: Text(
+                      _verificationPillLabel(verificationStatus),
+                      style: const TextStyle(
                         color: Color(0xFFB26B00),
                         fontSize: 12,
                         fontWeight: FontWeight.w800,
@@ -224,6 +271,20 @@ class _ProfileCard extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  String _verificationPillLabel(String status) {
+    switch (status) {
+      case 'verified':
+        return 'Verified resident';
+      case 'pending':
+        return 'Verification pending';
+      case 'rejected':
+        return 'Verification rejected';
+      case 'unverified':
+      default:
+        return 'Unverified resident';
+    }
   }
 }
 
