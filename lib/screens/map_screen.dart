@@ -1,13 +1,15 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import '../models/report_model.dart';
 import '../theme/rainguard_theme.dart';
+import '../utils/location_constants.dart';
 import '../utils/map_helper.dart';
 import '../widgets/intelligent_pin.dart';
+import '../widgets/rainguard_app_bar.dart';
+import '../widgets/rainguard_card.dart';
 import '../widgets/report_details_dialog.dart';
 import '../widgets/report_modal.dart';
 
@@ -19,7 +21,11 @@ class MapScreen extends StatefulWidget {
 }
 
 class _MapScreenState extends State<MapScreen> {
-  final LatLng _initialCenter = const LatLng(14.2050462, 121.1582127);
+  static const _calambaCenter = LatLng(
+    RainGuardCoverage.calambaMapLatitude,
+    RainGuardCoverage.calambaMapLongitude,
+  );
+
   final MapController _mapController = MapController();
 
   Stream<QuerySnapshot> get _reportsStream => FirebaseFirestore.instance
@@ -49,22 +55,7 @@ class _MapScreenState extends State<MapScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: RainGuardColors.background,
-      appBar: AppBar(
-        title: Row(
-          children: [
-            SvgPicture.asset(
-              'assets/images/rainGuard-Logo.svg',
-              width: 25,
-              height: 32,
-            ),
-            const SizedBox(width: 8),
-            const Text(
-              'RainGuard',
-              style: RainGuardTextStyles.appBarTitle,
-            ),
-          ],
-        ),
-      ),
+      appBar: const RainGuardAppBar(),
       body: StreamBuilder<QuerySnapshot>(
         stream: _reportsStream,
         builder: (context, snapshot) {
@@ -76,7 +67,7 @@ class _MapScreenState extends State<MapScreen> {
               const Text(
                 'Flood Map',
                 style: TextStyle(
-                  fontSize: 24,
+                  fontSize: 20,
                   fontWeight: FontWeight.w900,
                   color: RainGuardColors.ink,
                 ),
@@ -84,7 +75,7 @@ class _MapScreenState extends State<MapScreen> {
               const SizedBox(height: 12),
               _MapCard(
                 mapController: _mapController,
-                initialCenter: _initialCenter,
+                initialCenter: _calambaCenter,
                 reports: reports,
                 onReportTap: _showReportDetails,
                 onAddTap: _showAddReportModal,
@@ -138,28 +129,21 @@ class _MapCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return RainGuardCard(
       height: 310,
+      padding: EdgeInsets.zero,
+      radius: 22,
       clipBehavior: Clip.hardEdge,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: RainGuardColors.border),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.blueGrey.withOpacity(0.10),
-            blurRadius: 24,
-            offset: const Offset(0, 12),
-          ),
-        ],
-      ),
+      shadowOpacity: 0.10,
+      blurRadius: 24,
+      shadowOffset: const Offset(0, 12),
       child: Stack(
         children: [
           FlutterMap(
             mapController: mapController,
             options: MapOptions(
               initialCenter: initialCenter,
-              initialZoom: 14.0,
+              initialZoom: RainGuardCoverage.calambaMapZoom,
             ),
             children: [
               TileLayer(
@@ -229,12 +213,16 @@ class _MapBadge extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.pin_drop_rounded, size: 16, color: RainGuardColors.primary),
+          Icon(
+            Icons.pin_drop_rounded,
+            size: 16,
+            color: RainGuardColors.primary,
+          ),
           const SizedBox(width: 6),
           Text(
             '$count live reports',
             style: const TextStyle(
-              fontSize: 12,
+              fontSize: 8,
               fontWeight: FontWeight.w800,
               color: RainGuardColors.ink,
             ),
@@ -248,14 +236,17 @@ class _MapBadge extends StatelessWidget {
 class _LegendCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return _SurfaceCard(
+    return RainGuardCard(
+      padding: const EdgeInsets.all(18),
+      radius: 22,
+      shadowOpacity: 0.06,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
             'Map Legend',
             style: TextStyle(
-              fontSize: 18,
+              fontSize: 14,
               fontWeight: FontWeight.w900,
               color: RainGuardColors.ink,
             ),
@@ -304,7 +295,7 @@ class _LegendChip extends StatelessWidget {
             style: TextStyle(
               color: color,
               fontWeight: FontWeight.w800,
-              fontSize: 13,
+              fontSize: 10,
             ),
           ),
         ],
@@ -328,14 +319,17 @@ class _RecentReportsCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final visibleReports = reports.take(4).toList();
 
-    return _SurfaceCard(
+    return RainGuardCard(
+      padding: const EdgeInsets.all(18),
+      radius: 22,
+      shadowOpacity: 0.06,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
             'Recent Reports',
             style: TextStyle(
-              fontSize: 18,
+              fontSize: 14,
               fontWeight: FontWeight.w900,
               color: RainGuardColors.ink,
             ),
@@ -415,7 +409,7 @@ class _RecentReportTile extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         color: RainGuardColors.secondaryText,
-                        fontSize: 12,
+                        fontSize: 8,
                       ),
                     ),
                     const SizedBox(height: 3),
@@ -427,7 +421,7 @@ class _RecentReportTile extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         color: RainGuardColors.secondaryText,
-                        fontSize: 12,
+                        fontSize: 8,
                       ),
                     ),
                     const SizedBox(height: 3),
@@ -435,14 +429,17 @@ class _RecentReportTile extends StatelessWidget {
                       timeago.format(report.createdAt),
                       style: TextStyle(
                         color: Colors.blueGrey.shade400,
-                        fontSize: 11,
+                        fontSize: 8,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
                   ],
                 ),
               ),
-              const Icon(Icons.chevron_right_rounded, color: RainGuardColors.secondaryText),
+              const Icon(
+                Icons.chevron_right_rounded,
+                color: RainGuardColors.secondaryText,
+              ),
             ],
           ),
         ),
@@ -465,35 +462,8 @@ class _EmptyReports extends StatelessWidget {
       ),
       child: const Text(
         'No community reports yet. New reports will appear here once submitted.',
-        style: TextStyle(color: Color(0xFF0B3A5B), height: 1.35),
+        style: TextStyle(color: Color(0xFF0B3A5B), fontSize: 8, height: 1.35),
       ),
-    );
-  }
-}
-
-class _SurfaceCard extends StatelessWidget {
-  const _SurfaceCard({required this.child});
-
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: RainGuardColors.border),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.blueGrey.withOpacity(0.06),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
-          ),
-        ],
-      ),
-      child: child,
     );
   }
 }

@@ -26,7 +26,11 @@ class IntelligentPin extends StatelessWidget {
               color: riskColor,
               shape: BoxShape.circle,
               boxShadow: [
-                BoxShadow(color: Colors.black26, blurRadius: 4.0, offset: const Offset(0, 2)),
+                BoxShadow(
+                  color: Colors.black26,
+                  blurRadius: 4.0,
+                  offset: const Offset(0, 2),
+                ),
               ],
               border: Border.all(color: Colors.white, width: 2.0),
             ),

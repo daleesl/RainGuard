@@ -1,12 +1,12 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
-import 'package:geolocator/geolocator.dart';
 import '../models/user_profile.dart';
-import '../services/geocoding_service.dart';
 import '../services/user_profile_service.dart';
 import '../services/weather_service.dart';
 import '../theme/rainguard_theme.dart';
+import '../utils/location_constants.dart';
+import '../widgets/rainguard_app_bar.dart';
+import '../widgets/rainguard_card.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key, required this.onNavigate});
@@ -20,7 +20,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   String _weatherTemp = '-- \u00B0C';
   String _weatherDesc = 'Loading...';
-  String _locationName = 'Brgy. Lingga, Calamba';
+  String _locationName = RainGuardCoverage.linggaLabel;
   bool _isLoadingWeather = true;
   int _floodCount = 0;
 
@@ -45,45 +45,17 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _fetchWeatherData() async {
-    double lat = 14.2046;
-    double lon = 121.1553;
-
     try {
-      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      if (serviceEnabled) {
-        LocationPermission permission = await Geolocator.checkPermission();
-        if (permission == LocationPermission.denied) {
-          permission = await Geolocator.requestPermission();
-        }
-
-        if (permission == LocationPermission.whileInUse ||
-            permission == LocationPermission.always) {
-          final position = await Geolocator.getCurrentPosition(
-            desiredAccuracy: LocationAccuracy.medium,
-          );
-          lat = position.latitude;
-          lon = position.longitude;
-        }
-      }
-    } catch (e) {
-      debugPrint('Geolocator error, using fallback: $e');
-    }
-
-    try {
-      final weatherData = await WeatherService.getWeather(lat, lon);
-      final addressName = await GeocodingService.getAddressFromCoordinates(
-        lat,
-        lon,
+      final weatherData = await WeatherService.getWeather(
+        RainGuardCoverage.linggaLatitude,
+        RainGuardCoverage.linggaLongitude,
       );
 
       if (!mounted) return;
       setState(() {
         _weatherTemp = '${weatherData['temp'].round()} \u00B0C';
         _weatherDesc = weatherData['description'];
-        _locationName =
-            (addressName != 'Location Error' && addressName != 'Unknown Location')
-                ? addressName
-                : weatherData['location'];
+        _locationName = RainGuardCoverage.linggaLabel;
         _isLoadingWeather = false;
       });
     } catch (e) {
@@ -92,7 +64,7 @@ class _HomeScreenState extends State<HomeScreen> {
       setState(() {
         _weatherTemp = 'N/A';
         _weatherDesc = 'Unavailable';
-        _locationName = 'Location Error';
+        _locationName = RainGuardCoverage.linggaLabel;
         _isLoadingWeather = false;
       });
     }
@@ -112,28 +84,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return Scaffold(
       backgroundColor: RainGuardColors.background,
-      appBar: AppBar(
-        title: Row(
-          children: [
-            SvgPicture.asset(
-              'assets/images/rainGuard-Logo.svg',
-              width: 25,
-              height: 32,
-            ),
-            const SizedBox(width: 8),
-            const Text(
-              'RainGuard',
-              style: RainGuardTextStyles.appBarTitle,
-            ),
-          ],
-        ),
-      ),
+      appBar: const RainGuardAppBar(),
       body: RefreshIndicator(
         onRefresh: () async {
-          await Future.wait([
-            _fetchWeatherData(),
-            _fetchFloodActivityCount(),
-          ]);
+          await Future.wait([_fetchWeatherData(), _fetchFloodActivityCount()]);
         },
         child: ListView(
           padding: EdgeInsets.zero,
@@ -186,10 +140,7 @@ class _HomeScreenState extends State<HomeScreen> {
 }
 
 class _Header extends StatelessWidget {
-  const _Header({
-    required this.displayName,
-    required this.locationName,
-  });
+  const _Header({required this.displayName, required this.locationName});
 
   final String displayName;
   final String locationName;
@@ -219,7 +170,11 @@ class _Header extends StatelessWidget {
           const SizedBox(height: 8),
           Row(
             children: [
-              const Icon(Icons.location_on_rounded, color: Colors.white, size: 16),
+              const Icon(
+                Icons.location_on_rounded,
+                color: Colors.white,
+                size: 16,
+              ),
               const SizedBox(width: 5),
               Expanded(
                 child: Text(
@@ -228,7 +183,7 @@ class _Header extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     color: Colors.white,
-                    fontSize: 13,
+                    fontSize: 8,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -258,9 +213,11 @@ class _WeatherRiskCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final riskColor = hasActiveRisk ? Colors.red.shade700 : Colors.green.shade700;
+    final riskColor = hasActiveRisk
+        ? Colors.red.shade700
+        : Colors.green.shade700;
 
-    return _SurfaceCard(
+    return RainGuardCard(
       padding: EdgeInsets.zero,
       child: Column(
         children: [
@@ -278,7 +235,7 @@ class _WeatherRiskCard extends StatelessWidget {
                         child: Text(
                           isLoading ? '-- \u00B0C' : temp,
                           style: const TextStyle(
-                            fontSize: 42,
+                            fontSize: 32,
                             fontWeight: FontWeight.w900,
                             height: 1,
                             color: RainGuardColors.deepInk,
@@ -291,7 +248,7 @@ class _WeatherRiskCard extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
-                          fontSize: 16,
+                          fontSize: 8,
                           color: RainGuardColors.ink,
                           fontWeight: FontWeight.w600,
                         ),
@@ -312,7 +269,9 @@ class _WeatherRiskCard extends StatelessWidget {
                         ? Icons.thunderstorm_rounded
                         : Icons.wb_sunny_rounded,
                     size: 38,
-                    color: hasActiveRisk ? Colors.amber.shade700 : Colors.orange,
+                    color: hasActiveRisk
+                        ? Colors.amber.shade700
+                        : Colors.orange,
                   ),
                 ),
               ],
@@ -330,7 +289,7 @@ class _WeatherRiskCard extends StatelessWidget {
                       const Text(
                         'Flood Risk Assessment',
                         style: TextStyle(
-                          fontSize: 14,
+                          fontSize: 12,
                           fontWeight: FontWeight.w800,
                           color: RainGuardColors.ink,
                         ),
@@ -339,7 +298,7 @@ class _WeatherRiskCard extends StatelessWidget {
                       Text(
                         hasActiveRisk ? 'Active risk' : 'Clear',
                         style: TextStyle(
-                          fontSize: 21,
+                          fontSize: 12,
                           fontWeight: FontWeight.w900,
                           color: hasActiveRisk
                               ? Colors.red.shade700
@@ -356,7 +315,7 @@ class _WeatherRiskCard extends StatelessWidget {
                         style: const TextStyle(
                           color: RainGuardColors.sectionLabel,
                           height: 1.3,
-                          fontSize: 13,
+                          fontSize: 8,
                         ),
                       ),
                     ],
@@ -383,7 +342,7 @@ class _WeatherRiskCard extends StatelessWidget {
                         hasActiveRisk ? 'High' : 'Green',
                         style: TextStyle(
                           color: riskColor,
-                          fontSize: 15,
+                          fontSize: 12,
                           fontWeight: FontWeight.w900,
                         ),
                       ),
@@ -408,7 +367,7 @@ class _SafetyActionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final color = hasActiveRisk ? Colors.red.shade700 : Colors.green.shade700;
 
-    return _SurfaceCard(
+    return RainGuardCard(
       padding: const EdgeInsets.all(15),
       child: Row(
         children: [
@@ -438,7 +397,7 @@ class _SafetyActionCard extends StatelessWidget {
                       : 'Clear: Stay updated',
                   style: const TextStyle(
                     color: RainGuardColors.ink,
-                    fontSize: 15,
+                    fontSize: 12,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
@@ -449,7 +408,7 @@ class _SafetyActionCard extends StatelessWidget {
                       : 'Monitor alerts and keep your safety essentials within reach.',
                   style: const TextStyle(
                     color: RainGuardColors.secondaryText,
-                    fontSize: 12,
+                    fontSize: 8,
                     height: 1.35,
                   ),
                 ),
@@ -582,7 +541,7 @@ class _QuickActionTile extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     color: RainGuardColors.ink,
-                    fontSize: 15,
+                    fontSize: 12,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
@@ -593,7 +552,7 @@ class _QuickActionTile extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     color: RainGuardColors.secondaryText,
-                    fontSize: 12,
+                    fontSize: 8,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -639,11 +598,7 @@ class _PreparednessTips extends StatelessWidget {
 }
 
 class _TipCard extends StatelessWidget {
-  const _TipCard({
-    required this.icon,
-    required this.title,
-    required this.body,
-  });
+  const _TipCard({required this.icon, required this.title, required this.body});
 
   final IconData icon;
   final String title;
@@ -651,7 +606,7 @@ class _TipCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return _SurfaceCard(
+    return RainGuardCard(
       padding: const EdgeInsets.all(14),
       child: Row(
         children: [
@@ -673,7 +628,7 @@ class _TipCard extends StatelessWidget {
                   title,
                   style: const TextStyle(
                     color: RainGuardColors.ink,
-                    fontSize: 15,
+                    fontSize: 12,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
@@ -682,7 +637,7 @@ class _TipCard extends StatelessWidget {
                   body,
                   style: const TextStyle(
                     color: RainGuardColors.secondaryText,
-                    fontSize: 12,
+                    fontSize: 8,
                     height: 1.35,
                   ),
                 ),
@@ -725,7 +680,7 @@ class _HotlinesSheet extends StatelessWidget {
             'Emergency Hotlines',
             style: TextStyle(
               color: RainGuardColors.ink,
-              fontSize: 22,
+              fontSize: 20,
               fontWeight: FontWeight.w900,
             ),
           ),
@@ -774,6 +729,7 @@ class _HotlineRow extends StatelessWidget {
                     label,
                     style: const TextStyle(
                       color: RainGuardColors.ink,
+                      fontSize: 12,
                       fontWeight: FontWeight.w800,
                     ),
                   ),
@@ -782,7 +738,7 @@ class _HotlineRow extends StatelessWidget {
                     number,
                     style: const TextStyle(
                       color: RainGuardColors.secondaryText,
-                      fontSize: 12,
+                      fontSize: 8,
                     ),
                   ),
                 ],
@@ -806,40 +762,9 @@ class _SectionHeader extends StatelessWidget {
       title,
       style: const TextStyle(
         fontWeight: FontWeight.w900,
-        fontSize: 18,
+        fontSize: 14,
         color: RainGuardColors.ink,
       ),
-    );
-  }
-}
-
-class _SurfaceCard extends StatelessWidget {
-  const _SurfaceCard({
-    required this.child,
-    this.padding = const EdgeInsets.all(16),
-  });
-
-  final Widget child;
-  final EdgeInsets padding;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: padding,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: RainGuardColors.border),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.blueGrey.withOpacity(0.07),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
-          ),
-        ],
-      ),
-      child: child,
     );
   }
 }
