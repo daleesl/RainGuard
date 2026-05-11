@@ -73,7 +73,7 @@ class _ReportDetailsSheet extends StatelessWidget {
                         Text(
                           '$reportName Report',
                           style: const TextStyle(
-                            fontSize: 22,
+                            fontSize: 20,
                             fontWeight: FontWeight.w800,
                             color: RainGuardColors.ink,
                           ),
@@ -85,7 +85,7 @@ class _ReportDetailsSheet extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
                             color: RainGuardColors.secondaryText,
-                            fontSize: 13,
+                            fontSize: 8,
                           ),
                         ),
                       ],
@@ -149,7 +149,7 @@ class _ReportDetailsSheet extends StatelessWidget {
                       : 'No description provided for this report.',
                   style: const TextStyle(
                     height: 1.45,
-                    fontSize: 15,
+                    fontSize: 8,
                     color: RainGuardColors.ink,
                   ),
                 ),
@@ -161,7 +161,7 @@ class _ReportDetailsSheet extends StatelessWidget {
                 child: Text(
                   report.createdAt.toString().split('.').first,
                   style: const TextStyle(
-                    fontSize: 15,
+                    fontSize: 8,
                     color: RainGuardColors.ink,
                   ),
                 ),
@@ -180,7 +180,7 @@ class _ReportDetailsSheet extends StatelessWidget {
                   icon: const Icon(Icons.check_circle_outline_rounded),
                   label: const Text(
                     'Done',
-                    style: TextStyle(fontWeight: FontWeight.w800),
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800),
                   ),
                 ),
               ),
@@ -244,7 +244,13 @@ class _EmptyImageState extends StatelessWidget {
       children: [
         Icon(icon, size: 44, color: Colors.blueGrey.shade200),
         const SizedBox(height: 10),
-        Text(label, style: const TextStyle(color: RainGuardColors.secondaryText)),
+        Text(
+          label,
+          style: const TextStyle(
+            color: RainGuardColors.secondaryText,
+            fontSize: 8,
+          ),
+        ),
       ],
     );
   }
@@ -276,7 +282,7 @@ class _InfoTile extends StatelessWidget {
           Text(
             label,
             style: const TextStyle(
-              fontSize: 12,
+              fontSize: 8,
               color: RainGuardColors.secondaryText,
               fontWeight: FontWeight.w700,
             ),
@@ -287,7 +293,7 @@ class _InfoTile extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
-              fontSize: 16,
+              fontSize: 12,
               color: color,
               fontWeight: FontWeight.w800,
             ),
@@ -329,6 +335,7 @@ class _SectionCard extends StatelessWidget {
               Text(
                 title,
                 style: const TextStyle(
+                  fontSize: 12,
                   fontWeight: FontWeight.w800,
                   color: RainGuardColors.ink,
                 ),

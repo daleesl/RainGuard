@@ -46,7 +46,7 @@ class Report {
       userId: data['user_id'],
       reporterName: data['reporter_name'],
       reporterDisplayName: data['reporter_display_name'],
-      createdAt: data['created_at'] != null 
+      createdAt: data['created_at'] != null
           ? (data['created_at'] as Timestamp).toDate()
           : DateTime.now(),
     );
