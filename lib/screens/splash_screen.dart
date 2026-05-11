@@ -30,7 +30,7 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    _timer = Timer(const Duration(seconds: 4), () {
+    _timer = Timer(const Duration(seconds: 2), () {
       unawaited(_goToApp());
     });
   }
@@ -45,12 +45,12 @@ class _SplashScreenState extends State<SplashScreen> {
     final nextScreen = currentUser != null
         ? const MainWrapper()
         : hasSeenOnboarding
-            ? const LoginScreen()
-            : const OnboardingScreen();
+        ? const LoginScreen()
+        : const OnboardingScreen();
 
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute<void>(builder: (_) => nextScreen),
-    );
+    Navigator.of(
+      context,
+    ).pushReplacement(MaterialPageRoute<void>(builder: (_) => nextScreen));
   }
 
   @override
@@ -117,7 +117,7 @@ class _SplashScreenState extends State<SplashScreen> {
                                 textAlign: TextAlign.center,
                                 style: GoogleFonts.poppins(
                                   color: Colors.white,
-                                  fontSize: 37 * scale,
+                                  fontSize: 28 * scale,
                                   fontWeight: FontWeight.w800,
                                   height: 1.05,
                                   letterSpacing: -0.8,

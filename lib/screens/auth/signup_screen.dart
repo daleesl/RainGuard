@@ -5,6 +5,8 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../services/auth_service.dart';
 import '../../theme/rainguard_theme.dart';
+import '../../widgets/rainguard_button.dart';
+import '../../widgets/rainguard_text_field.dart';
 import '../main_wrapper.dart';
 
 class SignupScreen extends StatefulWidget {
@@ -17,7 +19,6 @@ class SignupScreen extends StatefulWidget {
 class _SignupScreenState extends State<SignupScreen> {
   static const background = RainGuardColors.background;
   static const primaryBlue = RainGuardColors.primary;
-  static const ink = RainGuardColors.ink;
   static const muted = RainGuardColors.muted;
   static const labelColor = Color(0xFF5C7488);
   static const placeholder = Color(0xFF7890A3);
@@ -61,9 +62,9 @@ class _SignupScreenState extends State<SignupScreen> {
       );
     } on FirebaseAuthException catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(_messageFor(error))),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(_messageFor(error))));
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -95,13 +96,15 @@ class _SignupScreenState extends State<SignupScreen> {
       );
     } on FirebaseAuthException catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(_messageFor(error))),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(_messageFor(error))));
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Google sign-up was cancelled or failed.')),
+        const SnackBar(
+          content: Text('Google sign-up was cancelled or failed.'),
+        ),
       );
     } finally {
       if (mounted) setState(() => _isGoogleLoading = false);
@@ -163,7 +166,7 @@ class _SignupScreenState extends State<SignupScreen> {
                               'Create your\nRainGuard account',
                               style: GoogleFonts.poppins(
                                 color: Colors.white,
-                                fontSize: 29 * scale,
+                                fontSize: 20 * scale,
                                 fontWeight: FontWeight.w800,
                                 height: 1.2,
                               ),
@@ -173,7 +176,7 @@ class _SignupScreenState extends State<SignupScreen> {
                               'Use email and password, or choose Google for\na faster sign-up.',
                               style: GoogleFonts.poppins(
                                 color: const Color(0xFFD9F2FF),
-                                fontSize: 14 * scale,
+                                fontSize: 8 * scale,
                                 fontWeight: FontWeight.w500,
                                 height: 1.43,
                               ),
@@ -184,30 +187,41 @@ class _SignupScreenState extends State<SignupScreen> {
                               lastNameController: _lastNameController,
                               emailController: _emailController,
                               passwordController: _passwordController,
-                              confirmPasswordController: _confirmPasswordController,
+                              confirmPasswordController:
+                                  _confirmPasswordController,
                               obscurePassword: _obscurePassword,
                               obscureConfirmPassword: _obscureConfirmPassword,
                               onTogglePassword: () {
-                                setState(() => _obscurePassword = !_obscurePassword);
+                                setState(
+                                  () => _obscurePassword = !_obscurePassword,
+                                );
                               },
                               onToggleConfirmPassword: () {
-                                setState(() => _obscureConfirmPassword = !_obscureConfirmPassword);
+                                setState(
+                                  () => _obscureConfirmPassword =
+                                      !_obscureConfirmPassword,
+                                );
                               },
                               scale: scale,
                               verticalScale: verticalScale,
                             ),
                             SizedBox(height: 24 * verticalScale),
-                            _SignupGoogleButton(
-                              onPressed: _isGoogleLoading ? null : _continueWithGoogle,
+                            RainGuardGoogleButton(
+                              onPressed: _isGoogleLoading
+                                  ? null
+                                  : _continueWithGoogle,
                               scale: scale,
+                              compact: true,
                               label: _isGoogleLoading ? 'Connecting...' : null,
                             ),
                             SizedBox(height: 19 * verticalScale),
-                            _SignupPrimaryButton(
+                            RainGuardPrimaryButton(
                               label: 'Create account',
                               isLoading: _isLoading,
                               onPressed: _createAccount,
                               scale: scale,
+                              height: 54 * scale,
+                              fontSize: 12 * scale,
                             ),
                             SizedBox(height: 12 * verticalScale),
                             Center(
@@ -217,7 +231,7 @@ class _SignupScreenState extends State<SignupScreen> {
                                   'Already have an account? Log in',
                                   style: GoogleFonts.poppins(
                                     color: muted,
-                                    fontSize: 13 * scale,
+                                    fontSize: 10 * scale,
                                     fontWeight: FontWeight.w600,
                                     height: 1.38,
                                   ),
@@ -238,6 +252,7 @@ class _SignupScreenState extends State<SignupScreen> {
     );
   }
 }
+
 class _SignupCard extends StatelessWidget {
   const _SignupCard({
     required this.firstNameController,
@@ -296,18 +311,28 @@ class _SignupCard extends StatelessWidget {
               'EMAIL SIGN UP',
               style: GoogleFonts.poppins(
                 color: _SignupScreenState.primaryBlue,
-                fontSize: 11 * scale,
+                fontSize: 10 * scale,
                 fontWeight: FontWeight.w700,
                 height: 1.45,
               ),
             ),
           ),
           SizedBox(height: 29 * verticalScale),
-          SignupField(
+          RainGuardTextField(
             label: 'First name',
-            hint: 'John',
+            hintText: 'John',
             controller: firstNameController,
             textCapitalization: TextCapitalization.words,
+            labelPadding: const EdgeInsets.only(left: 12),
+            labelColor: _SignupScreenState.labelColor,
+            labelFontSize: 10,
+            labelFontWeight: FontWeight.w700,
+            labelHeight: 1.33,
+            labelLetterSpacing: 0,
+            labelGap: 8,
+            fieldBorderColor: _SignupScreenState.fieldBorder,
+            hintColor: _SignupScreenState.placeholder,
+            inputFontSize: 12,
             validator: (value) {
               if (value == null || value.trim().isEmpty) {
                 return 'First name is required.';
@@ -316,11 +341,21 @@ class _SignupCard extends StatelessWidget {
             },
           ),
           SizedBox(height: 19 * verticalScale),
-          SignupField(
+          RainGuardTextField(
             label: 'Last name',
-            hint: 'Jester',
+            hintText: 'Jester',
             controller: lastNameController,
             textCapitalization: TextCapitalization.words,
+            labelPadding: const EdgeInsets.only(left: 12),
+            labelColor: _SignupScreenState.labelColor,
+            labelFontSize: 10,
+            labelFontWeight: FontWeight.w700,
+            labelHeight: 1.33,
+            labelLetterSpacing: 0,
+            labelGap: 8,
+            fieldBorderColor: _SignupScreenState.fieldBorder,
+            hintColor: _SignupScreenState.placeholder,
+            inputFontSize: 12,
             validator: (value) {
               if (value == null || value.trim().isEmpty) {
                 return 'Last name is required.';
@@ -329,47 +364,93 @@ class _SignupCard extends StatelessWidget {
             },
           ),
           SizedBox(height: 19 * verticalScale),
-          SignupField(
+          RainGuardTextField(
             label: 'Email address',
-            hint: 'yourname@gmail.com',
+            hintText: 'yourname@gmail.com',
             controller: emailController,
             keyboardType: TextInputType.emailAddress,
-            suffix: const Icon(Icons.check_circle, color: Color(0xFF8EE3B5), size: 20),
+            suffix: const Icon(
+              Icons.check_circle,
+              color: Color(0xFF8EE3B5),
+              size: 20,
+            ),
+            labelPadding: const EdgeInsets.only(left: 12),
+            labelColor: _SignupScreenState.labelColor,
+            labelFontSize: 10,
+            labelFontWeight: FontWeight.w700,
+            labelHeight: 1.33,
+            labelLetterSpacing: 0,
+            labelGap: 8,
+            fieldBorderColor: _SignupScreenState.fieldBorder,
+            hintColor: _SignupScreenState.placeholder,
+            inputFontSize: 12,
             validator: (value) {
-              if (value == null || value.trim().isEmpty) return 'Email is required.';
-              if (!value.contains('@')) return 'Enter a valid email.';
+              if (value == null || value.trim().isEmpty) {
+                return 'Email is required.';
+              }
+              if (!value.contains('@')) {
+                return 'Enter a valid email.';
+              }
               return null;
             },
           ),
           SizedBox(height: 19 * verticalScale),
-          SignupField(
+          RainGuardTextField(
             label: 'Password',
-            hint: 'At least 8 characters',
+            hintText: 'At least 8 characters',
             controller: passwordController,
             obscureText: obscurePassword,
             suffix: TextButton(
               onPressed: onTogglePassword,
               child: Text(obscurePassword ? 'Show' : 'Hide'),
             ),
+            labelPadding: const EdgeInsets.only(left: 12),
+            labelColor: _SignupScreenState.labelColor,
+            labelFontSize: 10,
+            labelFontWeight: FontWeight.w700,
+            labelHeight: 1.33,
+            labelLetterSpacing: 0,
+            labelGap: 8,
+            fieldBorderColor: _SignupScreenState.fieldBorder,
+            hintColor: _SignupScreenState.placeholder,
+            inputFontSize: 12,
             validator: (value) {
-              if (value == null || value.isEmpty) return 'Password is required.';
-              if (value.length < 8) return 'Use at least 8 characters.';
+              if (value == null || value.isEmpty) {
+                return 'Password is required.';
+              }
+              if (value.length < 8) {
+                return 'Use at least 8 characters.';
+              }
               return null;
             },
           ),
           SizedBox(height: 19 * verticalScale),
-          SignupField(
+          RainGuardTextField(
             label: 'Confirm password',
-            hint: 'Re-enter password',
+            hintText: 'Re-enter password',
             controller: confirmPasswordController,
             obscureText: obscureConfirmPassword,
             suffix: TextButton(
               onPressed: onToggleConfirmPassword,
               child: Text(obscureConfirmPassword ? 'Show' : 'Hide'),
             ),
+            labelPadding: const EdgeInsets.only(left: 12),
+            labelColor: _SignupScreenState.labelColor,
+            labelFontSize: 10,
+            labelFontWeight: FontWeight.w700,
+            labelHeight: 1.33,
+            labelLetterSpacing: 0,
+            labelGap: 8,
+            fieldBorderColor: _SignupScreenState.fieldBorder,
+            hintColor: _SignupScreenState.placeholder,
+            inputFontSize: 12,
             validator: (value) {
-              if (value == null || value.isEmpty) return 'Please confirm your password.';
-              if (value != passwordController.text) return 'Passwords do not match.';
+              if (value == null || value.isEmpty) {
+                return 'Please confirm your password.';
+              }
+              if (value != passwordController.text) {
+                return 'Passwords do not match.';
+              }
               return null;
             },
           ),
@@ -380,199 +461,13 @@ class _SignupCard extends StatelessWidget {
               'Use 8+ characters. Avoid using your name or\nemail.',
               style: GoogleFonts.poppins(
                 color: _SignupScreenState.muted,
-                fontSize: 11.5 * scale,
+                fontSize: 8 * scale,
                 fontWeight: FontWeight.w400,
                 height: 1.39,
               ),
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class SignupField extends StatelessWidget {
-  const SignupField({
-    super.key,
-    required this.label,
-    required this.hint,
-    required this.controller,
-    this.keyboardType,
-    this.textCapitalization = TextCapitalization.none,
-    this.obscureText = false,
-    this.suffix,
-    this.validator,
-  });
-
-  final String label;
-  final String hint;
-  final TextEditingController controller;
-  final TextInputType? keyboardType;
-  final TextCapitalization textCapitalization;
-  final bool obscureText;
-  final Widget? suffix;
-  final String? Function(String?)? validator;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(left: 12),
-          child: Text(
-            label,
-            style: GoogleFonts.poppins(
-              color: _SignupScreenState.labelColor,
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-              height: 1.33,
-            ),
-          ),
-        ),
-        const SizedBox(height: 8),
-        TextFormField(
-          controller: controller,
-          keyboardType: keyboardType,
-          textCapitalization: textCapitalization,
-          obscureText: obscureText,
-          validator: validator,
-          style: GoogleFonts.poppins(
-            color: _SignupScreenState.ink,
-            fontSize: 13,
-            fontWeight: FontWeight.w500,
-          ),
-          decoration: InputDecoration(
-            filled: true,
-            fillColor: Colors.white,
-            hintText: hint,
-            hintStyle: GoogleFonts.poppins(
-              color: _SignupScreenState.placeholder,
-              fontSize: 13,
-              fontWeight: FontWeight.w500,
-            ),
-            suffixIcon: suffix,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(18),
-              borderSide: const BorderSide(color: _SignupScreenState.fieldBorder, width: 1.2),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(18),
-              borderSide: const BorderSide(color: _SignupScreenState.fieldBorder, width: 1.2),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(18),
-              borderSide: const BorderSide(color: _SignupScreenState.primaryBlue, width: 1.4),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _SignupPrimaryButton extends StatelessWidget {
-  const _SignupPrimaryButton({
-    required this.label,
-    required this.isLoading,
-    required this.onPressed,
-    required this.scale,
-  });
-
-  final String label;
-  final bool isLoading;
-  final VoidCallback onPressed;
-  final double scale;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      height: 54 * scale,
-      child: ElevatedButton(
-        onPressed: isLoading ? null : onPressed,
-        style: ElevatedButton.styleFrom(
-          elevation: 0,
-          backgroundColor: _SignupScreenState.primaryBlue,
-          foregroundColor: Colors.white,
-          disabledBackgroundColor:
-              _SignupScreenState.primaryBlue.withOpacity(0.55),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(18 * scale),
-          ),
-        ),
-        child: isLoading
-            ? const SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: Colors.white,
-                ),
-              )
-            : Text(
-                label,
-                style: GoogleFonts.poppins(
-                  fontSize: 14 * scale,
-                  fontWeight: FontWeight.w700,
-                  height: 1.28,
-                ),
-              ),
-      ),
-    );
-  }
-}
-
-class _SignupGoogleButton extends StatelessWidget {
-  const _SignupGoogleButton({
-    required this.onPressed,
-    required this.scale,
-    this.label,
-  });
-
-  final VoidCallback? onPressed;
-  final double scale;
-  final String? label;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 294 * scale,
-      height: 44 * scale,
-      child: OutlinedButton(
-        onPressed: onPressed,
-        style: OutlinedButton.styleFrom(
-          backgroundColor: _SignupScreenState.background,
-          foregroundColor: const Color(0xFF0B355E),
-          side: const BorderSide(color: Color(0xFFD6ECF8)),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16 * scale),
-          ),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              'G',
-              style: GoogleFonts.poppins(
-                color: _SignupScreenState.primaryBlue,
-                fontSize: 16 * scale,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-            SizedBox(width: 19 * scale),
-            Text(
-              label ?? 'Or continue with Google',
-              style: GoogleFonts.poppins(
-                color: const Color(0xFF0B355E),
-                fontSize: 12.5 * scale,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }

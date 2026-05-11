@@ -6,6 +6,8 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../services/auth_service.dart';
 import '../../theme/rainguard_theme.dart';
+import '../../widgets/rainguard_button.dart';
+import '../../widgets/rainguard_text_field.dart';
 import '../main_wrapper.dart';
 import 'signup_screen.dart';
 
@@ -22,8 +24,6 @@ class _LoginScreenState extends State<LoginScreen> {
   static const ink = RainGuardColors.ink;
   static const muted = RainGuardColors.muted;
   static const fieldBorder = RainGuardColors.authFieldBorder;
-  static const noteFill = RainGuardColors.softBlue;
-  static const noteInk = RainGuardColors.primaryDark;
 
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
@@ -54,9 +54,9 @@ class _LoginScreenState extends State<LoginScreen> {
       );
     } on FirebaseAuthException catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(_messageFor(error))),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(_messageFor(error))));
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -78,9 +78,9 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void _openSignup() {
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(builder: (_) => const SignupScreen()),
-    );
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute<void>(builder: (_) => const SignupScreen()));
   }
 
   Future<void> _continueWithGoogle() async {
@@ -94,13 +94,15 @@ class _LoginScreenState extends State<LoginScreen> {
       );
     } on FirebaseAuthException catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(_messageFor(error))),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(_messageFor(error))));
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Google sign-in was cancelled or failed.')),
+        const SnackBar(
+          content: Text('Google sign-in was cancelled or failed.'),
+        ),
       );
     } finally {
       if (mounted) setState(() => _isGoogleLoading = false);
@@ -109,17 +111,14 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Widget _googleButton(double scale) {
     if (_isGoogleLoading) {
-      return GoogleButton(
+      return RainGuardGoogleButton(
         onPressed: null,
         scale: scale,
         label: 'Connecting...',
       );
     }
 
-    return GoogleButton(
-      onPressed: _continueWithGoogle,
-      scale: scale,
-    );
+    return RainGuardGoogleButton(onPressed: _continueWithGoogle, scale: scale);
   }
 
   @override
@@ -164,7 +163,10 @@ class _LoginScreenState extends State<LoginScreen> {
                     SafeArea(
                       bottom: false,
                       child: Padding(
-                        padding: EdgeInsets.only(left: 28 * scale, top: 6 * scale),
+                        padding: EdgeInsets.only(
+                          left: 28 * scale,
+                          top: 6 * scale,
+                        ),
                         child: Row(
                           children: [
                             SvgPicture.asset(
@@ -177,7 +179,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               'RainGuard',
                               style: GoogleFonts.poppins(
                                 color: Colors.white,
-                                fontSize: 25 * scale,
+                                fontSize: 18 * scale,
                                 fontWeight: FontWeight.w700,
                                 height: 1.2,
                                 letterSpacing: -0.25,
@@ -203,7 +205,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               'Welcome',
                               style: GoogleFonts.poppins(
                                 color: ink,
-                                fontSize: 34 * scale,
+                                fontSize: 20 * scale,
                                 fontWeight: FontWeight.w800,
                                 height: 1.18,
                                 letterSpacing: -0.34,
@@ -214,13 +216,13 @@ class _LoginScreenState extends State<LoginScreen> {
                               'Check your area, report conditions, and\nkeep your community informed.',
                               style: GoogleFonts.poppins(
                                 color: muted,
-                                fontSize: 15 * scale,
+                                fontSize: 8 * scale,
                                 fontWeight: FontWeight.w400,
                                 height: 1.6,
                               ),
                             ),
                             SizedBox(height: 34 * verticalScale),
-                            AuthField(
+                            RainGuardTextField(
                               label: 'EMAIL',
                               controller: _emailController,
                               keyboardType: TextInputType.emailAddress,
@@ -228,18 +230,22 @@ class _LoginScreenState extends State<LoginScreen> {
                                 if (value == null || value.trim().isEmpty) {
                                   return 'Email is required.';
                                 }
-                                if (!value.contains('@')) return 'Enter a valid email.';
+                                if (!value.contains('@')) {
+                                  return 'Enter a valid email.';
+                                }
                                 return null;
                               },
                             ),
                             SizedBox(height: 20 * verticalScale),
-                            AuthField(
+                            RainGuardTextField(
                               label: 'PASSWORD',
                               controller: _passwordController,
                               obscureText: _obscurePassword,
                               suffix: TextButton(
                                 onPressed: () {
-                                  setState(() => _obscurePassword = !_obscurePassword);
+                                  setState(
+                                    () => _obscurePassword = !_obscurePassword,
+                                  );
                                 },
                                 child: Text(_obscurePassword ? 'Show' : 'Hide'),
                               ),
@@ -258,14 +264,14 @@ class _LoginScreenState extends State<LoginScreen> {
                                   'Forgot password?',
                                   style: GoogleFonts.poppins(
                                     color: primaryBlue,
-                                    fontSize: 13 * scale,
+                                    fontSize: 10 * scale,
                                     fontWeight: FontWeight.w600,
                                   ),
                                 ),
                               ),
                             ),
                             SizedBox(height: 13 * verticalScale),
-                            PrimaryButton(
+                            RainGuardPrimaryButton(
                               label: 'Log in to RainGuard',
                               isLoading: _isLoading,
                               onPressed: _login,
@@ -275,8 +281,6 @@ class _LoginScreenState extends State<LoginScreen> {
                             DividerWithText(scale: scale),
                             SizedBox(height: 29 * verticalScale),
                             _googleButton(scale),
-                            SizedBox(height: 30 * verticalScale),
-                            const SafetyNote(),
                             SizedBox(height: 25 * verticalScale),
                             Center(
                               child: TextButton(
@@ -285,7 +289,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   'New here? Create an account',
                                   style: GoogleFonts.poppins(
                                     color: muted,
-                                    fontSize: 13 * scale,
+                                    fontSize: 10 * scale,
                                     fontWeight: FontWeight.w600,
                                     height: 1.38,
                                   ),
@@ -307,122 +311,6 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 }
 
-class AuthField extends StatelessWidget {
-  const AuthField({
-    super.key,
-    required this.label,
-    required this.controller,
-    this.keyboardType,
-    this.obscureText = false,
-    this.suffix,
-    this.validator,
-  });
-
-  final String label;
-  final TextEditingController controller;
-  final TextInputType? keyboardType;
-  final bool obscureText;
-  final Widget? suffix;
-  final String? Function(String?)? validator;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: GoogleFonts.poppins(
-            color: _LoginScreenState.muted,
-            fontSize: 11,
-            fontWeight: FontWeight.w600,
-            height: 1.36,
-            letterSpacing: 0.77,
-          ),
-        ),
-        const SizedBox(height: 7),
-        TextFormField(
-          controller: controller,
-          keyboardType: keyboardType,
-          obscureText: obscureText,
-          validator: validator,
-          style: GoogleFonts.poppins(
-            color: _LoginScreenState.ink,
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-          ),
-          decoration: InputDecoration(
-            filled: true,
-            fillColor: Colors.white,
-            suffixIcon: suffix,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(18),
-              borderSide: const BorderSide(color: _LoginScreenState.fieldBorder),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(18),
-              borderSide: const BorderSide(color: _LoginScreenState.fieldBorder),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(18),
-              borderSide: const BorderSide(color: _LoginScreenState.primaryBlue, width: 1.4),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-class PrimaryButton extends StatelessWidget {
-  const PrimaryButton({
-    super.key,
-    required this.label,
-    required this.isLoading,
-    required this.onPressed,
-    required this.scale,
-  });
-
-  final String label;
-  final bool isLoading;
-  final VoidCallback onPressed;
-  final double scale;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      height: 56 * scale,
-      child: ElevatedButton(
-        onPressed: isLoading ? null : onPressed,
-        style: ElevatedButton.styleFrom(
-          elevation: 0,
-          backgroundColor: _LoginScreenState.primaryBlue,
-          foregroundColor: Colors.white,
-          disabledBackgroundColor: _LoginScreenState.primaryBlue.withOpacity(0.55),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(18 * scale),
-          ),
-        ),
-        child: isLoading
-            ? const SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-              )
-            : Text(
-                label,
-                style: GoogleFonts.poppins(
-                  fontSize: 15 * scale,
-                  fontWeight: FontWeight.w700,
-                  height: 1.33,
-                ),
-              ),
-      ),
-    );
-  }
-}
-
 class DividerWithText extends StatelessWidget {
   const DividerWithText({super.key, required this.scale});
 
@@ -439,109 +327,13 @@ class DividerWithText extends StatelessWidget {
             'or',
             style: GoogleFonts.poppins(
               color: _LoginScreenState.muted,
-              fontSize: 13 * scale,
+              fontSize: 8 * scale,
               fontWeight: FontWeight.w400,
             ),
           ),
         ),
         const Expanded(child: Divider(color: _LoginScreenState.fieldBorder)),
       ],
-    );
-  }
-}
-
-class GoogleButton extends StatelessWidget {
-  const GoogleButton({
-    super.key,
-    required this.onPressed,
-    required this.scale,
-    this.compact = false,
-    this.label,
-  });
-
-  final VoidCallback? onPressed;
-  final double scale;
-  final bool compact;
-  final String? label;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: compact ? 294 * scale : double.infinity,
-      height: compact ? 44 * scale : 56 * scale,
-      child: OutlinedButton(
-        onPressed: onPressed,
-        style: OutlinedButton.styleFrom(
-          backgroundColor: compact ? _LoginScreenState.background : Colors.white,
-          foregroundColor: _LoginScreenState.ink,
-          side: const BorderSide(color: _LoginScreenState.fieldBorder),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular((compact ? 16 : 18) * scale),
-          ),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              'G',
-              style: GoogleFonts.poppins(
-                color: _LoginScreenState.primaryBlue,
-                fontSize: 16 * scale,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-            SizedBox(width: compact ? 19 * scale : 13 * scale),
-            Text(
-              label ?? (compact ? 'Or continue with Google' : 'Continue with Google'),
-              style: GoogleFonts.poppins(
-                color: compact ? _LoginScreenState.noteInk : _LoginScreenState.ink,
-                fontSize: (compact ? 12.5 : 15) * scale,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class SafetyNote extends StatelessWidget {
-  const SafetyNote({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: _LoginScreenState.noteFill.withOpacity(0.95),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Location stays in your control',
-            style: GoogleFonts.poppins(
-              color: _LoginScreenState.noteInk,
-              fontSize: 14,
-              fontWeight: FontWeight.w700,
-              height: 1.28,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            'RainGuard only asks for location when mapping\nnearby reports or submitting your own.',
-            style: GoogleFonts.poppins(
-              color: _LoginScreenState.noteInk,
-              fontSize: 11,
-              fontWeight: FontWeight.w400,
-              height: 1.55,
-            ),
-          ),
-        ],
-      ),
     );
   }
 }
