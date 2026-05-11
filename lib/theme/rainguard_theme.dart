@@ -52,11 +52,7 @@ class RainGuardShadows {
   }
 
   static const hero = [
-    BoxShadow(
-      color: Color(0x29082138),
-      blurRadius: 22,
-      offset: Offset(0, 12),
-    ),
+    BoxShadow(color: Color(0x29082138), blurRadius: 22, offset: Offset(0, 12)),
   ];
 }
 
@@ -65,36 +61,36 @@ class RainGuardTextStyles {
 
   static const appBarTitle = TextStyle(
     fontWeight: FontWeight.w800,
-    fontSize: 18,
+    fontSize: 14,
   );
 
   static const pageTitle = TextStyle(
     color: RainGuardColors.ink,
-    fontSize: 26,
+    fontSize: 20,
     fontWeight: FontWeight.w900,
   );
 
   static const sectionTitle = TextStyle(
     color: RainGuardColors.ink,
-    fontSize: 18,
+    fontSize: 14,
     fontWeight: FontWeight.w900,
   );
 
   static const cardTitle = TextStyle(
     color: RainGuardColors.ink,
-    fontSize: 15,
+    fontSize: 12,
     fontWeight: FontWeight.w900,
   );
 
   static const body = TextStyle(
     color: RainGuardColors.secondaryText,
-    fontSize: 12,
+    fontSize: 8,
     height: 1.35,
   );
 
   static const label = TextStyle(
     color: RainGuardColors.sectionLabel,
-    fontSize: 12,
+    fontSize: 10,
     fontWeight: FontWeight.w900,
     letterSpacing: 0.6,
   );
