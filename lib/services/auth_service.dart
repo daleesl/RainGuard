@@ -79,6 +79,15 @@ class AuthService {
     return userCredential;
   }
 
+  static Future<void> signOut() async {
+    if (!_googleInitialized) {
+      await GoogleSignIn.instance.initialize();
+      _googleInitialized = true;
+    }
+    await GoogleSignIn.instance.signOut();
+    await _auth.signOut();
+  }
+
   static ({String? firstName, String? lastName}) _splitDisplayName(
     String? displayName,
   ) {

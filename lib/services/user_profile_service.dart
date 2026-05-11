@@ -60,7 +60,8 @@ class UserProfileService {
     final now = FieldValue.serverTimestamp();
     final cleanFirstName = _clean(firstName);
     final cleanLastName = _clean(lastName);
-    final cleanDisplayName = _clean(displayName) ??
+    final cleanDisplayName =
+        _clean(displayName) ??
         _clean(user.displayName) ??
         _fallbackDisplayName(user.email);
 
