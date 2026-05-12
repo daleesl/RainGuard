@@ -16,12 +16,13 @@ class ReportModal extends StatefulWidget {
 }
 
 class _ReportModalState extends State<ReportModal> {
+  static const int _maxImages = 5;
+
   ReportType selectedType = ReportType.rain;
   String? selectedFloodLevel;
   final TextEditingController _descriptionController = TextEditingController();
   bool _isSubmitting = false;
-  String _fileName = "No file chosen";
-  XFile? _pickedImage;
+  final List<XFile> _pickedImages = [];
 
   @override
   void dispose() {
@@ -30,14 +31,27 @@ class _ReportModalState extends State<ReportModal> {
   }
 
   Future<void> _pickImage() async {
+    final remainingSlots = _maxImages - _pickedImages.length;
+    if (remainingSlots <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('You can attach up to 5 photos.')),
+      );
+      return;
+    }
+
     final ImagePicker picker = ImagePicker();
-    final XFile? image = await picker.pickImage(source: ImageSource.gallery);
-    if (image != null) {
+    final List<XFile> images = await picker.pickMultiImage();
+    if (!mounted) return;
+
+    if (images.isNotEmpty) {
       setState(() {
-        _fileName = image.name;
-        _pickedImage = image;
+        _pickedImages.addAll(images.take(remainingSlots));
       });
     }
+  }
+
+  void _removeImage(XFile image) {
+    setState(() => _pickedImages.remove(image));
   }
 
   Future<void> _submitReport() async {
@@ -50,7 +64,7 @@ class _ReportModalState extends State<ReportModal> {
         type: selectedType,
         floodLevel: selectedFloodLevel,
         description: _descriptionController.text,
-        image: _pickedImage,
+        images: _pickedImages,
       );
 
       if (mounted) {
@@ -123,8 +137,63 @@ class _ReportModalState extends State<ReportModal> {
     );
   }
 
+  Widget _buildPickedImage(XFile image, int index) {
+    return Stack(
+      children: [
+        Positioned.fill(
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(14),
+            child: kIsWeb
+                ? Image.network(image.path, fit: BoxFit.cover)
+                : Image.file(File(image.path), fit: BoxFit.cover),
+          ),
+        ),
+        Positioned(
+          top: 7,
+          left: 7,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: Colors.black.withOpacity(0.58),
+              borderRadius: BorderRadius.circular(99),
+            ),
+            child: Text(
+              '${index + 1}',
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 8,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ),
+        ),
+        Positioned(
+          top: 4,
+          right: 4,
+          child: Material(
+            color: Colors.black.withOpacity(0.58),
+            shape: const CircleBorder(),
+            child: InkWell(
+              customBorder: const CircleBorder(),
+              onTap: () => _removeImage(image),
+              child: const SizedBox(
+                width: 28,
+                height: 28,
+                child: Icon(
+                  Icons.close_rounded,
+                  color: Colors.white,
+                  size: 18,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildPhotoUploadSection() {
-    if (_pickedImage == null) {
+    if (_pickedImages.isEmpty) {
       return Material(
         color: Colors.transparent,
         child: InkWell(
@@ -159,7 +228,7 @@ class _ReportModalState extends State<ReportModal> {
                 ),
                 const SizedBox(height: 12),
                 const Text(
-                  'Tap to add report photo',
+                  'Tap to add report photos',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: RainGuardColors.ink,
@@ -169,7 +238,7 @@ class _ReportModalState extends State<ReportModal> {
                 ),
                 const SizedBox(height: 5),
                 const Text(
-                  'Upload a clear image if it is safe to take one.',
+                  'Attach up to 5 clear images if it is safe to take them.',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: RainGuardColors.secondaryText,
@@ -187,18 +256,18 @@ class _ReportModalState extends State<ReportModal> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          height: 160,
-          width: double.infinity,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: RainGuardColors.border),
-            color: Colors.grey.shade50,
+        GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: _pickedImages.length,
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 3,
+            mainAxisSpacing: 8,
+            crossAxisSpacing: 8,
           ),
-          clipBehavior: Clip.hardEdge,
-          child: kIsWeb
-              ? Image.network(_pickedImage!.path, fit: BoxFit.cover)
-              : Image.file(File(_pickedImage!.path), fit: BoxFit.cover),
+          itemBuilder: (context, index) {
+            return _buildPickedImage(_pickedImages[index], index);
+          },
         ),
         const SizedBox(height: 10),
         Container(
@@ -221,7 +290,7 @@ class _ReportModalState extends State<ReportModal> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      _fileName,
+                      '${_pickedImages.length} photo${_pickedImages.length == 1 ? '' : 's'} attached',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
@@ -239,9 +308,10 @@ class _ReportModalState extends State<ReportModal> {
                 runSpacing: 8,
                 children: [
                   OutlinedButton.icon(
-                    onPressed: _pickImage,
+                    onPressed:
+                        _pickedImages.length >= _maxImages ? null : _pickImage,
                     icon: const Icon(Icons.photo_library_outlined, size: 18),
-                    label: const Text('Change photo'),
+                    label: const Text('Add more'),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: RainGuardColors.primary,
                       side: const BorderSide(color: RainGuardColors.primary),
@@ -252,11 +322,10 @@ class _ReportModalState extends State<ReportModal> {
                   ),
                   TextButton.icon(
                     onPressed: () => setState(() {
-                      _pickedImage = null;
-                      _fileName = 'No file chosen';
+                      _pickedImages.clear();
                     }),
                     icon: const Icon(Icons.close_rounded, size: 18),
-                    label: const Text('Remove'),
+                    label: const Text('Remove all'),
                     style: TextButton.styleFrom(
                       foregroundColor: Colors.red.shade600,
                     ),

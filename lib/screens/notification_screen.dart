@@ -115,7 +115,8 @@ class _NotificationCard extends StatelessWidget {
         ? '$reportName report needs attention'
         : '$reportName update near monitored area';
     final reporterName = report.reporterName ?? 'Anonymous reporter';
-    final hasImage = report.imageUrl != null && report.imageUrl!.isNotEmpty;
+    final imageCount = report.allImageUrls.length;
+    final hasImage = imageCount > 0;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
@@ -124,10 +125,10 @@ class _NotificationCard extends StatelessWidget {
         child: InkWell(
           onTap: onTap,
           borderRadius: BorderRadius.circular(22),
-          child: Ink(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(22),
+            child: Ink(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(22),
               border: Border.all(color: RainGuardColors.border),
               boxShadow: [
                 BoxShadow(
@@ -137,130 +138,131 @@ class _NotificationCard extends StatelessWidget {
                 ),
               ],
             ),
-            child: IntrinsicHeight(
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Container(
-                    width: 5,
-                    decoration: BoxDecoration(
-                      color: color,
-                      borderRadius: const BorderRadius.horizontal(
-                        left: Radius.circular(22),
-                      ),
-                    ),
-                  ),
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.all(15),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Container(
-                                width: 42,
-                                height: 42,
-                                decoration: BoxDecoration(
-                                  color: color.withOpacity(0.10),
-                                  borderRadius: BorderRadius.circular(15),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(22),
+              child: IntrinsicHeight(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Container(width: 5, color: color),
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.all(15),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Container(
+                                  width: 42,
+                                  height: 42,
+                                  decoration: BoxDecoration(
+                                    color: color.withOpacity(0.10),
+                                    borderRadius: BorderRadius.circular(15),
+                                  ),
+                                  child: Icon(
+                                    MapHelper.getReportIcon(report.type),
+                                    color: color,
+                                    size: 22,
+                                  ),
                                 ),
-                                child: Icon(
-                                  MapHelper.getReportIcon(report.type),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        title,
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(
+                                          color: RainGuardColors.ink,
+                                          fontWeight: FontWeight.w900,
+                                          fontSize: 12,
+                                          height: 1.25,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 5),
+                                      Text(
+                                        'Reported by $reporterName',
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(
+                                          fontSize: 8,
+                                          color:
+                                              RainGuardColors.secondaryText,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                _SeverityChip(
                                   color: color,
-                                  size: 22,
+                                  label: MapHelper.getRiskLevelName(
+                                    report.risk,
+                                  ),
                                 ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      title,
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(
-                                        color: RainGuardColors.ink,
-                                        fontWeight: FontWeight.w900,
-                                        fontSize: 12,
-                                        height: 1.25,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 5),
-                                    Text(
-                                      'Reported by $reporterName',
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(
-                                        fontSize: 8,
-                                        color: RainGuardColors.secondaryText,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              _SeverityChip(
-                                color: color,
-                                label: MapHelper.getRiskLevelName(report.risk),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 13),
-                          Text(
-                            report.description.isNotEmpty
-                                ? report.description
-                                : '$reportName was reported near your monitored area.',
-                            maxLines: 3,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontSize: 8,
-                              height: 1.4,
-                              color: RainGuardColors.ink,
+                              ],
                             ),
-                          ),
-                          const SizedBox(height: 13),
-                          Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
-                            crossAxisAlignment: WrapCrossAlignment.center,
-                            children: [
-                              _MetaPill(
-                                color: Colors.blueGrey,
-                                icon: Icons.access_time_rounded,
-                                label: timeago.format(report.createdAt),
+                            const SizedBox(height: 13),
+                            Text(
+                              report.description.isNotEmpty
+                                  ? report.description
+                                  : '$reportName was reported near your monitored area.',
+                              maxLines: 3,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 8,
+                                height: 1.4,
+                                color: RainGuardColors.ink,
                               ),
-                              if (report.floodLevel != null)
+                            ),
+                            const SizedBox(height: 13),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              crossAxisAlignment: WrapCrossAlignment.center,
+                              children: [
                                 _MetaPill(
-                                  color: color,
-                                  icon: Icons.water_drop_outlined,
-                                  label: report.floodLevel!,
+                                  color: Colors.blueGrey,
+                                  icon: Icons.access_time_rounded,
+                                  label: timeago.format(report.createdAt),
                                 ),
-                              if (hasImage)
-                                _MetaPill(
-                                  color: RainGuardColors.primary,
-                                  icon: Icons.image_outlined,
-                                  label: 'Photo attached',
-                                ),
-                            ],
-                          ),
-                        ],
+                                if (report.floodLevel != null)
+                                  _MetaPill(
+                                    color: color,
+                                    icon: Icons.water_drop_outlined,
+                                    label: report.floodLevel!,
+                                  ),
+                                if (hasImage)
+                                  _MetaPill(
+                                    color: RainGuardColors.primary,
+                                    icon: Icons.image_outlined,
+                                    label: imageCount > 1
+                                        ? '$imageCount photos'
+                                        : 'Photo attached',
+                                  ),
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                  const Padding(
-                    padding: EdgeInsets.only(right: 10),
-                    child: Center(
-                      child: Icon(
-                        Icons.chevron_right_rounded,
-                        color: RainGuardColors.secondaryText,
+                    const Padding(
+                      padding: EdgeInsets.only(right: 10),
+                      child: Center(
+                        child: Icon(
+                          Icons.chevron_right_rounded,
+                          color: RainGuardColors.secondaryText,
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),

@@ -15,11 +15,22 @@ class ReportService {
     required String description,
     String? floodLevel,
     XFile? image,
+    List<XFile> images = const [],
   }) async {
     final position = await LocationService.getCurrentPosition();
-    final imageUrl = image != null
-        ? await StorageService.uploadReportImage(image)
-        : null;
+    final List<XFile> selectedImages;
+    if (images.isNotEmpty) {
+      selectedImages = images;
+    } else if (image != null) {
+      selectedImages = [image];
+    } else {
+      selectedImages = const <XFile>[];
+    }
+
+    final imageUrls = selectedImages.isNotEmpty
+        ? await StorageService.uploadReportImages(selectedImages)
+        : const <String>[];
+    final imageUrl = imageUrls.isNotEmpty ? imageUrls.first : null;
 
     final currentUser = FirebaseAuth.instance.currentUser;
     final userProfile = await UserProfileService.getCurrentUserProfile();
@@ -42,6 +53,7 @@ class ReportService {
       'risk_level': RiskLevel.risk.name,
       'description': description.trim(),
       'image_url': imageUrl,
+      'image_urls': imageUrls,
       'created_at': Timestamp.fromDate(DateTime.now()),
     };
 

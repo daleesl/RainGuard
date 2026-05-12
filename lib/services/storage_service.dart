@@ -8,6 +8,16 @@ import 'package:image_picker/image_picker.dart';
 class StorageService {
   const StorageService._();
 
+  static Future<List<String>> uploadReportImages(List<XFile> images) async {
+    final urls = <String>[];
+
+    for (final image in images) {
+      urls.add(await uploadReportImage(image));
+    }
+
+    return urls;
+  }
+
   static Future<String> uploadReportImage(XFile image) async {
     final cleanName = image.name.replaceAll(RegExp(r'[^a-zA-Z0-9\.]'), '_');
     final path = 'reports/${DateTime.now().millisecondsSinceEpoch}_$cleanName';
