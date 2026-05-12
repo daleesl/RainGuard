@@ -68,25 +68,32 @@ class RainGuardGoogleButton extends StatelessWidget {
     this.scale = 1,
     this.compact = false,
     this.label,
+    this.height,
+    this.fontSize,
+    this.radius,
   });
 
   final VoidCallback? onPressed;
   final double scale;
   final bool compact;
   final String? label;
+  final double? height;
+  final double? fontSize;
+  final double? radius;
 
   @override
   Widget build(BuildContext context) {
     final width = compact ? 294 * scale : double.infinity;
-    final height = compact ? 44 * scale : 56 * scale;
-    final radius = (compact ? 16 : 18) * scale;
+    final buttonHeight = height ?? (compact ? 44 * scale : 56 * scale);
+    final buttonRadius = radius ?? (compact ? 16 : 18) * scale;
+    final buttonFontSize = fontSize ?? 12 * scale;
     final textColor = compact
         ? RainGuardColors.primaryDark
         : RainGuardColors.ink;
 
     return SizedBox(
       width: width,
-      height: height,
+      height: buttonHeight,
       child: OutlinedButton(
         onPressed: onPressed,
         style: OutlinedButton.styleFrom(
@@ -94,7 +101,7 @@ class RainGuardGoogleButton extends StatelessWidget {
           foregroundColor: textColor,
           side: const BorderSide(color: RainGuardColors.authFieldBorder),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(radius),
+            borderRadius: BorderRadius.circular(buttonRadius),
           ),
         ),
         child: Row(
@@ -104,7 +111,7 @@ class RainGuardGoogleButton extends StatelessWidget {
               'G',
               style: GoogleFonts.poppins(
                 color: RainGuardColors.primary,
-                fontSize: 12 * scale,
+                fontSize: buttonFontSize,
                 fontWeight: FontWeight.w800,
               ),
             ),
@@ -120,7 +127,7 @@ class RainGuardGoogleButton extends StatelessWidget {
                   maxLines: 1,
                   style: GoogleFonts.poppins(
                     color: textColor,
-                    fontSize: 12 * scale,
+                    fontSize: buttonFontSize,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
