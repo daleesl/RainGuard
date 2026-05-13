@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:latlong2/latlong.dart';
 
 import '../models/report_model.dart';
 import 'location_service.dart';
@@ -16,8 +17,14 @@ class ReportService {
     String? floodLevel,
     XFile? image,
     List<XFile> images = const [],
+    LatLng? manualLocation,
   }) async {
-    final position = await LocationService.getCurrentPosition();
+    final position = manualLocation == null
+        ? await LocationService.getCurrentPosition()
+        : null;
+    final latitude = manualLocation?.latitude ?? position!.latitude;
+    final longitude = manualLocation?.longitude ?? position!.longitude;
+    final locationSource = manualLocation == null ? 'gps' : 'manual';
     final List<XFile> selectedImages;
     if (images.isNotEmpty) {
       selectedImages = images;
@@ -46,8 +53,9 @@ class ReportService {
       'user_id': userId,
       'reporter_name': reporterName,
       'reporter_display_name': reporterDisplayName,
-      'latitude': position.latitude,
-      'longitude': position.longitude,
+      'latitude': latitude,
+      'longitude': longitude,
+      'location_source': locationSource,
       'report_type': type.name,
       'flood_level': type == ReportType.flood ? floodLevel : null,
       'risk_level': RiskLevel.risk.name,
