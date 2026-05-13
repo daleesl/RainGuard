@@ -39,9 +39,9 @@ Use this file as the first stop for any AI assistant or coding agent working in 
 - Framework: Flutter.
 - Language: Dart.
 - Backend/services: Firebase Core, Cloud Firestore, Firebase Storage, Firebase Auth.
-- Maps: `flutter_map`, OpenStreetMap tiles, `latlong2`.
+- Maps: `flutter_map`, `flutter_map_marker_cluster`, OpenStreetMap tiles, `latlong2`.
 - Device location: `geolocator`.
-- Image upload: `image_picker` plus Firebase Storage.
+- Image upload: `image_picker`, `flutter_image_compress`, plus Firebase Storage.
 - Weather: OpenWeather API through `WeatherService`.
 - Reverse geocoding: Nominatim through `GeocodingService`.
 - Local caching: `shared_preferences`.
@@ -82,6 +82,7 @@ Use this file as the first stop for any AI assistant or coding agent working in 
   - `reporter_display_name`
   - `latitude`
   - `longitude`
+  - `location_source`
   - `report_type`
   - `risk_level`
   - `description`
@@ -114,7 +115,7 @@ Use this file as the first stop for any AI assistant or coding agent working in 
 - `AuthService`: email/password auth, Google sign-in, user profile creation/update, and sign-out.
 - `UserProfileService`: streams and reads the current Firebase user's Firestore profile.
 - `LocationService`: location permission and current GPS position handling.
-- `StorageService`: Firebase Storage upload behavior for report images.
+- `StorageService`: report image compression and Firebase Storage upload behavior.
 - `ReportService`: report submission orchestration, including GPS, optional image upload, current user/profile info, and Firestore writes.
 - `NotificationTokenService`: Firebase Cloud Messaging permission, token registration, token refresh persistence, and logout cleanup.
 - `WeatherService`: OpenWeather API calls for the fixed Lingga/Calamba weather context.
