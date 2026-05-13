@@ -20,10 +20,19 @@ exports.notifyUsersOnReportCreated = onDocumentCreated(
       return;
     }
 
+    const reporterUserId =
+      typeof report.user_id === "string" ? report.user_id.trim() : "";
     const tokenDocs = await db.collectionGroup("fcm_tokens").get();
     const tokenRefsByToken = new Map();
+    let skippedReporterTokens = 0;
 
     tokenDocs.forEach((doc) => {
+      const tokenOwnerUserId = doc.ref.parent.parent?.id || "";
+      if (reporterUserId && tokenOwnerUserId === reporterUserId) {
+        skippedReporterTokens += 1;
+        return;
+      }
+
       const token = doc.get("token") || doc.id;
       if (typeof token === "string" && token.trim().length > 0) {
         tokenRefsByToken.set(token.trim(), doc.ref);
@@ -34,6 +43,14 @@ exports.notifyUsersOnReportCreated = onDocumentCreated(
     if (tokens.length === 0) {
       logger.info("No notification tokens found for new report", { reportId });
       return;
+    }
+
+    if (skippedReporterTokens > 0) {
+      logger.info("Skipped reporter notification tokens", {
+        reportId,
+        reporterUserId,
+        count: skippedReporterTokens,
+      });
     }
 
     const reportType = report.report_type === "flood" ? "Flood" : "Rain";
