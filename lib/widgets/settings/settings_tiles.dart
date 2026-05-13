@@ -115,11 +115,15 @@ class SettingsSwitchTile extends StatelessWidget {
     required this.title,
     required this.value,
     required this.onChanged,
+    this.subtitle,
+    this.isLoading = false,
   });
 
   final IconData icon;
   final String title;
+  final String? subtitle;
   final bool value;
+  final bool isLoading;
   final ValueChanged<bool> onChanged;
 
   @override
@@ -138,21 +142,47 @@ class SettingsSwitchTile extends StatelessWidget {
             SettingsTileIcon(icon: icon),
             const SizedBox(width: 12),
             Expanded(
-              child: Text(
-                title,
-                style: const TextStyle(
-                  color: RainGuardColors.ink,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w800,
-                ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      color: RainGuardColors.ink,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  if (subtitle != null) ...[
+                    const SizedBox(height: 3),
+                    Text(
+                      subtitle!,
+                      style: const TextStyle(
+                        color: RainGuardColors.secondaryText,
+                        fontSize: 8,
+                        height: 1.3,
+                      ),
+                    ),
+                  ],
+                ],
               ),
             ),
-            Switch(
-              value: value,
-              activeColor: Colors.white,
-              activeTrackColor: RainGuardColors.primary,
-              onChanged: onChanged,
-            ),
+            if (isLoading)
+              const SizedBox(
+                width: 28,
+                height: 28,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: RainGuardColors.primary,
+                ),
+              )
+            else
+              Switch(
+                value: value,
+                activeColor: Colors.white,
+                activeTrackColor: RainGuardColors.primary,
+                onChanged: onChanged,
+              ),
           ],
         ),
       ),

@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
+import 'notification_token_service.dart';
 import 'user_profile_service.dart';
 
 class AuthService {
@@ -32,6 +33,7 @@ class AuthService {
         lastName: nameParts.lastName,
         displayName: user.displayName,
       );
+      await NotificationTokenService.registerCurrentDevice();
     }
     return userCredential;
   }
@@ -57,6 +59,7 @@ class AuthService {
         lastName: lastName,
         displayName: displayName,
       );
+      await NotificationTokenService.registerCurrentDevice();
     }
     return userCredential;
   }
@@ -75,11 +78,13 @@ class AuthService {
         user: user,
         provider: 'password',
       );
+      await NotificationTokenService.registerCurrentDevice();
     }
     return userCredential;
   }
 
   static Future<void> signOut() async {
+    await NotificationTokenService.deleteCurrentToken();
     if (!_googleInitialized) {
       await GoogleSignIn.instance.initialize();
       _googleInitialized = true;

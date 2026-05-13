@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/user_profile.dart';
 import '../services/auth_service.dart';
+import '../services/notification_token_service.dart';
 import '../services/user_profile_service.dart';
 import '../theme/rainguard_theme.dart';
 import '../widgets/rainguard_app_bar.dart';
@@ -18,11 +19,36 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  bool pushNotifications = true;
-  bool weatherAlerts = true;
-  bool reportReminders = true;
+  bool pushNotifications = false;
   bool useCurrentLocation = true;
   bool _isLoggingOut = false;
+  bool _isUpdatingPushNotifications = false;
+  String _pushNotificationSubtitle =
+      'Tap to allow community report alerts outside the app';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadNotificationPermissionState();
+  }
+
+  Future<void> _loadNotificationPermissionState() async {
+    final hasPermission =
+        await NotificationTokenService.hasNotificationPermission();
+    final isRegistered =
+        await NotificationTokenService.isCurrentDeviceRegistered();
+    final isEnabled = hasPermission && isRegistered;
+    if (!mounted) return;
+
+    setState(() {
+      pushNotifications = isEnabled;
+      _pushNotificationSubtitle = isEnabled
+          ? 'Enabled for community report alerts'
+          : hasPermission
+              ? 'Tap to reconnect this device for community report alerts'
+              : 'Tap to allow community report alerts outside the app';
+    });
+  }
 
   void _showVerificationSheet() {
     showModalBottomSheet(
@@ -88,6 +114,81 @@ class _SettingsScreenState extends State<SettingsScreen> {
         context,
       ).showSnackBar(SnackBar(content: Text('Logout failed: $error')));
       setState(() => _isLoggingOut = false);
+    }
+  }
+
+  Future<void> _setPushNotifications(bool value) async {
+    setState(() => _isUpdatingPushNotifications = true);
+
+    try {
+      if (value) {
+        final result = await NotificationTokenService.registerCurrentDevice();
+        if (!mounted) return;
+
+        switch (result) {
+          case NotificationTokenResult.enabled:
+            setState(() {
+              pushNotifications = true;
+              _pushNotificationSubtitle =
+                  'Enabled for community report alerts';
+            });
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Push notifications enabled.')),
+            );
+            break;
+          case NotificationTokenResult.denied:
+            setState(() {
+              pushNotifications = false;
+              _pushNotificationSubtitle =
+                  'Permission denied. Enable notifications in phone settings.';
+            });
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text(
+                  'Notifications are blocked. Enable them in your phone settings.',
+                ),
+              ),
+            );
+            break;
+          case NotificationTokenResult.notSignedIn:
+            setState(() {
+              pushNotifications = false;
+              _pushNotificationSubtitle =
+                  'Log in first to enable push notifications';
+            });
+            break;
+          case NotificationTokenResult.tokenUnavailable:
+          case NotificationTokenResult.failed:
+            setState(() {
+              pushNotifications = false;
+              _pushNotificationSubtitle =
+                  'Could not save this device. Check connection or rules.';
+            });
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text(
+                  'Could not enable push notifications. Check connection or Firestore rules.',
+                ),
+              ),
+            );
+            break;
+        }
+      } else {
+        await NotificationTokenService.deleteCurrentToken();
+        if (!mounted) return;
+        setState(() {
+          pushNotifications = false;
+          _pushNotificationSubtitle =
+              'Tap to allow community report alerts outside the app';
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Push notifications disabled.')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isUpdatingPushNotifications = false);
+      }
     }
   }
 
@@ -157,21 +258,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
               const SettingsSectionLabel('Notifications'),
               SettingsSwitchTile(
                 icon: Icons.notifications_none_rounded,
-                title: 'Push Notifications',
+                title: 'Allow Notifications',
+                subtitle: _pushNotificationSubtitle,
                 value: pushNotifications,
-                onChanged: (value) => setState(() => pushNotifications = value),
-              ),
-              SettingsSwitchTile(
-                icon: Icons.thunderstorm_outlined,
-                title: 'Weather Alerts',
-                value: weatherAlerts,
-                onChanged: (value) => setState(() => weatherAlerts = value),
-              ),
-              SettingsSwitchTile(
-                icon: Icons.assignment_outlined,
-                title: 'Report Reminders',
-                value: reportReminders,
-                onChanged: (value) => setState(() => reportReminders = value),
+                isLoading: _isUpdatingPushNotifications,
+                onChanged: _setPushNotifications,
               ),
               const SizedBox(height: 18),
               const SettingsSectionLabel('Location'),

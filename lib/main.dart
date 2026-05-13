@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'firebase_options.dart';
 import 'screens/splash_screen.dart';
+import 'services/notification_token_service.dart';
 import 'theme/rainguard_theme.dart';
 
 void main() async {
@@ -13,6 +16,7 @@ void main() async {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   runApp(const RainGuardApp());
+  unawaited(NotificationTokenService.initialize());
 }
 
 class RainGuardApp extends StatelessWidget {
