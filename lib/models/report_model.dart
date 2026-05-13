@@ -17,6 +17,7 @@ class Report {
   final String? userId;
   final String? reporterName;
   final String? reporterDisplayName;
+  final String locationSource;
   final DateTime createdAt;
 
   Report({
@@ -32,6 +33,7 @@ class Report {
     this.userId,
     this.reporterName,
     this.reporterDisplayName,
+    this.locationSource = 'gps',
     required this.createdAt,
   });
 
@@ -51,6 +53,7 @@ class Report {
       userId: data['user_id'],
       reporterName: data['reporter_name'],
       reporterDisplayName: data['reporter_display_name'],
+      locationSource: _parseLocationSource(data['location_source']),
       createdAt: data['created_at'] != null
           ? (data['created_at'] as Timestamp).toDate()
           : DateTime.now(),
@@ -102,6 +105,19 @@ class Report {
     }
   }
 
+  static String _parseLocationSource(dynamic source) {
+    if (source is String && source.trim().toLowerCase() == 'manual') {
+      return 'manual';
+    }
+    return 'gps';
+  }
+
+  bool get isManualLocation => locationSource == 'manual';
+
+  String get locationSourceLabel {
+    return isManualLocation ? 'Manually selected' : 'Device GPS';
+  }
+
   List<String> get allImageUrls {
     if (imageUrls.isNotEmpty) return imageUrls;
     if (imageUrl != null && imageUrl!.trim().isNotEmpty) {
@@ -125,6 +141,7 @@ class Report {
       'user_id': userId,
       'reporter_name': reporterName,
       'reporter_display_name': reporterDisplayName,
+      'location_source': locationSource,
       'created_at': Timestamp.fromDate(createdAt),
     };
   }
