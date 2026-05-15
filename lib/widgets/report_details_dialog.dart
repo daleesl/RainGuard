@@ -139,6 +139,14 @@ class _ReportDetailsSheet extends StatelessWidget {
                   ),
                 ],
               ),
+              const SizedBox(height: 12),
+              _InfoTile(
+                label: 'Location source',
+                value: report.locationSourceLabel,
+                color: report.isManualLocation
+                    ? RainGuardColors.warningText
+                    : RainGuardColors.primary,
+              ),
               const SizedBox(height: 18),
               _SectionCard(
                 title: 'Description',
