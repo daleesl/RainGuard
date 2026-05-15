@@ -103,7 +103,9 @@ class _SignupScreenState extends State<SignupScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Google sign-up was cancelled or failed.'),
+          content: Text(
+            'Google sign-up was not completed. Try again or use email sign-up.',
+          ),
         ),
       );
     } finally {
@@ -206,13 +208,16 @@ class _SignupScreenState extends State<SignupScreen> {
                               verticalScale: verticalScale,
                             ),
                             SizedBox(height: 24 * verticalScale),
-                            RainGuardGoogleButton(
-                              onPressed: _isGoogleLoading
-                                  ? null
-                                  : _continueWithGoogle,
-                              scale: scale,
-                              compact: true,
-                              label: _isGoogleLoading ? 'Connecting...' : null,
+                            Center(
+                              child: RainGuardGoogleButton(
+                                onPressed: _isGoogleLoading
+                                    ? null
+                                    : _continueWithGoogle,
+                                scale: scale,
+                                compact: true,
+                                label:
+                                    _isGoogleLoading ? 'Connecting...' : null,
+                              ),
                             ),
                             SizedBox(height: 19 * verticalScale),
                             RainGuardPrimaryButton(
@@ -343,7 +348,7 @@ class _SignupCard extends StatelessWidget {
           SizedBox(height: 19 * verticalScale),
           RainGuardTextField(
             label: 'Last name',
-            hintText: 'Jester',
+            hintText: 'Doe',
             controller: lastNameController,
             textCapitalization: TextCapitalization.words,
             labelPadding: const EdgeInsets.only(left: 12),
@@ -364,34 +369,45 @@ class _SignupCard extends StatelessWidget {
             },
           ),
           SizedBox(height: 19 * verticalScale),
-          RainGuardTextField(
-            label: 'Email address',
-            hintText: 'yourname@gmail.com',
-            controller: emailController,
-            keyboardType: TextInputType.emailAddress,
-            suffix: const Icon(
-              Icons.check_circle,
-              color: Color(0xFF8EE3B5),
-              size: 20,
-            ),
-            labelPadding: const EdgeInsets.only(left: 12),
-            labelColor: _SignupScreenState.labelColor,
-            labelFontSize: 10,
-            labelFontWeight: FontWeight.w700,
-            labelHeight: 1.33,
-            labelLetterSpacing: 0,
-            labelGap: 8,
-            fieldBorderColor: _SignupScreenState.fieldBorder,
-            hintColor: _SignupScreenState.placeholder,
-            inputFontSize: 12,
-            validator: (value) {
-              if (value == null || value.trim().isEmpty) {
-                return 'Email is required.';
-              }
-              if (!value.contains('@')) {
-                return 'Enter a valid email.';
-              }
-              return null;
+          ValueListenableBuilder<TextEditingValue>(
+            valueListenable: emailController,
+            builder: (context, value, child) {
+              final isGmail = value.text.trim().toLowerCase().endsWith(
+                '@gmail.com',
+              );
+
+              return RainGuardTextField(
+                label: 'Email address',
+                hintText: 'john.doe@gmail.com',
+                controller: emailController,
+                keyboardType: TextInputType.emailAddress,
+                suffix: isGmail
+                    ? const Icon(
+                        Icons.check_circle,
+                        color: Color(0xFF8EE3B5),
+                        size: 20,
+                      )
+                    : null,
+                labelPadding: const EdgeInsets.only(left: 12),
+                labelColor: _SignupScreenState.labelColor,
+                labelFontSize: 10,
+                labelFontWeight: FontWeight.w700,
+                labelHeight: 1.33,
+                labelLetterSpacing: 0,
+                labelGap: 8,
+                fieldBorderColor: _SignupScreenState.fieldBorder,
+                hintColor: _SignupScreenState.placeholder,
+                inputFontSize: 12,
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Email is required.';
+                  }
+                  if (!value.contains('@')) {
+                    return 'Enter a valid email.';
+                  }
+                  return null;
+                },
+              );
             },
           ),
           SizedBox(height: 19 * verticalScale),
