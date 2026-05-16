@@ -100,6 +100,10 @@ Use this file as the first stop for any AI assistant or coding agent working in 
   - `photo_url`
   - `auth_provider`
   - `verification_status`
+  - `notification_preference`
+  - `notification_latitude`
+  - `notification_longitude`
+  - `notification_radius_km`
   - `created_at`
   - `updated_at`
   - `last_login_at`
@@ -118,6 +122,8 @@ Use this file as the first stop for any AI assistant or coding agent working in 
 - `StorageService`: report image compression and Firebase Storage upload behavior.
 - `ReportService`: report submission orchestration, including GPS, optional image upload, current user/profile info, and Firestore writes.
 - `NotificationTokenService`: Firebase Cloud Messaging permission, token registration, token refresh persistence, and logout cleanup.
+- `NotificationPreferenceService`: user notification preference reads/writes, including nearby alert location.
+- `ReportDraftService`: local pending report draft persistence for weak or unavailable connections.
 - `WeatherService`: OpenWeather API calls for the fixed Lingga/Calamba weather context.
 - `GeocodingService`: Nominatim reverse geocoding with a valid User-Agent and respectful request behavior.
 
