@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:flutter_map_marker_cluster/flutter_map_marker_cluster.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import '../models/report_model.dart';
@@ -129,6 +130,20 @@ class _MapCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final markers = reports
+        .map(
+          (report) => Marker(
+            width: 60,
+            height: 60,
+            point: LatLng(report.latitude, report.longitude),
+            child: GestureDetector(
+              onTap: () => onReportTap(report),
+              child: IntelligentPin(report: report),
+            ),
+          ),
+        )
+        .toList();
+
     return RainGuardCard(
       height: 310,
       padding: EdgeInsets.zero,
@@ -150,20 +165,20 @@ class _MapCard extends StatelessWidget {
                 urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                 userAgentPackageName: 'com.example.rainguard',
               ),
-              MarkerLayer(
-                markers: reports
-                    .map(
-                      (report) => Marker(
-                        width: 60,
-                        height: 60,
-                        point: LatLng(report.latitude, report.longitude),
-                        child: GestureDetector(
-                          onTap: () => onReportTap(report),
-                          child: IntelligentPin(report: report),
-                        ),
-                      ),
-                    )
-                    .toList(),
+              MarkerClusterLayerWidget(
+                options: MarkerClusterLayerOptions(
+                  maxClusterRadius: 48,
+                  size: const Size(46, 46),
+                  alignment: Alignment.center,
+                  padding: const EdgeInsets.all(36),
+                  maxZoom: 17,
+                  markers: markers,
+                  builder: (context, clusteredMarkers) {
+                    return _ReportClusterMarker(
+                      count: clusteredMarkers.length,
+                    );
+                  },
+                ),
               ),
             ],
           ),
@@ -185,6 +200,40 @@ class _MapCard extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _ReportClusterMarker extends StatelessWidget {
+  const _ReportClusterMarker({required this.count});
+
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: RainGuardColors.primary,
+        shape: BoxShape.circle,
+        border: Border.all(color: Colors.white, width: 3),
+        boxShadow: [
+          BoxShadow(
+            color: RainGuardColors.primary.withOpacity(0.28),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Center(
+        child: Text(
+          count.toString(),
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 12,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
       ),
     );
   }
