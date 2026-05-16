@@ -24,20 +24,31 @@ exports.notifyUsersOnReportCreated = onDocumentCreated(
       typeof report.user_id === "string" ? report.user_id.trim() : "";
     const tokenDocs = await db.collectionGroup("fcm_tokens").get();
     const tokenRefsByToken = new Map();
+    const userSettingsById = new Map();
     let skippedReporterTokens = 0;
+    let skippedPreferenceTokens = 0;
 
-    tokenDocs.forEach((doc) => {
+    for (const doc of tokenDocs.docs) {
       const tokenOwnerUserId = doc.ref.parent.parent?.id || "";
       if (reporterUserId && tokenOwnerUserId === reporterUserId) {
         skippedReporterTokens += 1;
-        return;
+        continue;
+      }
+
+      const userSettings = await getUserNotificationSettings(
+        tokenOwnerUserId,
+        userSettingsById,
+      );
+      if (!shouldNotifyUser(report, userSettings)) {
+        skippedPreferenceTokens += 1;
+        continue;
       }
 
       const token = doc.get("token") || doc.id;
       if (typeof token === "string" && token.trim().length > 0) {
         tokenRefsByToken.set(token.trim(), doc.ref);
       }
-    });
+    }
 
     const tokens = [...tokenRefsByToken.keys()];
     if (tokens.length === 0) {
@@ -50,6 +61,12 @@ exports.notifyUsersOnReportCreated = onDocumentCreated(
         reportId,
         reporterUserId,
         count: skippedReporterTokens,
+      });
+    }
+    if (skippedPreferenceTokens > 0) {
+      logger.info("Skipped notification tokens by user preference", {
+        reportId,
+        count: skippedPreferenceTokens,
       });
     }
 
@@ -134,4 +151,81 @@ function chunk(items, size) {
     chunks.push(items.slice(index, index + size));
   }
   return chunks;
+}
+
+async function getUserNotificationSettings(userId, cache) {
+  if (!userId) return {};
+  if (cache.has(userId)) return cache.get(userId);
+
+  const snapshot = await db.collection("users").doc(userId).get();
+  const settings = snapshot.exists ? snapshot.data() || {} : {};
+  cache.set(userId, settings);
+  return settings;
+}
+
+function shouldNotifyUser(report, userSettings) {
+  const preference = userSettings.notification_preference || "all_reports";
+
+  switch (preference) {
+    case "flood_only":
+      return report.report_type === "flood";
+    case "nearby_only":
+      return isNearbyReport(report, userSettings);
+    case "high_risk_only":
+      return isHighRiskReport(report);
+    case "all_reports":
+    default:
+      return true;
+  }
+}
+
+function isHighRiskReport(report) {
+  const reportType =
+    typeof report.report_type === "string" ? report.report_type : "";
+  const riskLevel =
+    typeof report.risk_level === "string" ? report.risk_level : "";
+
+  return (
+    reportType === "flood" ||
+    riskLevel === "flood" ||
+    riskLevel === "high" ||
+    riskLevel === "high_risk"
+  );
+}
+
+function isNearbyReport(report, userSettings) {
+  const reportLat = Number(report.latitude);
+  const reportLng = Number(report.longitude);
+  const userLat = Number(userSettings.notification_latitude);
+  const userLng = Number(userSettings.notification_longitude);
+  const radiusKm = Number(userSettings.notification_radius_km) || 5;
+
+  if (
+    !Number.isFinite(reportLat) ||
+    !Number.isFinite(reportLng) ||
+    !Number.isFinite(userLat) ||
+    !Number.isFinite(userLng)
+  ) {
+    return false;
+  }
+
+  return distanceKm(reportLat, reportLng, userLat, userLng) <= radiusKm;
+}
+
+function distanceKm(lat1, lng1, lat2, lng2) {
+  const earthRadiusKm = 6371;
+  const dLat = toRadians(lat2 - lat1);
+  const dLng = toRadians(lng2 - lng1);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRadians(lat1)) *
+      Math.cos(toRadians(lat2)) *
+      Math.sin(dLng / 2) *
+      Math.sin(dLng / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return earthRadiusKm * c;
+}
+
+function toRadians(degrees) {
+  return degrees * (Math.PI / 180);
 }
