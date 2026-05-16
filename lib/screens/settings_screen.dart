@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/user_profile.dart';
 import '../services/auth_service.dart';
+import '../services/notification_preference_service.dart';
 import '../services/notification_token_service.dart';
 import '../services/user_profile_service.dart';
 import '../theme/rainguard_theme.dart';
@@ -23,6 +24,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool useCurrentLocation = true;
   bool _isLoggingOut = false;
   bool _isUpdatingPushNotifications = false;
+  bool _isUpdatingNotificationPreference = false;
+  NotificationPreference _notificationPreference =
+      NotificationPreference.allReports;
   String _pushNotificationSubtitle =
       'Tap to allow community report alerts outside the app';
 
@@ -30,6 +34,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
   void initState() {
     super.initState();
     _loadNotificationPermissionState();
+    _loadNotificationPreference();
+  }
+
+  Future<void> _loadNotificationPreference() async {
+    final preference =
+        await NotificationPreferenceService.getCurrentPreference();
+    if (!mounted) return;
+    setState(() => _notificationPreference = preference);
   }
 
   Future<void> _loadNotificationPermissionState() async {
@@ -192,6 +204,43 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
+  Future<void> _showNotificationPreferenceSheet() async {
+    final selectedPreference = await showModalBottomSheet<NotificationPreference>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => _NotificationPreferenceSheet(
+        selectedPreference: _notificationPreference,
+      ),
+    );
+
+    if (!mounted || selectedPreference == null) return;
+
+    setState(() => _isUpdatingNotificationPreference = true);
+    try {
+      await NotificationPreferenceService.saveCurrentPreference(
+        selectedPreference,
+      );
+      if (!mounted) return;
+      setState(() => _notificationPreference = selectedPreference);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Notification preference set to ${selectedPreference.label}.',
+          ),
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not update preference: $error')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isUpdatingNotificationPreference = false);
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -264,6 +313,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 isLoading: _isUpdatingPushNotifications,
                 onChanged: _setPushNotifications,
               ),
+              SettingsTile(
+                icon: Icons.tune_rounded,
+                title: 'Notification Type',
+                subtitle: _notificationPreference.description,
+                status: _isUpdatingNotificationPreference
+                    ? 'Updating...'
+                    : _notificationPreference.label,
+                onTap: _isUpdatingNotificationPreference
+                    ? () {}
+                    : _showNotificationPreferenceSheet,
+              ),
               const SizedBox(height: 18),
               const SettingsSectionLabel('Location'),
               SettingsTile(
@@ -316,6 +376,164 @@ class _SettingsScreenState extends State<SettingsScreen> {
       case 'unverified':
       default:
         return 'Required to report';
+    }
+  }
+}
+
+class _NotificationPreferenceSheet extends StatelessWidget {
+  const _NotificationPreferenceSheet({required this.selectedPreference});
+
+  final NotificationPreference selectedPreference;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
+      decoration: const BoxDecoration(
+        color: RainGuardColors.background,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Center(
+            child: Container(
+              width: 44,
+              height: 5,
+              decoration: BoxDecoration(
+                color: Colors.blueGrey.shade200,
+                borderRadius: BorderRadius.circular(99),
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+          const Text(
+            'Notification Type',
+            style: TextStyle(
+              color: RainGuardColors.ink,
+              fontSize: 20,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            'Choose which community reports should alert this device.',
+            style: TextStyle(
+              color: RainGuardColors.secondaryText,
+              fontSize: 8,
+              height: 1.35,
+            ),
+          ),
+          const SizedBox(height: 14),
+          ...NotificationPreference.values.map(
+            (preference) => _NotificationPreferenceOption(
+              preference: preference,
+              isSelected: selectedPreference == preference,
+              onTap: () => Navigator.pop(context, preference),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _NotificationPreferenceOption extends StatelessWidget {
+  const _NotificationPreferenceOption({
+    required this.preference,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  final NotificationPreference preference;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(18),
+          child: Ink(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: isSelected ? RainGuardColors.softBlue : Colors.white,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(
+                color: isSelected
+                    ? RainGuardColors.primary
+                    : RainGuardColors.border,
+                width: isSelected ? 1.4 : 1,
+              ),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: RainGuardColors.primary.withOpacity(0.10),
+                    borderRadius: BorderRadius.circular(13),
+                  ),
+                  child: Icon(
+                    _preferenceIcon(preference),
+                    color: RainGuardColors.primary,
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        preference.label,
+                        style: const TextStyle(
+                          color: RainGuardColors.ink,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        preference.description,
+                        style: const TextStyle(
+                          color: RainGuardColors.secondaryText,
+                          fontSize: 8,
+                          height: 1.3,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (isSelected)
+                  const Icon(
+                    Icons.check_circle_rounded,
+                    color: RainGuardColors.primary,
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  IconData _preferenceIcon(NotificationPreference preference) {
+    switch (preference) {
+      case NotificationPreference.allReports:
+        return Icons.notifications_active_outlined;
+      case NotificationPreference.floodOnly:
+        return Icons.water_drop_outlined;
+      case NotificationPreference.nearbyOnly:
+        return Icons.near_me_outlined;
+      case NotificationPreference.highRiskOnly:
+        return Icons.priority_high_rounded;
     }
   }
 }
