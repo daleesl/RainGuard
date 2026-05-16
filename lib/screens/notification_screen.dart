@@ -8,8 +8,17 @@ import '../widgets/rainguard_app_bar.dart';
 import '../widgets/rainguard_card.dart';
 import '../widgets/report_details_dialog.dart';
 
-class NotificationScreen extends StatelessWidget {
+enum _NotificationFilter { all, flood, rain }
+
+class NotificationScreen extends StatefulWidget {
   const NotificationScreen({super.key});
+
+  @override
+  State<NotificationScreen> createState() => _NotificationScreenState();
+}
+
+class _NotificationScreenState extends State<NotificationScreen> {
+  _NotificationFilter _selectedFilter = _NotificationFilter.all;
 
   @override
   Widget build(BuildContext context) {
@@ -54,6 +63,7 @@ class NotificationScreen extends StatelessWidget {
               )
               .length;
           final latestReport = reports.isNotEmpty ? reports.first : null;
+          final filteredReports = _filterReports(reports);
 
           return ListView(
             padding: const EdgeInsets.fromLTRB(16, 18, 16, 24),
@@ -82,12 +92,26 @@ class NotificationScreen extends StatelessWidget {
                 latestReport: latestReport,
               ),
               const SizedBox(height: 18),
+              _NotificationFilterBar(
+                selectedFilter: _selectedFilter,
+                totalCount: reports.length,
+                floodCount: reports
+                    .where((report) => report.type == ReportType.flood)
+                    .length,
+                rainCount: reports
+                    .where((report) => report.type == ReportType.rain)
+                    .length,
+                onChanged: (filter) {
+                  setState(() => _selectedFilter = filter);
+                },
+              ),
+              const SizedBox(height: 18),
               const _SectionHeader('Recent Alerts'),
               const SizedBox(height: 10),
-              if (reports.isEmpty)
-                const _EmptyNotifications()
+              if (filteredReports.isEmpty)
+                _EmptyNotifications(filter: _selectedFilter)
               else
-                ...reports.map(
+                ...filteredReports.map(
                   (report) => _NotificationCard(
                     report: report,
                     onTap: () => ReportDetailsDialog.show(context, report),
@@ -96,6 +120,145 @@ class NotificationScreen extends StatelessWidget {
             ],
           );
         },
+      ),
+    );
+  }
+
+  List<Report> _filterReports(List<Report> reports) {
+    switch (_selectedFilter) {
+      case _NotificationFilter.flood:
+        return reports
+            .where((report) => report.type == ReportType.flood)
+            .toList();
+      case _NotificationFilter.rain:
+        return reports
+            .where((report) => report.type == ReportType.rain)
+            .toList();
+      case _NotificationFilter.all:
+        return reports;
+    }
+  }
+}
+
+class _NotificationFilterBar extends StatelessWidget {
+  const _NotificationFilterBar({
+    required this.selectedFilter,
+    required this.totalCount,
+    required this.floodCount,
+    required this.rainCount,
+    required this.onChanged,
+  });
+
+  final _NotificationFilter selectedFilter;
+  final int totalCount;
+  final int floodCount;
+  final int rainCount;
+  final ValueChanged<_NotificationFilter> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return RainGuardCard(
+      padding: const EdgeInsets.all(8),
+      radius: 18,
+      shadowOpacity: 0.04,
+      child: Row(
+        children: [
+          Expanded(
+            child: _NotificationFilterChip(
+              label: 'All',
+              count: totalCount,
+              icon: Icons.notifications_none_rounded,
+              isSelected: selectedFilter == _NotificationFilter.all,
+              onTap: () => onChanged(_NotificationFilter.all),
+            ),
+          ),
+          const SizedBox(width: 6),
+          Expanded(
+            child: _NotificationFilterChip(
+              label: 'Flood',
+              count: floodCount,
+              icon: Icons.waves_rounded,
+              isSelected: selectedFilter == _NotificationFilter.flood,
+              onTap: () => onChanged(_NotificationFilter.flood),
+            ),
+          ),
+          const SizedBox(width: 6),
+          Expanded(
+            child: _NotificationFilterChip(
+              label: 'Rain',
+              count: rainCount,
+              icon: Icons.thunderstorm_outlined,
+              isSelected: selectedFilter == _NotificationFilter.rain,
+              onTap: () => onChanged(_NotificationFilter.rain),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _NotificationFilterChip extends StatelessWidget {
+  const _NotificationFilterChip({
+    required this.label,
+    required this.count,
+    required this.icon,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  final String label;
+  final int count;
+  final IconData icon;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = isSelected
+        ? RainGuardColors.primary
+        : RainGuardColors.secondaryText;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(14),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 160),
+          constraints: const BoxConstraints(minHeight: 48),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 9),
+          decoration: BoxDecoration(
+            color: isSelected ? RainGuardColors.softBlue : Colors.white,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: isSelected
+                  ? RainGuardColors.primary.withOpacity(0.28)
+                  : RainGuardColors.border,
+            ),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 16, color: color),
+              const SizedBox(width: 5),
+              Flexible(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    '$label ($count)',
+                    maxLines: 1,
+                    style: TextStyle(
+                      color: color,
+                      fontSize: 9,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -516,10 +679,19 @@ class _MetaPill extends StatelessWidget {
 }
 
 class _EmptyNotifications extends StatelessWidget {
-  const _EmptyNotifications();
+  const _EmptyNotifications({required this.filter});
+
+  final _NotificationFilter filter;
 
   @override
   Widget build(BuildContext context) {
+    final message = switch (filter) {
+      _NotificationFilter.flood => 'No flood reports match this filter yet.',
+      _NotificationFilter.rain => 'No rain reports match this filter yet.',
+      _NotificationFilter.all =>
+        'RainGuard will show community reports and weather alerts here.',
+    };
+
     return Container(
       padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
@@ -544,10 +716,10 @@ class _EmptyNotifications extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 6),
-          const Text(
-            'RainGuard will show community reports and weather alerts here.',
+          Text(
+            message,
             textAlign: TextAlign.center,
-            style: TextStyle(
+            style: const TextStyle(
               color: RainGuardColors.secondaryText,
               fontSize: 8,
               height: 1.4,
