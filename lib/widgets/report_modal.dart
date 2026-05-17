@@ -6,6 +6,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:latlong2/latlong.dart';
 import '../models/report_model.dart';
+import '../services/report_draft_service.dart';
 import '../services/report_service.dart';
 import '../theme/rainguard_theme.dart';
 import '../utils/location_constants.dart';
@@ -30,11 +31,48 @@ class _ReportModalState extends State<ReportModal> {
   final List<XFile> _pickedImages = [];
   _ReportLocationMode _locationMode = _ReportLocationMode.gps;
   LatLng? _manualLocation;
+  int _pendingDraftCount = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPendingDraftCount();
+  }
 
   @override
   void dispose() {
     _descriptionController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadPendingDraftCount() async {
+    final count = await ReportDraftService.getPendingDraftCount();
+    if (!mounted) return;
+    setState(() => _pendingDraftCount = count);
+  }
+
+  Future<void> _retryPendingDrafts() async {
+    setState(() => _isSubmitting = true);
+
+    try {
+      final submittedCount = await ReportService.submitPendingDrafts();
+      await _loadPendingDraftCount();
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            submittedCount > 0
+                ? '$submittedCount pending draft${submittedCount == 1 ? '' : 's'} submitted.'
+                : 'No drafts submitted yet. Check your connection.',
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      }
+    }
   }
 
   Future<void> _pickImage() async {
@@ -121,6 +159,20 @@ class _ReportModalState extends State<ReportModal> {
       }
     } catch (e) {
       if (mounted) {
+        if (e is ReportSavedAsDraftException) {
+          await _loadPendingDraftCount();
+          if (!mounted) return;
+          Navigator.pop(context);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Connection issue. Report saved as draft and will retry.',
+              ),
+            ),
+          );
+          return;
+        }
+
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('Error: $e')));
@@ -461,6 +513,15 @@ class _ReportModalState extends State<ReportModal> {
             ),
             const SizedBox(height: 20),
 
+            if (_pendingDraftCount > 0) ...[
+              _PendingDraftBanner(
+                count: _pendingDraftCount,
+                isRetrying: _isSubmitting,
+                onRetryTap: _isSubmitting ? null : _retryPendingDrafts,
+              ),
+              const SizedBox(height: 16),
+            ],
+
             // Report Type Selection
             const Text(
               'Report Type',
@@ -677,6 +738,74 @@ class _LocationChoiceCard extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _PendingDraftBanner extends StatelessWidget {
+  const _PendingDraftBanner({
+    required this.count,
+    required this.isRetrying,
+    required this.onRetryTap,
+  });
+
+  final int count;
+  final bool isRetrying;
+  final VoidCallback? onRetryTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: RainGuardColors.warningFill.withOpacity(0.72),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: RainGuardColors.warningText.withOpacity(0.2)),
+      ),
+      child: Row(
+        children: [
+          const Icon(
+            Icons.cloud_upload_outlined,
+            color: RainGuardColors.warningText,
+            size: 22,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '$count draft${count == 1 ? '' : 's'} waiting',
+                  style: const TextStyle(
+                    color: RainGuardColors.ink,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                const Text(
+                  'RainGuard will retry while the app is open.',
+                  style: TextStyle(
+                    color: RainGuardColors.secondaryText,
+                    fontSize: 8,
+                    height: 1.3,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          TextButton(
+            onPressed: onRetryTap,
+            style: TextButton.styleFrom(
+              foregroundColor: RainGuardColors.primary,
+              minimumSize: const Size(0, 36),
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+            ),
+            child: Text(isRetrying ? 'Retrying' : 'Retry'),
+          ),
+        ],
       ),
     );
   }
