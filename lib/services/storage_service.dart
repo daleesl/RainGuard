@@ -1,12 +1,16 @@
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
 
 class StorageService {
   const StorageService._();
+
+  static const int _maxImageDimension = 1600;
+  static const int _compressionQuality = 76;
 
   static Future<List<String>> uploadReportImages(List<XFile> images) async {
     final urls = <String>[];
@@ -19,21 +23,24 @@ class StorageService {
   }
 
   static Future<String> uploadReportImage(XFile image) async {
-    final cleanName = image.name.replaceAll(RegExp(r'[^a-zA-Z0-9\.]'), '_');
-    final path = 'reports/${DateTime.now().millisecondsSinceEpoch}_$cleanName';
-    final fileRef = FirebaseStorage.instance.ref().child(path);
-
     try {
+      final payload = await _prepareUploadPayload(image);
+      final cleanName = payload.fileName.replaceAll(
+        RegExp(r'[^a-zA-Z0-9\.]'),
+        '_',
+      );
+      final path =
+          'reports/${DateTime.now().millisecondsSinceEpoch}_$cleanName';
+      final fileRef = FirebaseStorage.instance.ref().child(path);
       final metadata = SettableMetadata(
-        contentType: image.mimeType ?? 'image/jpeg',
+        contentType: payload.contentType,
       );
 
       final TaskSnapshot snapshot;
-      if (!kIsWeb && image.path.isNotEmpty) {
-        snapshot = await fileRef.putFile(File(image.path), metadata);
+      if (payload.bytes != null) {
+        snapshot = await fileRef.putData(payload.bytes!, metadata);
       } else {
-        final bytes = await image.readAsBytes();
-        snapshot = await fileRef.putData(bytes, metadata);
+        snapshot = await fileRef.putFile(payload.file!, metadata);
       }
 
       return snapshot.ref.getDownloadURL();
@@ -48,4 +55,88 @@ class StorageService {
       throw Exception('Failed to upload image: $error');
     }
   }
+
+  static Future<_UploadPayload> _prepareUploadPayload(XFile image) async {
+    if (!kIsWeb && image.path.isNotEmpty) {
+      final compressed = await _compressReportImage(image.path);
+
+      if (compressed != null && compressed.isNotEmpty) {
+        return _UploadPayload.bytes(
+          bytes: compressed,
+          fileName: _jpegFileName(image.name),
+          contentType: 'image/jpeg',
+        );
+      }
+
+      return _UploadPayload.file(
+        file: File(image.path),
+        fileName: image.name,
+        contentType: image.mimeType ?? 'image/jpeg',
+      );
+    }
+
+    return _UploadPayload.bytes(
+      bytes: await image.readAsBytes(),
+      fileName: image.name,
+      contentType: image.mimeType ?? 'image/jpeg',
+    );
+  }
+
+  static Future<Uint8List?> _compressReportImage(String path) async {
+    try {
+      return FlutterImageCompress.compressWithFile(
+        path,
+        minWidth: _maxImageDimension,
+        minHeight: _maxImageDimension,
+        quality: _compressionQuality,
+        format: CompressFormat.jpeg,
+      );
+    } catch (error) {
+      debugPrint('Image compression skipped: $error');
+      return null;
+    }
+  }
+
+  static String _jpegFileName(String name) {
+    final baseName = name.replaceFirst(RegExp(r'\.[^.]+$'), '');
+    return '$baseName.jpg';
+  }
+}
+
+class _UploadPayload {
+  const _UploadPayload._({
+    required this.fileName,
+    required this.contentType,
+    this.bytes,
+    this.file,
+  });
+
+  factory _UploadPayload.bytes({
+    required Uint8List bytes,
+    required String fileName,
+    required String contentType,
+  }) {
+    return _UploadPayload._(
+      bytes: bytes,
+      fileName: fileName,
+      contentType: contentType,
+    );
+  }
+
+  factory _UploadPayload.file({
+    required File file,
+    required String fileName,
+    required String contentType,
+  }) {
+    return _UploadPayload._(
+      file: file,
+      fileName: fileName,
+      contentType: contentType,
+    );
+  }
+
+  final Uint8List? bytes;
+  final File? file;
+  final String fileName;
+  final String contentType;
 }
