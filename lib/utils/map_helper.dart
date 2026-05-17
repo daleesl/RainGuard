@@ -16,7 +16,7 @@ class MapHelper {
   static IconData getReportIcon(ReportType type) {
     switch (type) {
       case ReportType.rain:
-        return Icons.umbrella;
+        return Icons.thunderstorm_outlined;
       case ReportType.flood:
         return Icons.waves;
     }
