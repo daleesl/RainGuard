@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 
 import '../theme/rainguard_theme.dart';
 
@@ -14,10 +13,11 @@ class RainGuardAppBar extends StatelessWidget implements PreferredSizeWidget {
     return AppBar(
       title: Row(
         children: [
-          SvgPicture.asset(
-            'assets/images/rainGuard-Logo.svg',
+          Image.asset(
+            'assets/images/rainguard-icon-transparent.png',
             width: 25,
             height: 32,
+            fit: BoxFit.contain,
           ),
           const SizedBox(width: 8),
           const Text('RainGuard', style: RainGuardTextStyles.appBarTitle),
