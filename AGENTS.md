@@ -44,7 +44,7 @@ Use this file as the first stop for any AI assistant or coding agent working in 
 - Image upload: `image_picker`, `flutter_image_compress`, plus Firebase Storage.
 - Weather: OpenWeather API through `WeatherService`.
 - Reverse geocoding: Nominatim through `GeocodingService`.
-- Local caching: `shared_preferences`.
+- Local caching and draft persistence: `shared_preferences` plus app document storage through `path_provider`.
 - Environment loading: `flutter_dotenv` from `.env`.
 - Typography: Google Fonts Poppins through `google_fonts`.
 
@@ -70,6 +70,7 @@ Use this file as the first stop for any AI assistant or coding agent working in 
 - `MainWrapper`: bottom navigation with Home, Map, Notification, and Settings.
 - `HomeScreen`: fixed Lingga/Calamba weather summary, flood risk assessment, quick actions, preparedness tips, and hotlines sheet.
 - `MapScreen`: Calamba-centered OpenStreetMap view, Firestore report pins, report details, and add-report bottom sheet.
+- `MapScreen`: Calamba-centered OpenStreetMap view, Firestore report pins, local pending draft pins, report details, and add-report bottom sheet.
 - `NotificationScreen`: Firestore-based community report alerts, summary metrics, alert cards, and empty state.
 - `SettingsScreen`: dynamic profile card, verification entry, app/account settings, and logout flow.
 
@@ -120,10 +121,10 @@ Use this file as the first stop for any AI assistant or coding agent working in 
 - `UserProfileService`: streams and reads the current Firebase user's Firestore profile.
 - `LocationService`: location permission and current GPS position handling.
 - `StorageService`: report image compression and Firebase Storage upload behavior.
-- `ReportService`: report submission orchestration, including GPS, optional image upload, current user/profile info, and Firestore writes.
+- `ReportService`: report submission orchestration, duplicate warning checks, offline draft fallback, GPS/manual location, optional image upload, current user/profile info, and Firestore writes.
 - `NotificationTokenService`: Firebase Cloud Messaging permission, token registration, token refresh persistence, and logout cleanup.
 - `NotificationPreferenceService`: user notification preference reads/writes, including nearby alert location.
-- `ReportDraftService`: local pending report draft persistence for weak or unavailable connections.
+- `ReportDraftService`: local pending report draft persistence and app-owned draft image copies for weak or unavailable connections.
 - `WeatherService`: OpenWeather API calls for the fixed Lingga/Calamba weather context.
 - `GeocodingService`: Nominatim reverse geocoding with a valid User-Agent and respectful request behavior.
 
