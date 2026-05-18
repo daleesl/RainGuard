@@ -27,6 +27,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _isUpdatingNotificationPreference = false;
   NotificationPreference _notificationPreference =
       NotificationPreference.allReports;
+  double _nearbyRadiusKm =
+      NotificationPreferenceService.defaultNearbyRadiusKm;
   String _pushNotificationSubtitle =
       'Tap to allow community report alerts outside the app';
 
@@ -40,8 +42,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _loadNotificationPreference() async {
     final preference =
         await NotificationPreferenceService.getCurrentPreference();
+    final nearbyRadiusKm =
+        await NotificationPreferenceService.getCurrentNearbyRadiusKm();
     if (!mounted) return;
-    setState(() => _notificationPreference = preference);
+    setState(() {
+      _notificationPreference = preference;
+      _nearbyRadiusKm = nearbyRadiusKm;
+    });
   }
 
   Future<void> _loadNotificationPermissionState() async {
@@ -205,27 +212,32 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _showNotificationPreferenceSheet() async {
-    final selectedPreference = await showModalBottomSheet<NotificationPreference>(
+    final selection = await showModalBottomSheet<_NotificationPreferenceSelection>(
       context: context,
       backgroundColor: Colors.transparent,
       builder: (context) => _NotificationPreferenceSheet(
         selectedPreference: _notificationPreference,
+        selectedRadiusKm: _nearbyRadiusKm,
       ),
     );
 
-    if (!mounted || selectedPreference == null) return;
+    if (!mounted || selection == null) return;
 
     setState(() => _isUpdatingNotificationPreference = true);
     try {
       await NotificationPreferenceService.saveCurrentPreference(
-        selectedPreference,
+        selection.preference,
+        nearbyRadiusKm: selection.nearbyRadiusKm,
       );
       if (!mounted) return;
-      setState(() => _notificationPreference = selectedPreference);
+      setState(() {
+        _notificationPreference = selection.preference;
+        _nearbyRadiusKm = selection.nearbyRadiusKm;
+      });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'Notification preference set to ${selectedPreference.label}.',
+            'Notification preference set to ${selection.preference.label}.',
           ),
         ),
       );
@@ -239,6 +251,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
         setState(() => _isUpdatingNotificationPreference = false);
       }
     }
+  }
+
+  String get _notificationPreferenceSubtitle {
+    if (_notificationPreference == NotificationPreference.nearbyOnly) {
+      return 'Only alert me for reports within ${_nearbyRadiusKm.toStringAsFixed(0)} km.';
+    }
+
+    return _notificationPreference.description;
   }
 
   @override
@@ -316,7 +336,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               SettingsTile(
                 icon: Icons.tune_rounded,
                 title: 'Notification Type',
-                subtitle: _notificationPreference.description,
+                subtitle: _notificationPreferenceSubtitle,
                 status: _isUpdatingNotificationPreference
                     ? 'Updating...'
                     : _notificationPreference.label,
@@ -380,10 +400,41 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 }
 
-class _NotificationPreferenceSheet extends StatelessWidget {
-  const _NotificationPreferenceSheet({required this.selectedPreference});
+class _NotificationPreferenceSelection {
+  const _NotificationPreferenceSelection({
+    required this.preference,
+    required this.nearbyRadiusKm,
+  });
+
+  final NotificationPreference preference;
+  final double nearbyRadiusKm;
+}
+
+class _NotificationPreferenceSheet extends StatefulWidget {
+  const _NotificationPreferenceSheet({
+    required this.selectedPreference,
+    required this.selectedRadiusKm,
+  });
 
   final NotificationPreference selectedPreference;
+  final double selectedRadiusKm;
+
+  @override
+  State<_NotificationPreferenceSheet> createState() =>
+      _NotificationPreferenceSheetState();
+}
+
+class _NotificationPreferenceSheetState
+    extends State<_NotificationPreferenceSheet> {
+  late NotificationPreference _selectedPreference;
+  late double _selectedRadiusKm;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedPreference = widget.selectedPreference;
+    _selectedRadiusKm = widget.selectedRadiusKm;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -429,8 +480,43 @@ class _NotificationPreferenceSheet extends StatelessWidget {
           ...NotificationPreference.values.map(
             (preference) => _NotificationPreferenceOption(
               preference: preference,
-              isSelected: selectedPreference == preference,
-              onTap: () => Navigator.pop(context, preference),
+              selectedRadiusKm: _selectedRadiusKm,
+              isSelected: _selectedPreference == preference,
+              onRadiusChanged: (radiusKm) {
+                setState(() {
+                  _selectedPreference = NotificationPreference.nearbyOnly;
+                  _selectedRadiusKm = radiusKm;
+                });
+              },
+              onTap: () {
+                setState(() => _selectedPreference = preference);
+              },
+            ),
+          ),
+          const SizedBox(height: 4),
+          SizedBox(
+            width: double.infinity,
+            height: 48,
+            child: FilledButton(
+              onPressed: () {
+                Navigator.pop(
+                  context,
+                  _NotificationPreferenceSelection(
+                    preference: _selectedPreference,
+                    nearbyRadiusKm: _selectedRadiusKm,
+                  ),
+                );
+              },
+              style: FilledButton.styleFrom(
+                backgroundColor: RainGuardColors.primary,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
+              child: const Text(
+                'Save Preference',
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900),
+              ),
             ),
           ),
         ],
@@ -443,11 +529,15 @@ class _NotificationPreferenceOption extends StatelessWidget {
   const _NotificationPreferenceOption({
     required this.preference,
     required this.isSelected,
+    required this.selectedRadiusKm,
+    required this.onRadiusChanged,
     required this.onTap,
   });
 
   final NotificationPreference preference;
   final bool isSelected;
+  final double selectedRadiusKm;
+  final ValueChanged<double> onRadiusChanged;
   final VoidCallback onTap;
 
   @override
@@ -471,51 +561,77 @@ class _NotificationPreferenceOption extends StatelessWidget {
                 width: isSelected ? 1.4 : 1,
               ),
             ),
-            child: Row(
+            child: Column(
               children: [
-                Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    color: RainGuardColors.primary.withOpacity(0.10),
-                    borderRadius: BorderRadius.circular(13),
-                  ),
-                  child: Icon(
-                    _preferenceIcon(preference),
-                    color: RainGuardColors.primary,
-                    size: 20,
-                  ),
+                Row(
+                  children: [
+                    Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: RainGuardColors.primary.withOpacity(0.10),
+                        borderRadius: BorderRadius.circular(13),
+                      ),
+                      child: Icon(
+                        _preferenceIcon(preference),
+                        color: RainGuardColors.primary,
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            preference.label,
+                            style: const TextStyle(
+                              color: RainGuardColors.ink,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                          const SizedBox(height: 3),
+                          Text(
+                            preference.description,
+                            style: const TextStyle(
+                              color: RainGuardColors.secondaryText,
+                              fontSize: 8,
+                              height: 1.3,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (isSelected)
+                      const Icon(
+                        Icons.check_circle_rounded,
+                        color: RainGuardColors.primary,
+                      ),
+                  ],
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                if (preference == NotificationPreference.nearbyOnly &&
+                    isSelected) ...[
+                  const SizedBox(height: 12),
+                  Row(
                     children: [
-                      Text(
-                        preference.label,
-                        style: const TextStyle(
-                          color: RainGuardColors.ink,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w900,
+                      for (final radiusKm
+                          in NotificationPreferenceService.nearbyRadiusOptionsKm)
+                        Expanded(
+                          child: Padding(
+                            padding: EdgeInsets.only(
+                              right: radiusKm == 5 ? 0 : 8,
+                            ),
+                            child: _RadiusChoiceChip(
+                              radiusKm: radiusKm,
+                              isSelected: selectedRadiusKm == radiusKm,
+                              onTap: () => onRadiusChanged(radiusKm),
+                            ),
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 3),
-                      Text(
-                        preference.description,
-                        style: const TextStyle(
-                          color: RainGuardColors.secondaryText,
-                          fontSize: 8,
-                          height: 1.3,
-                        ),
-                      ),
                     ],
                   ),
-                ),
-                if (isSelected)
-                  const Icon(
-                    Icons.check_circle_rounded,
-                    color: RainGuardColors.primary,
-                  ),
+                ],
               ],
             ),
           ),
@@ -535,5 +651,43 @@ class _NotificationPreferenceOption extends StatelessWidget {
       case NotificationPreference.highRiskOnly:
         return Icons.priority_high_rounded;
     }
+  }
+}
+
+class _RadiusChoiceChip extends StatelessWidget {
+  const _RadiusChoiceChip({
+    required this.radiusKm,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  final double radiusKm;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return OutlinedButton(
+      onPressed: onTap,
+      style: OutlinedButton.styleFrom(
+        foregroundColor:
+            isSelected ? Colors.white : RainGuardColors.primary,
+        backgroundColor:
+            isSelected ? RainGuardColors.primary : Colors.white,
+        side: BorderSide(
+          color: isSelected ? RainGuardColors.primary : RainGuardColors.border,
+        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+      ),
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Text(
+          '${radiusKm.toStringAsFixed(0)} km',
+          maxLines: 1,
+          style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900),
+        ),
+      ),
+    );
   }
 }

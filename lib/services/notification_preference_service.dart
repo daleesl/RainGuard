@@ -59,7 +59,8 @@ enum NotificationPreference {
 class NotificationPreferenceService {
   const NotificationPreferenceService._();
 
-  static const double nearbyRadiusKm = 5;
+  static const List<double> nearbyRadiusOptionsKm = [1, 3, 5];
+  static const double defaultNearbyRadiusKm = 5;
 
   static Future<NotificationPreference> getCurrentPreference() async {
     final user = FirebaseAuth.instance.currentUser;
@@ -75,9 +76,28 @@ class NotificationPreferenceService {
     );
   }
 
+  static Future<double> getCurrentNearbyRadiusKm() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return defaultNearbyRadiusKm;
+
+    final snapshot = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .get();
+    final value = snapshot.data()?['notification_radius_km'];
+
+    if (value is num &&
+        nearbyRadiusOptionsKm.contains(value.toDouble())) {
+      return value.toDouble();
+    }
+
+    return defaultNearbyRadiusKm;
+  }
+
   static Future<void> saveCurrentPreference(
-    NotificationPreference preference,
-  ) async {
+    NotificationPreference preference, {
+    double nearbyRadiusKm = defaultNearbyRadiusKm,
+  }) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
       throw Exception('Log in first to update notification preferences.');
