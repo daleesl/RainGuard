@@ -1,12 +1,16 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:ui';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+
+import '../models/report_model.dart';
+import '../widgets/report_details_dialog.dart';
+import 'app_navigation_service.dart';
 
 enum NotificationTokenResult {
   enabled,
@@ -43,6 +47,7 @@ class NotificationTokenService {
     _foregroundMessageSubscription = FirebaseMessaging.onMessage.listen(
       _showForegroundNotification,
     );
+    FirebaseMessaging.onMessageOpenedApp.listen(_openReportFromMessage);
 
     _authSubscription = _auth.authStateChanges().listen((user) {
       if (user != null) {
@@ -56,6 +61,11 @@ class NotificationTokenService {
 
     if (_auth.currentUser != null) {
       await registerCurrentDevice();
+    }
+
+    final initialMessage = await _messaging.getInitialMessage();
+    if (initialMessage != null) {
+      unawaited(_openReportFromMessage(initialMessage));
     }
   }
 
@@ -151,7 +161,12 @@ class NotificationTokenService {
       android: androidSettings,
     );
 
-    await _localNotifications.initialize(settings: initializationSettings);
+    await _localNotifications.initialize(
+      settings: initializationSettings,
+      onDidReceiveNotificationResponse: (response) {
+        unawaited(_openReportById(response.payload));
+      },
+    );
     await _localNotifications
         .resolvePlatformSpecificImplementation<
             AndroidFlutterLocalNotificationsPlugin>()
@@ -193,6 +208,47 @@ class NotificationTokenService {
       ),
       payload: message.data['report_id'],
     );
+  }
+
+  static Future<void> _openReportFromMessage(RemoteMessage message) {
+    return _openReportById(message.data['report_id']);
+  }
+
+  static Future<void> _openReportById(String? reportId) async {
+    if (reportId == null || reportId.isEmpty) return;
+
+    try {
+      final snapshot = await FirebaseFirestore.instance
+          .collection('reports')
+          .doc(reportId)
+          .get();
+      if (!snapshot.exists || snapshot.data() == null) return;
+
+      final report = Report.fromFirestore(snapshot.data()!, snapshot.id);
+      final canOpenReport = await _waitForReportNavigation();
+      if (!canOpenReport) return;
+
+      _showReportDetails(report);
+    } catch (error) {
+      debugPrint('Unable to open report notification: $error');
+    }
+  }
+
+  static void _showReportDetails(Report report) {
+    final context = AppNavigationService.context;
+    if (context == null) return;
+
+    ReportDetailsDialog.show(context, report);
+  }
+
+  static Future<bool> _waitForReportNavigation() async {
+    for (var attempt = 0; attempt < 12; attempt += 1) {
+      if (AppNavigationService.context != null) break;
+      await Future<void>.delayed(const Duration(milliseconds: 250));
+    }
+
+    if (AppNavigationService.context == null) return false;
+    return AppNavigationService.waitForMainWrapper();
   }
 
   static Future<void> _saveToken(String token) async {
