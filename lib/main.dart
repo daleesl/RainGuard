@@ -5,6 +5,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'firebase_options.dart';
 import 'screens/splash_screen.dart';
+import 'services/app_navigation_service.dart';
 import 'services/notification_token_service.dart';
 import 'services/report_service.dart';
 import 'theme/rainguard_theme.dart';
@@ -28,6 +29,7 @@ class RainGuardApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'RainGuard',
+      navigatorKey: AppNavigationService.navigatorKey,
       debugShowCheckedModeBanner: false,
       theme: RainGuardTheme.light(),
       home: const SplashScreen(),
