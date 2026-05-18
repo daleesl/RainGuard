@@ -4,7 +4,9 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_map_marker_cluster/flutter_map_marker_cluster.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:timeago/timeago.dart' as timeago;
+import '../models/report_draft.dart';
 import '../models/report_model.dart';
+import '../services/report_draft_service.dart';
 import '../theme/rainguard_theme.dart';
 import '../utils/location_constants.dart';
 import '../utils/map_helper.dart';
@@ -28,6 +30,32 @@ class _MapScreenState extends State<MapScreen> {
   );
 
   final MapController _mapController = MapController();
+  List<ReportDraft> _pendingDrafts = const [];
+
+  @override
+  void initState() {
+    super.initState();
+    ReportDraftService.pendingDraftCount.addListener(_handleDraftCountChanged);
+    _loadPendingDrafts();
+  }
+
+  @override
+  void dispose() {
+    ReportDraftService.pendingDraftCount.removeListener(
+      _handleDraftCountChanged,
+    );
+    super.dispose();
+  }
+
+  void _handleDraftCountChanged() {
+    _loadPendingDrafts();
+  }
+
+  Future<void> _loadPendingDrafts() async {
+    final drafts = await ReportDraftService.getPendingDrafts();
+    if (!mounted) return;
+    setState(() => _pendingDrafts = drafts);
+  }
 
   Stream<QuerySnapshot> get _reportsStream => FirebaseFirestore.instance
       .collection('reports')
@@ -38,8 +66,8 @@ class _MapScreenState extends State<MapScreen> {
     ReportDetailsDialog.show(context, report);
   }
 
-  void _showAddReportModal() {
-    showModalBottomSheet(
+  Future<void> _showAddReportModal() async {
+    await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
@@ -49,6 +77,15 @@ class _MapScreenState extends State<MapScreen> {
         ),
         child: const ReportModal(),
       ),
+    );
+    await _loadPendingDrafts();
+  }
+
+  void _showPendingDraftDetails(ReportDraft draft) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => _PendingDraftSheet(draft: draft),
     );
   }
 
@@ -78,7 +115,9 @@ class _MapScreenState extends State<MapScreen> {
                 mapController: _mapController,
                 initialCenter: _calambaCenter,
                 reports: reports,
+                pendingDrafts: _pendingDrafts,
                 onReportTap: _showReportDetails,
+                onPendingDraftTap: _showPendingDraftDetails,
                 onAddTap: _showAddReportModal,
               ),
               const SizedBox(height: 16),
@@ -118,14 +157,18 @@ class _MapCard extends StatelessWidget {
     required this.mapController,
     required this.initialCenter,
     required this.reports,
+    required this.pendingDrafts,
     required this.onReportTap,
+    required this.onPendingDraftTap,
     required this.onAddTap,
   });
 
   final MapController mapController;
   final LatLng initialCenter;
   final List<Report> reports;
+  final List<ReportDraft> pendingDrafts;
   final ValueChanged<Report> onReportTap;
+  final ValueChanged<ReportDraft> onPendingDraftTap;
   final VoidCallback onAddTap;
 
   @override
@@ -180,12 +223,30 @@ class _MapCard extends StatelessWidget {
                   },
                 ),
               ),
+              MarkerLayer(
+                markers: pendingDrafts
+                    .map(
+                      (draft) => Marker(
+                        width: 54,
+                        height: 54,
+                        point: draft.point,
+                        child: GestureDetector(
+                          onTap: () => onPendingDraftTap(draft),
+                          child: const _PendingDraftMarker(),
+                        ),
+                      ),
+                    )
+                    .toList(),
+              ),
             ],
           ),
           Positioned(
             top: 14,
             left: 14,
-            child: _MapBadge(count: reports.length),
+            child: _MapBadge(
+              count: reports.length,
+              pendingCount: pendingDrafts.length,
+            ),
           ),
           Positioned(
             bottom: 18,
@@ -239,10 +300,170 @@ class _ReportClusterMarker extends StatelessWidget {
   }
 }
 
+class _PendingDraftMarker extends StatelessWidget {
+  const _PendingDraftMarker();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.amber.shade800,
+        shape: BoxShape.circle,
+        border: Border.all(color: Colors.white, width: 3),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.amber.shade800.withOpacity(0.28),
+            blurRadius: 14,
+            offset: const Offset(0, 7),
+          ),
+        ],
+      ),
+      child: const Icon(
+        Icons.schedule_send_outlined,
+        color: Colors.white,
+        size: 23,
+      ),
+    );
+  }
+}
+
+class _PendingDraftSheet extends StatelessWidget {
+  const _PendingDraftSheet({required this.draft});
+
+  final ReportDraft draft;
+
+  @override
+  Widget build(BuildContext context) {
+    final typeName = MapHelper.getReportTypeName(draft.type);
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+      decoration: const BoxDecoration(
+        color: RainGuardColors.background,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Center(
+            child: Container(
+              width: 42,
+              height: 5,
+              decoration: BoxDecoration(
+                color: Colors.blueGrey.shade200,
+                borderRadius: BorderRadius.circular(99),
+              ),
+            ),
+          ),
+          const SizedBox(height: 18),
+          Row(
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: Colors.amber.shade800.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(15),
+                ),
+                child: Icon(
+                  Icons.schedule_send_outlined,
+                  color: Colors.amber.shade800,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Pending $typeName report',
+                      style: const TextStyle(
+                        color: RainGuardColors.ink,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    const Text(
+                      'Saved locally. It will appear to others after upload.',
+                      style: TextStyle(
+                        color: RainGuardColors.secondaryText,
+                        fontSize: 8,
+                        height: 1.3,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Text(
+            draft.description.isEmpty
+                ? 'No description added.'
+                : draft.description,
+            style: const TextStyle(
+              color: RainGuardColors.ink,
+              fontSize: 10,
+              height: 1.4,
+            ),
+          ),
+          const SizedBox(height: 12),
+          _PendingDraftMetaPill(
+            color: Colors.amber.shade800,
+            icon: Icons.access_time_rounded,
+            label: timeago.format(draft.createdAt),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PendingDraftMetaPill extends StatelessWidget {
+  const _PendingDraftMetaPill({
+    required this.color,
+    required this.icon,
+    required this.label,
+  });
+
+  final Color color;
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.10),
+        borderRadius: BorderRadius.circular(99),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: color, size: 14),
+          const SizedBox(width: 5),
+          Text(
+            label,
+            style: TextStyle(
+              color: color,
+              fontSize: 8,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _MapBadge extends StatelessWidget {
-  const _MapBadge({required this.count});
+  const _MapBadge({required this.count, required this.pendingCount});
 
   final int count;
+  final int pendingCount;
 
   @override
   Widget build(BuildContext context) {
@@ -269,7 +490,9 @@ class _MapBadge extends StatelessWidget {
           ),
           const SizedBox(width: 6),
           Text(
-            '$count live reports',
+            pendingCount > 0
+                ? '$count live, $pendingCount pending'
+                : '$count live reports',
             style: const TextStyle(
               fontSize: 8,
               fontWeight: FontWeight.w800,

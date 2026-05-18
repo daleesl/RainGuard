@@ -6,7 +6,6 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:latlong2/latlong.dart';
 import '../models/report_model.dart';
-import '../services/report_draft_service.dart';
 import '../services/report_service.dart';
 import '../theme/rainguard_theme.dart';
 import '../utils/location_constants.dart';
@@ -31,48 +30,11 @@ class _ReportModalState extends State<ReportModal> {
   final List<XFile> _pickedImages = [];
   _ReportLocationMode _locationMode = _ReportLocationMode.gps;
   LatLng? _manualLocation;
-  int _pendingDraftCount = 0;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadPendingDraftCount();
-  }
 
   @override
   void dispose() {
     _descriptionController.dispose();
     super.dispose();
-  }
-
-  Future<void> _loadPendingDraftCount() async {
-    final count = await ReportDraftService.getPendingDraftCount();
-    if (!mounted) return;
-    setState(() => _pendingDraftCount = count);
-  }
-
-  Future<void> _retryPendingDrafts() async {
-    setState(() => _isSubmitting = true);
-
-    try {
-      final submittedCount = await ReportService.submitPendingDrafts();
-      await _loadPendingDraftCount();
-      if (!mounted) return;
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            submittedCount > 0
-                ? '$submittedCount pending draft${submittedCount == 1 ? '' : 's'} submitted.'
-                : 'No drafts submitted yet. Check your connection.',
-          ),
-        ),
-      );
-    } finally {
-      if (mounted) {
-        setState(() => _isSubmitting = false);
-      }
-    }
   }
 
   Future<void> _pickImage() async {
@@ -127,7 +89,7 @@ class _ReportModalState extends State<ReportModal> {
     setState(() => _locationMode = _ReportLocationMode.gps);
   }
 
-  Future<void> _submitReport() async {
+  Future<void> _submitReport({bool skipDuplicateCheck = false}) async {
     if (_locationMode == _ReportLocationMode.manual &&
         _manualLocation == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -149,6 +111,7 @@ class _ReportModalState extends State<ReportModal> {
         manualLocation: _locationMode == _ReportLocationMode.manual
             ? _manualLocation
             : null,
+        skipDuplicateCheck: skipDuplicateCheck,
       );
 
       if (mounted) {
@@ -159,9 +122,15 @@ class _ReportModalState extends State<ReportModal> {
       }
     } catch (e) {
       if (mounted) {
+        if (e is DuplicateReportException) {
+          setState(() => _isSubmitting = false);
+          final shouldContinue = await _showDuplicateReportDialog(e);
+          if (!mounted || shouldContinue != true) return;
+          await _submitReport(skipDuplicateCheck: true);
+          return;
+        }
+
         if (e is ReportSavedAsDraftException) {
-          await _loadPendingDraftCount();
-          if (!mounted) return;
           Navigator.pop(context);
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -184,6 +153,127 @@ class _ReportModalState extends State<ReportModal> {
         });
       }
     }
+  }
+
+  Future<bool?> _showDuplicateReportDialog(
+    DuplicateReportException exception,
+  ) {
+    final reportName = MapHelper.getReportTypeName(exception.duplicate.type);
+
+    return showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return Dialog(
+          insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 360),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(22, 22, 22, 18),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 52,
+                    height: 52,
+                    decoration: BoxDecoration(
+                      color: RainGuardColors.warningFill,
+                      borderRadius: BorderRadius.circular(18),
+                    ),
+                    child: const Icon(
+                      Icons.report_problem_outlined,
+                      color: RainGuardColors.warningText,
+                      size: 28,
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  const Text(
+                    'Similar report nearby',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: RainGuardColors.ink,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'A $reportName report was already submitted near this area within the last 15 minutes.',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: RainGuardColors.secondaryText,
+                      fontSize: 10,
+                      height: 1.35,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(11),
+                    decoration: BoxDecoration(
+                      color: RainGuardColors.softBlue.withOpacity(0.55),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: const Text(
+                      'Submit anyway only if your report adds new or urgent information.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: RainGuardColors.ink,
+                        fontSize: 9,
+                        height: 1.3,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 46,
+                    child: FilledButton(
+                      onPressed: () => Navigator.pop(context, true),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: RainGuardColors.primary,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                      child: const Text(
+                        'Submit Anyway',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 44,
+                    child: TextButton(
+                      onPressed: () => Navigator.pop(context, false),
+                      style: TextButton.styleFrom(
+                        foregroundColor: RainGuardColors.secondaryText,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                      child: const Text(
+                        'Cancel',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
   }
 
   Widget _buildTypeCard(ReportType type, {required double width}) {
@@ -513,15 +603,6 @@ class _ReportModalState extends State<ReportModal> {
             ),
             const SizedBox(height: 20),
 
-            if (_pendingDraftCount > 0) ...[
-              _PendingDraftBanner(
-                count: _pendingDraftCount,
-                isRetrying: _isSubmitting,
-                onRetryTap: _isSubmitting ? null : _retryPendingDrafts,
-              ),
-              const SizedBox(height: 16),
-            ],
-
             // Report Type Selection
             const Text(
               'Report Type',
@@ -738,74 +819,6 @@ class _LocationChoiceCard extends StatelessWidget {
             ],
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _PendingDraftBanner extends StatelessWidget {
-  const _PendingDraftBanner({
-    required this.count,
-    required this.isRetrying,
-    required this.onRetryTap,
-  });
-
-  final int count;
-  final bool isRetrying;
-  final VoidCallback? onRetryTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: RainGuardColors.warningFill.withOpacity(0.72),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: RainGuardColors.warningText.withOpacity(0.2)),
-      ),
-      child: Row(
-        children: [
-          const Icon(
-            Icons.cloud_upload_outlined,
-            color: RainGuardColors.warningText,
-            size: 22,
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '$count draft${count == 1 ? '' : 's'} waiting',
-                  style: const TextStyle(
-                    color: RainGuardColors.ink,
-                    fontSize: 10,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                const SizedBox(height: 3),
-                const Text(
-                  'RainGuard will retry while the app is open.',
-                  style: TextStyle(
-                    color: RainGuardColors.secondaryText,
-                    fontSize: 8,
-                    height: 1.3,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          TextButton(
-            onPressed: onRetryTap,
-            style: TextButton.styleFrom(
-              foregroundColor: RainGuardColors.primary,
-              minimumSize: const Size(0, 36),
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-            ),
-            child: Text(isRetrying ? 'Retrying' : 'Retry'),
-          ),
-        ],
       ),
     );
   }

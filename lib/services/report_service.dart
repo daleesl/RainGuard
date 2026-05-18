@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -21,8 +22,19 @@ class ReportSavedAsDraftException implements Exception {
   String toString() => 'Report saved as draft: $originalError';
 }
 
+class DuplicateReportException implements Exception {
+  const DuplicateReportException(this.duplicate);
+
+  final Report duplicate;
+}
+
 class ReportService {
   const ReportService._();
+
+  static const Duration _duplicateWindow = Duration(minutes: 15);
+  static const Duration _duplicateCheckTimeout = Duration(seconds: 5);
+  static const Duration _submitTimeout = Duration(seconds: 12);
+  static const double _duplicateRadiusMeters = 250;
 
   static Timer? _draftRetryTimer;
 
@@ -42,6 +54,7 @@ class ReportService {
     XFile? image,
     List<XFile> images = const [],
     LatLng? manualLocation,
+    bool skipDuplicateCheck = false,
   }) async {
     final position = manualLocation == null
         ? await LocationService.getCurrentPosition()
@@ -59,20 +72,23 @@ class ReportService {
       selectedImages = const <XFile>[];
     }
 
-    final draft = ReportDraft(
-      id: DateTime.now().microsecondsSinceEpoch.toString(),
-      type: type,
-      floodLevel: floodLevel,
-      description: description.trim(),
-      latitude: latitude,
-      longitude: longitude,
-      locationSource: locationSource,
-      imagePaths: selectedImages
-          .map((image) => image.path)
-          .where((path) => path.isNotEmpty)
-          .toList(),
-      createdAt: DateTime.now(),
-    );
+    final draftId = DateTime.now().microsecondsSinceEpoch.toString();
+    final createdAt = DateTime.now();
+
+    if (!skipDuplicateCheck) {
+      final duplicate =
+          await _findRecentDuplicateReport(
+            type: type,
+            latitude: latitude,
+            longitude: longitude,
+          ).timeout(
+            _duplicateCheckTimeout,
+            onTimeout: () => null,
+          );
+      if (duplicate != null) {
+        throw DuplicateReportException(duplicate);
+      }
+    }
 
     try {
       await _submitPreparedReport(
@@ -83,9 +99,25 @@ class ReportService {
         latitude: latitude,
         longitude: longitude,
         locationSource: locationSource,
-        createdAt: DateTime.now(),
-      );
+        createdAt: createdAt,
+      ).timeout(_submitTimeout);
     } catch (error) {
+      final draftImagePaths = await ReportDraftService.copyImagesForDraft(
+        draftId: draftId,
+        images: selectedImages,
+      );
+      final draft = ReportDraft(
+        id: draftId,
+        type: type,
+        floodLevel: floodLevel,
+        description: description.trim(),
+        latitude: latitude,
+        longitude: longitude,
+        locationSource: locationSource,
+        imagePaths: draftImagePaths,
+        createdAt: createdAt,
+      );
+
       await ReportDraftService.saveDraft(draft);
       throw ReportSavedAsDraftException(error);
     }
@@ -107,7 +139,7 @@ class ReportService {
           longitude: draft.longitude,
           locationSource: draft.locationSource,
           createdAt: draft.createdAt,
-        );
+        ).timeout(_submitTimeout);
         await ReportDraftService.removeDraft(draft.id);
         submittedCount += 1;
       } catch (_) {
@@ -160,5 +192,63 @@ class ReportService {
     };
 
     await FirebaseFirestore.instance.collection('reports').add(reportData);
+  }
+
+  static Future<Report?> _findRecentDuplicateReport({
+    required ReportType type,
+    required double latitude,
+    required double longitude,
+  }) async {
+    try {
+      final cutoff = Timestamp.fromDate(DateTime.now().subtract(_duplicateWindow));
+      final snapshot = await FirebaseFirestore.instance
+          .collection('reports')
+          .where('created_at', isGreaterThan: cutoff)
+          .orderBy('created_at', descending: true)
+          .limit(50)
+          .get();
+
+      for (final doc in snapshot.docs) {
+        final report = Report.fromFirestore(doc.data(), doc.id);
+        if (report.type != type) continue;
+
+        final distance = _distanceMeters(
+          latitude,
+          longitude,
+          report.latitude,
+          report.longitude,
+        );
+        if (distance <= _duplicateRadiusMeters) {
+          return report;
+        }
+      }
+    } catch (_) {
+      return null;
+    }
+
+    return null;
+  }
+
+  static double _distanceMeters(
+    double lat1,
+    double lng1,
+    double lat2,
+    double lng2,
+  ) {
+    const earthRadiusMeters = 6371000.0;
+    final dLat = _toRadians(lat2 - lat1);
+    final dLng = _toRadians(lng2 - lng1);
+    final a =
+        math.sin(dLat / 2) * math.sin(dLat / 2) +
+        math.cos(_toRadians(lat1)) *
+            math.cos(_toRadians(lat2)) *
+            math.sin(dLng / 2) *
+            math.sin(dLng / 2);
+    final c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
+    return earthRadiusMeters * c;
+  }
+
+  static double _toRadians(double degrees) {
+    return degrees * (math.pi / 180);
   }
 }
