@@ -531,6 +531,9 @@ class _LegendCard extends StatelessWidget {
               _LegendChip(color: Colors.red.shade600, label: 'Flood'),
               _LegendChip(color: Colors.amber.shade600, label: 'Risk'),
               _LegendChip(color: Colors.green.shade600, label: 'Safe'),
+              _LegendChip(color: RainGuardColors.primary, label: 'Active'),
+              _LegendChip(color: Colors.blueGrey.shade400, label: 'Recent'),
+              _LegendChip(color: Colors.blueGrey.shade300, label: 'Archived'),
             ],
           ),
         ],
@@ -635,7 +638,8 @@ class _RecentReportTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = MapHelper.getRiskColor(report.risk);
+    final color = MapHelper.getReportColor(report);
+    final freshnessLabel = MapHelper.getFreshnessName(report.freshness);
     final title = '${MapHelper.getReportTypeName(report.type)} reported';
     final reporterName = report.reporterName ?? 'Anonymous reporter';
 
@@ -698,11 +702,11 @@ class _RecentReportTile extends StatelessWidget {
                     ),
                     const SizedBox(height: 3),
                     Text(
-                      timeago.format(report.createdAt),
+                      '${timeago.format(report.createdAt)} - $freshnessLabel',
                       style: TextStyle(
-                        color: Colors.blueGrey.shade400,
+                        color: color,
                         fontSize: 8,
-                        fontWeight: FontWeight.w600,
+                        fontWeight: FontWeight.w800,
                       ),
                     ),
                   ],
