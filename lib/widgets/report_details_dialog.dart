@@ -22,8 +22,10 @@ class _ReportDetailsSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final riskColor = MapHelper.getRiskColor(report.risk);
+    final freshnessColor = MapHelper.getReportColor(report);
     final reportName = MapHelper.getReportTypeName(report.type);
     final reporterName = report.reporterName ?? 'Anonymous reporter';
+    final freshnessLabel = MapHelper.getFreshnessName(report.freshness);
 
     return DraggableScrollableSheet(
       initialChildSize: 0.82,
@@ -88,6 +90,12 @@ class _ReportDetailsSheet extends StatelessWidget {
                             fontSize: 8,
                           ),
                         ),
+                        const SizedBox(height: 7),
+                        _StatusPill(
+                          color: freshnessColor,
+                          icon: Icons.schedule_rounded,
+                          label: freshnessLabel,
+                        ),
                       ],
                     ),
                   ),
@@ -146,6 +154,13 @@ class _ReportDetailsSheet extends StatelessWidget {
                 color: report.isManualLocation
                     ? RainGuardColors.warningText
                     : RainGuardColors.primary,
+              ),
+              const SizedBox(height: 12),
+              _InfoTile(
+                label: 'Report status',
+                value:
+                    '$freshnessLabel - ${MapHelper.getFreshnessDescription(report.freshness)}',
+                color: freshnessColor,
               ),
               const SizedBox(height: 18),
               _SectionCard(
@@ -457,6 +472,44 @@ class _EmptyImageState extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _StatusPill extends StatelessWidget {
+  const _StatusPill({
+    required this.color,
+    required this.icon,
+    required this.label,
+  });
+
+  final Color color;
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.10),
+        borderRadius: BorderRadius.circular(99),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: color, size: 13),
+          const SizedBox(width: 5),
+          Text(
+            label,
+            style: TextStyle(
+              color: color,
+              fontSize: 8,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
