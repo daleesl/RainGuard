@@ -4,6 +4,8 @@ enum RiskLevel { safe, risk, flood }
 
 enum ReportType { rain, flood }
 
+enum ReportFreshness { active, recent, archived }
+
 class Report {
   final String id;
   final double latitude;
@@ -125,6 +127,24 @@ class Report {
     }
     return const [];
   }
+
+  Duration get age {
+    final difference = DateTime.now().difference(createdAt);
+    return difference.isNegative ? Duration.zero : difference;
+  }
+
+  ReportFreshness get freshness {
+    final reportAge = age;
+    if (reportAge < const Duration(hours: 6)) {
+      return ReportFreshness.active;
+    }
+    if (reportAge < const Duration(hours: 24)) {
+      return ReportFreshness.recent;
+    }
+    return ReportFreshness.archived;
+  }
+
+  bool get isArchived => freshness == ReportFreshness.archived;
 
   Map<String, dynamic> toFirestore() {
     final urls = allImageUrls;
