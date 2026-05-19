@@ -58,8 +58,9 @@ class _NotificationScreenState extends State<NotificationScreen> {
           final activeRiskCount = reports
               .where(
                 (report) =>
-                    report.risk == RiskLevel.flood ||
-                    report.risk == RiskLevel.risk,
+                    !report.isArchived &&
+                    (report.risk == RiskLevel.flood ||
+                        report.risk == RiskLevel.risk),
               )
               .length;
           final latestReport = reports.isNotEmpty ? reports.first : null;
@@ -273,10 +274,14 @@ class _NotificationCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = _statusColor(report);
+    final freshnessColor = MapHelper.getReportColor(report);
+    final freshnessLabel = MapHelper.getFreshnessName(report.freshness);
     final reportName = MapHelper.getReportTypeName(report.type);
-    final title = report.risk == RiskLevel.flood
-        ? '$reportName report needs attention'
-        : '$reportName update near monitored area';
+    final title = report.isArchived
+        ? 'Archived $reportName report'
+        : report.risk == RiskLevel.flood
+            ? '$reportName report needs attention'
+            : '$reportName update near monitored area';
     final reporterName = report.reporterName ?? 'Anonymous reporter';
     final imageCount = report.allImageUrls.length;
     final hasImage = imageCount > 0;
@@ -288,10 +293,12 @@ class _NotificationCard extends StatelessWidget {
         child: InkWell(
           onTap: onTap,
           borderRadius: BorderRadius.circular(22),
-            child: Ink(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(22),
+          child: Ink(
+            decoration: BoxDecoration(
+              color: report.isArchived
+                  ? Colors.blueGrey.shade50
+                  : Colors.white,
+              borderRadius: BorderRadius.circular(22),
               border: Border.all(color: RainGuardColors.border),
               boxShadow: [
                 BoxShadow(
@@ -391,9 +398,10 @@ class _NotificationCard extends StatelessWidget {
                               crossAxisAlignment: WrapCrossAlignment.center,
                               children: [
                                 _MetaPill(
-                                  color: Colors.blueGrey,
+                                  color: freshnessColor,
                                   icon: Icons.access_time_rounded,
-                                  label: timeago.format(report.createdAt),
+                                  label:
+                                      '${timeago.format(report.createdAt)} - $freshnessLabel',
                                 ),
                                 if (report.floodLevel != null)
                                   _MetaPill(
@@ -435,6 +443,7 @@ class _NotificationCard extends StatelessWidget {
   }
 
   Color _statusColor(Report report) {
+    if (report.isArchived) return Colors.blueGrey.shade500;
     if (report.risk == RiskLevel.flood) return Colors.red.shade700;
     if (report.risk == RiskLevel.risk || report.type == ReportType.rain) {
       return Colors.amber.shade800;
