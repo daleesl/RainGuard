@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -106,10 +105,11 @@ class _SplashScreenState extends State<SplashScreen> {
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              SvgPicture.asset(
-                                'assets/images/rainGuard-Logo.svg',
-                                width: 118 * scale,
-                                height: 148 * scale,
+                              Image.asset(
+                                'assets/images/rainguard-icon-transparent.png',
+                                width: 158 * scale,
+                                height: 188 * scale,
+                                fit: BoxFit.contain,
                               ),
                               SizedBox(height: 24 * scale),
                               Text(
