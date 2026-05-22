@@ -10,7 +10,9 @@ import '../widgets/rainguard_app_bar.dart';
 import '../widgets/settings/settings_profile_card.dart';
 import '../widgets/settings/settings_tiles.dart';
 import '../widgets/settings/verification_sheet.dart';
+import 'emergency_info_screen.dart';
 import 'auth/login_screen.dart';
+import 'help_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -75,6 +77,71 @@ class _SettingsScreenState extends State<SettingsScreen> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => const VerificationSheet(),
+    );
+  }
+
+  Future<void> _sendPasswordResetEmail(String? email) async {
+    final cleanEmail = email?.trim();
+    if (cleanEmail == null || cleanEmail.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No email address is linked to this account.')),
+      );
+      return;
+    }
+
+    final shouldSend = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text(
+          'Send password reset email?',
+          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800),
+        ),
+        content: Text(
+          'We will send a password reset link to $cleanEmail.',
+          style: const TextStyle(fontSize: 11, height: 1.35),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Send Email'),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldSend != true) return;
+
+    try {
+      await AuthService.sendPasswordResetEmail(cleanEmail);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Password reset email sent to $cleanEmail.')),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not send reset email: $error')),
+      );
+    }
+  }
+
+  void _showThemeSheet() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => const _ThemeInfoSheet(),
+    );
+  }
+
+  void _showBarangayLocationSheet() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => const _BarangayLocationSheet(),
     );
   }
 
@@ -305,21 +372,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
               const SizedBox(height: 22),
               const SettingsSectionLabel('Account'),
               SettingsTile(
-                icon: Icons.person_outline_rounded,
-                title: 'Profile Information',
-                subtitle: '$displayName - $email',
-                onTap: () {},
-              ),
-              SettingsTile(
                 icon: Icons.lock_outline_rounded,
                 title: 'Change Password',
-                subtitle: 'Update your login security',
-                onTap: () {},
+                subtitle: 'Send a password reset link to your email',
+                onTap: () => _sendPasswordResetEmail(profile?.email),
               ),
               SettingsTile(
                 icon: Icons.verified_user_outlined,
                 title: 'Identity Verification',
-                subtitle: 'Take a photo of a valid ID',
+                subtitle: 'Take or upload a valid ID photo',
                 status: _verificationStatusLabel(verificationStatus),
                 onTap: _showVerificationSheet,
               ),
@@ -350,7 +411,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 icon: Icons.place_outlined,
                 title: 'Default Barangay Location',
                 subtitle: 'Barangay Lingga, Calamba',
-                onTap: () {},
+                onTap: _showBarangayLocationSheet,
               ),
               SettingsSwitchTile(
                 icon: Icons.my_location_rounded,
@@ -364,14 +425,30 @@ class _SettingsScreenState extends State<SettingsScreen> {
               SettingsTile(
                 icon: Icons.palette_outlined,
                 title: 'Theme',
-                subtitle: 'System default',
-                onTap: () {},
+                subtitle: 'Light theme active',
+                onTap: _showThemeSheet,
               ),
               SettingsTile(
                 icon: Icons.help_outline_rounded,
-                title: 'Help and Emergency Info',
+                title: 'Help',
+                subtitle: 'How RainGuard reports and verification work',
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute<void>(builder: (_) => const HelpScreen()),
+                  );
+                },
+              ),
+              SettingsTile(
+                icon: Icons.local_phone_outlined,
+                title: 'Emergency Info',
                 subtitle: 'Hotlines and flood safety reminders',
-                onTap: () {},
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => const EmergencyInfoScreen(),
+                    ),
+                  );
+                },
               ),
               const SizedBox(height: 10),
               SettingsLogoutTile(
@@ -408,6 +485,155 @@ class _NotificationPreferenceSelection {
 
   final NotificationPreference preference;
   final double nearbyRadiusKm;
+}
+
+class _ThemeInfoSheet extends StatelessWidget {
+  const _ThemeInfoSheet();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
+      decoration: const BoxDecoration(
+        color: RainGuardColors.background,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Center(
+            child: Container(
+              width: 44,
+              height: 5,
+              decoration: BoxDecoration(
+                color: Colors.blueGrey.shade200,
+                borderRadius: BorderRadius.circular(99),
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+          const Text(
+            'Theme',
+            style: TextStyle(
+              color: RainGuardColors.ink,
+              fontSize: 20,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'RainGuard is currently using the light theme. Dark theme can be added later as a separate app-wide pass.',
+            style: TextStyle(
+              color: RainGuardColors.secondaryText,
+              fontSize: 9,
+              height: 1.45,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: RainGuardColors.primary),
+            ),
+            child: const Row(
+              children: [
+                SettingsTileIcon(icon: Icons.light_mode_outlined),
+                SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Light theme active',
+                    style: TextStyle(
+                      color: RainGuardColors.ink,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+                Icon(Icons.check_circle_rounded, color: RainGuardColors.primary),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BarangayLocationSheet extends StatelessWidget {
+  const _BarangayLocationSheet();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
+      decoration: const BoxDecoration(
+        color: RainGuardColors.background,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Center(
+            child: Container(
+              width: 44,
+              height: 5,
+              decoration: BoxDecoration(
+                color: Colors.blueGrey.shade200,
+                borderRadius: BorderRadius.circular(99),
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+          const Text(
+            'Default Barangay Location',
+            style: TextStyle(
+              color: RainGuardColors.ink,
+              fontSize: 20,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'RainGuard is focused on Barangay Lingga, Calamba for this capstone. Weather summaries and default map context use this area, while submitted reports still use the user\'s actual GPS when available.',
+            style: TextStyle(
+              color: RainGuardColors.secondaryText,
+              fontSize: 9,
+              height: 1.45,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: RainGuardColors.border),
+            ),
+            child: const Row(
+              children: [
+                SettingsTileIcon(icon: Icons.place_outlined),
+                SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Barangay Lingga, Calamba',
+                    style: TextStyle(
+                      color: RainGuardColors.ink,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _NotificationPreferenceSheet extends StatefulWidget {

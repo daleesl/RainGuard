@@ -93,6 +93,10 @@ class AuthService {
     await _auth.signOut();
   }
 
+  static Future<void> sendPasswordResetEmail(String email) {
+    return _auth.sendPasswordResetEmail(email: email);
+  }
+
   static ({String? firstName, String? lastName}) _splitDisplayName(
     String? displayName,
   ) {
