@@ -23,6 +23,18 @@ class StorageService {
   }
 
   static Future<String> uploadReportImage(XFile image) async {
+    return _uploadImage(image, 'reports');
+  }
+
+  static Future<String> uploadVerificationImage({
+    required XFile image,
+    required String uid,
+    required String type,
+  }) async {
+    return _uploadImage(image, 'users/$uid/verification/$type');
+  }
+
+  static Future<String> _uploadImage(XFile image, String folderPath) async {
     try {
       final payload = await _prepareUploadPayload(image);
       final cleanName = payload.fileName.replaceAll(
@@ -30,7 +42,7 @@ class StorageService {
         '_',
       );
       final path =
-          'reports/${DateTime.now().millisecondsSinceEpoch}_$cleanName';
+          '$folderPath/${DateTime.now().millisecondsSinceEpoch}_$cleanName';
       final fileRef = FirebaseStorage.instance.ref().child(path);
       final metadata = SettableMetadata(
         contentType: payload.contentType,
