@@ -10,6 +10,7 @@ import '../services/report_service.dart';
 import '../theme/rainguard_theme.dart';
 import '../utils/location_constants.dart';
 import '../utils/map_helper.dart';
+import 'settings/verification_sheet.dart';
 
 enum _ReportLocationMode { gps, manual }
 
@@ -130,6 +131,14 @@ class _ReportModalState extends State<ReportModal> {
           return;
         }
 
+        if (e is ReportVerificationRequiredException) {
+          setState(() => _isSubmitting = false);
+          final shouldVerify = await _showVerificationRequiredDialog(e.status);
+          if (!mounted || shouldVerify != true) return;
+          _showVerificationSheet();
+          return;
+        }
+
         if (e is ReportSavedAsDraftException) {
           Navigator.pop(context);
           ScaffoldMessenger.of(context).showSnackBar(
@@ -152,6 +161,55 @@ class _ReportModalState extends State<ReportModal> {
           _isSubmitting = false;
         });
       }
+    }
+  }
+
+  void _showVerificationSheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => const VerificationSheet(),
+    );
+  }
+
+  Future<bool?> _showVerificationRequiredDialog(String status) {
+    return showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text(
+            'Verification required',
+            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900),
+          ),
+          content: Text(
+            _verificationMessage(status),
+            style: const TextStyle(fontSize: 10, height: 1.35),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Not now'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Verify ID'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  String _verificationMessage(String status) {
+    switch (status) {
+      case 'pending':
+        return 'Your ID is still pending admin review. You can submit reports once an admin approves your account.';
+      case 'rejected':
+        return 'Your ID verification was rejected. Upload a clearer valid ID photo before submitting reports.';
+      case 'unverified':
+      default:
+        return 'Only verified users can submit community reports. Upload a valid ID photo first.';
     }
   }
 

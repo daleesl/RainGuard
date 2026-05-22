@@ -28,6 +28,15 @@ class DuplicateReportException implements Exception {
   final Report duplicate;
 }
 
+class ReportVerificationRequiredException implements Exception {
+  const ReportVerificationRequiredException(this.status);
+
+  final String status;
+
+  @override
+  String toString() => 'Identity verification required: $status';
+}
+
 class ReportService {
   const ReportService._();
 
@@ -102,6 +111,10 @@ class ReportService {
         createdAt: createdAt,
       ).timeout(_submitTimeout);
     } catch (error) {
+      if (error is ReportVerificationRequiredException) {
+        rethrow;
+      }
+
       final draftImagePaths = await ReportDraftService.copyImagesForDraft(
         draftId: draftId,
         images: selectedImages,
@@ -160,14 +173,21 @@ class ReportService {
     required DateTime createdAt,
     String? floodLevel,
   }) async {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    final userProfile = await UserProfileService.getCurrentUserProfile();
+
+    if (currentUser == null || userProfile?.verificationStatus != 'verified') {
+      throw ReportVerificationRequiredException(
+        userProfile?.verificationStatus ?? 'unverified',
+      );
+    }
+
     final imageUrls = selectedImages.isNotEmpty
         ? await StorageService.uploadReportImages(selectedImages)
         : const <String>[];
     final imageUrl = imageUrls.isNotEmpty ? imageUrls.first : null;
 
-    final currentUser = FirebaseAuth.instance.currentUser;
-    final userProfile = await UserProfileService.getCurrentUserProfile();
-    final userId = currentUser?.uid ?? 'anonymous';
+    final userId = currentUser.uid;
     final reporterName =
         userProfile?.publicReporterName ??
         currentUser?.displayName ??
