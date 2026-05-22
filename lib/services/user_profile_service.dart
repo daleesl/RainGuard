@@ -86,6 +86,24 @@ class UserProfileService {
     await ref.set(data, SetOptions(merge: true));
   }
 
+  static Future<void> submitVerificationRequest({
+    required String idFrontUrl,
+  }) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      throw Exception('Log in first to submit verification.');
+    }
+
+    await userRef(user.uid).set({
+      'verification_status': 'pending',
+      'verification_id_front_url': idFrontUrl,
+      'verification_selfie_url': FieldValue.delete(),
+      'verification_submitted_at': FieldValue.serverTimestamp(),
+      'verification_rejection_reason': '',
+      'updated_at': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+  }
+
   static String? _clean(String? value) {
     final trimmed = value?.trim();
     return trimmed == null || trimmed.isEmpty ? null : trimmed;

@@ -8,6 +8,7 @@ class UserProfile {
     this.lastName,
     this.photoUrl,
     this.authProvider,
+    this.verificationIdFrontUrl,
   });
 
   final String uid;
@@ -17,6 +18,7 @@ class UserProfile {
   final String? lastName;
   final String? photoUrl;
   final String? authProvider;
+  final String? verificationIdFrontUrl;
   final String verificationStatus;
 
   String get firstNameOrDisplay {
@@ -61,6 +63,7 @@ class UserProfile {
           : _fallbackDisplayName(email),
       photoUrl: data['photo_url'] as String?,
       authProvider: data['auth_provider'] as String?,
+      verificationIdFrontUrl: data['verification_id_front_url'] as String?,
       verificationStatus:
           (data['verification_status'] as String?) ?? 'unverified',
     );
