@@ -19,6 +19,10 @@ class NotificationScreen extends StatefulWidget {
 
 class _NotificationScreenState extends State<NotificationScreen> {
   _NotificationFilter _selectedFilter = _NotificationFilter.all;
+  late final Stream<QuerySnapshot> _reportsStream = FirebaseFirestore.instance
+      .collection('reports')
+      .orderBy('created_at', descending: true)
+      .snapshots();
 
   @override
   Widget build(BuildContext context) {
@@ -26,10 +30,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
       backgroundColor: RainGuardColors.background,
       appBar: const RainGuardAppBar(),
       body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance
-            .collection('reports')
-            .orderBy('created_at', descending: true)
-            .snapshots(),
+        stream: _reportsStream,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
@@ -103,6 +104,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
                     .where((report) => report.type == ReportType.rain)
                     .length,
                 onChanged: (filter) {
+                  if (filter == _selectedFilter) return;
                   setState(() => _selectedFilter = filter);
                 },
               ),

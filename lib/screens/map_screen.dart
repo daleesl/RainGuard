@@ -216,6 +216,7 @@ class _MapCard extends StatelessWidget {
                   padding: const EdgeInsets.all(36),
                   maxZoom: 17,
                   markers: markers,
+                  showPolygon: false,
                   builder: (context, clusteredMarkers) {
                     return _ReportClusterMarker(
                       count: clusteredMarkers.length,
