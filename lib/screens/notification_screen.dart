@@ -19,6 +19,10 @@ class NotificationScreen extends StatefulWidget {
 
 class _NotificationScreenState extends State<NotificationScreen> {
   _NotificationFilter _selectedFilter = _NotificationFilter.all;
+  late final Stream<QuerySnapshot> _alertsStream = FirebaseFirestore.instance
+      .collection('alerts')
+      .orderBy('created_at', descending: true)
+      .snapshots();
   late final Stream<QuerySnapshot> _reportsStream = FirebaseFirestore.instance
       .collection('reports')
       .orderBy('created_at', descending: true)
@@ -30,101 +34,140 @@ class _NotificationScreenState extends State<NotificationScreen> {
       backgroundColor: RainGuardColors.background,
       appBar: const RainGuardAppBar(),
       body: StreamBuilder<QuerySnapshot>(
-        stream: _reportsStream,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
+        stream: _alertsStream,
+        builder: (context, alertSnapshot) {
+          if (alertSnapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
 
-          if (snapshot.hasError) {
+          if (alertSnapshot.hasError) {
             return const Center(child: Text('Error loading notifications'));
           }
 
-          final docs = snapshot.data?.docs ?? [];
-          final reports = <Report>[];
+          final alerts = _parseAlerts(alertSnapshot.data?.docs ?? []);
 
-          for (final doc in docs) {
-            try {
-              reports.add(
-                Report.fromFirestore(
-                  doc.data() as Map<String, dynamic>,
-                  doc.id,
-                ),
-              );
-            } catch (e) {
-              debugPrint('Error parsing notification report ${doc.id}: $e');
-            }
-          }
+          return StreamBuilder<QuerySnapshot>(
+            stream: _reportsStream,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
 
-          final activeRiskCount = reports
-              .where(
-                (report) =>
-                    !report.isArchived &&
-                    (report.risk == RiskLevel.flood ||
-                        report.risk == RiskLevel.risk),
-              )
-              .length;
-          final latestReport = reports.isNotEmpty ? reports.first : null;
-          final filteredReports = _filterReports(reports);
+              if (snapshot.hasError) {
+                return const Center(child: Text('Error loading notifications'));
+              }
 
-          return ListView(
-            padding: const EdgeInsets.fromLTRB(16, 18, 16, 24),
-            children: [
-              const Text(
-                'Notifications',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w900,
-                  color: RainGuardColors.ink,
-                ),
-              ),
-              const SizedBox(height: 6),
-              const Text(
-                'Latest community reports and flood-safety updates for Calamba.',
-                style: TextStyle(
-                  color: RainGuardColors.secondaryText,
-                  fontSize: 8,
-                  height: 1.35,
-                ),
-              ),
-              const SizedBox(height: 18),
-              _NotificationSummaryCard(
-                totalReports: reports.length,
-                activeRiskCount: activeRiskCount,
-                latestReport: latestReport,
-              ),
-              const SizedBox(height: 18),
-              _NotificationFilterBar(
-                selectedFilter: _selectedFilter,
-                totalCount: reports.length,
-                floodCount: reports
-                    .where((report) => report.type == ReportType.flood)
-                    .length,
-                rainCount: reports
-                    .where((report) => report.type == ReportType.rain)
-                    .length,
-                onChanged: (filter) {
-                  if (filter == _selectedFilter) return;
-                  setState(() => _selectedFilter = filter);
-                },
-              ),
-              const SizedBox(height: 18),
-              const _SectionHeader('Recent Alerts'),
-              const SizedBox(height: 10),
-              if (filteredReports.isEmpty)
-                _EmptyNotifications(filter: _selectedFilter)
-              else
-                ...filteredReports.map(
-                  (report) => _NotificationCard(
-                    report: report,
-                    onTap: () => ReportDetailsDialog.show(context, report),
+              final docs = snapshot.data?.docs ?? [];
+              final reports = <Report>[];
+
+              for (final doc in docs) {
+                try {
+                  reports.add(
+                    Report.fromFirestore(
+                      doc.data() as Map<String, dynamic>,
+                      doc.id,
+                    ),
+                  );
+                } catch (e) {
+                  debugPrint('Error parsing notification report ${doc.id}: $e');
+                }
+              }
+
+              final activeRiskCount = reports
+                  .where(
+                    (report) =>
+                        !report.isArchived &&
+                        (report.risk == RiskLevel.flood ||
+                            report.risk == RiskLevel.risk),
+                  )
+                  .length;
+              final latestReport = reports.isNotEmpty ? reports.first : null;
+              final filteredReports = _filterReports(reports);
+
+              return ListView(
+                padding: const EdgeInsets.fromLTRB(16, 18, 16, 24),
+                children: [
+                  const Text(
+                    'Notifications',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w900,
+                      color: RainGuardColors.ink,
+                    ),
                   ),
-                ),
-            ],
+                  const SizedBox(height: 6),
+                  const Text(
+                    'Latest community reports and flood-safety updates for Calamba.',
+                    style: TextStyle(
+                      color: RainGuardColors.secondaryText,
+                      fontSize: 8,
+                      height: 1.35,
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  _NotificationSummaryCard(
+                    totalReports: reports.length,
+                    activeRiskCount: activeRiskCount + alerts.length,
+                    latestReport: latestReport,
+                  ),
+                  const SizedBox(height: 18),
+                  _NotificationFilterBar(
+                    selectedFilter: _selectedFilter,
+                    totalCount: reports.length,
+                    floodCount: reports
+                        .where((report) => report.type == ReportType.flood)
+                        .length,
+                    rainCount: reports
+                        .where((report) => report.type == ReportType.rain)
+                        .length,
+                    onChanged: (filter) {
+                      if (filter == _selectedFilter) return;
+                      setState(() => _selectedFilter = filter);
+                    },
+                  ),
+                  if (alerts.isNotEmpty) ...[
+                    const SizedBox(height: 18),
+                    const _SectionHeader('Barangay Advisories'),
+                    const SizedBox(height: 10),
+                    ...alerts.map((alert) => _SafetyAlertCard(alert: alert)),
+                  ],
+                  const SizedBox(height: 18),
+                  const _SectionHeader('Recent Reports'),
+                  const SizedBox(height: 10),
+                  if (filteredReports.isEmpty && alerts.isEmpty)
+                    _EmptyNotifications(filter: _selectedFilter)
+                  else
+                    ...filteredReports.map(
+                      (report) => _NotificationCard(
+                        report: report,
+                        onTap: () => ReportDetailsDialog.show(context, report),
+                      ),
+                    ),
+                ],
+              );
+            },
           );
         },
       ),
     );
+  }
+
+  List<_SafetyAlert> _parseAlerts(List<QueryDocumentSnapshot> docs) {
+    final alerts = <_SafetyAlert>[];
+
+    for (final doc in docs) {
+      try {
+        final alert = _SafetyAlert.fromFirestore(
+          doc.data() as Map<String, dynamic>,
+          doc.id,
+        );
+        if (alert.status == 'published') alerts.add(alert);
+      } catch (e) {
+        debugPrint('Error parsing safety alert ${doc.id}: $e');
+      }
+    }
+
+    return alerts;
   }
 
   List<Report> _filterReports(List<Report> reports) {
@@ -264,6 +307,170 @@ class _NotificationFilterChip extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+class _SafetyAlert {
+  const _SafetyAlert({
+    required this.area,
+    required this.id,
+    required this.message,
+    required this.publishedAt,
+    required this.riskLevel,
+    required this.status,
+    required this.title,
+  });
+
+  final String area;
+  final String id;
+  final String message;
+  final DateTime publishedAt;
+  final String riskLevel;
+  final String status;
+  final String title;
+
+  factory _SafetyAlert.fromFirestore(Map<String, dynamic> data, String id) {
+    return _SafetyAlert(
+      area: data['area'] as String? ?? 'All residents',
+      id: id,
+      message: data['message'] as String? ?? '',
+      publishedAt:
+          (data['published_at'] as Timestamp?)?.toDate() ??
+          (data['created_at'] as Timestamp?)?.toDate() ??
+          DateTime.now(),
+      riskLevel: data['risk_level'] as String? ?? 'info',
+      status: data['status'] as String? ?? 'draft',
+      title: data['title'] as String? ?? 'RainGuard advisory',
+    );
+  }
+}
+
+class _SafetyAlertCard extends StatelessWidget {
+  const _SafetyAlertCard({required this.alert});
+
+  final _SafetyAlert alert;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = _riskColor(alert.riskLevel);
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: RainGuardCard(
+        padding: EdgeInsets.zero,
+        radius: 22,
+        shadowOpacity: 0.06,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(22),
+          child: IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Container(width: 5, color: color),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.all(15),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Container(
+                              width: 42,
+                              height: 42,
+                              decoration: BoxDecoration(
+                                color: color.withOpacity(0.10),
+                                borderRadius: BorderRadius.circular(15),
+                              ),
+                              child: Icon(
+                                Icons.campaign_outlined,
+                                color: color,
+                                size: 22,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    alert.title,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      color: RainGuardColors.ink,
+                                      fontWeight: FontWeight.w900,
+                                      fontSize: 12,
+                                      height: 1.25,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 5),
+                                  Text(
+                                    '${alert.area} barangay advisory',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      fontSize: 8,
+                                      color: RainGuardColors.secondaryText,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            _SeverityChip(
+                              color: color,
+                              label: _riskLabel(alert.riskLevel),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 13),
+                        Text(
+                          alert.message,
+                          maxLines: 3,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 8,
+                            height: 1.4,
+                            color: RainGuardColors.ink,
+                          ),
+                        ),
+                        const SizedBox(height: 13),
+                        _MetaPill(
+                          color: color,
+                          icon: Icons.access_time_rounded,
+                          label: timeago.format(alert.publishedAt),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Color _riskColor(String riskLevel) {
+    switch (riskLevel) {
+      case 'critical':
+      case 'warning':
+        return Colors.red.shade700;
+      case 'watch':
+        return Colors.amber.shade800;
+      default:
+        return RainGuardColors.primary;
+    }
+  }
+
+  String _riskLabel(String riskLevel) {
+    return riskLevel.isEmpty
+        ? 'Info'
+        : '${riskLevel[0].toUpperCase()}${riskLevel.substring(1)}';
   }
 }
 
