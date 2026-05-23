@@ -91,10 +91,22 @@ class _ReportDetailsSheet extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 7),
-                        _StatusPill(
-                          color: freshnessColor,
-                          icon: Icons.schedule_rounded,
-                          label: freshnessLabel,
+                        Wrap(
+                          spacing: 7,
+                          runSpacing: 6,
+                          children: [
+                            _StatusPill(
+                              color: freshnessColor,
+                              icon: Icons.schedule_rounded,
+                              label: freshnessLabel,
+                            ),
+                            if (report.isAdminVerified)
+                              const _StatusPill(
+                                color: RainGuardColors.success,
+                                icon: Icons.verified_rounded,
+                                label: 'Verified by admin',
+                              ),
+                          ],
                         ),
                       ],
                     ),

@@ -20,6 +20,7 @@ class Report {
   final String? reporterName;
   final String? reporterDisplayName;
   final String locationSource;
+  final String reviewStatus;
   final DateTime createdAt;
 
   Report({
@@ -36,6 +37,7 @@ class Report {
     this.reporterName,
     this.reporterDisplayName,
     this.locationSource = 'gps',
+    this.reviewStatus = 'active',
     required this.createdAt,
   });
 
@@ -56,6 +58,7 @@ class Report {
       reporterName: data['reporter_name'],
       reporterDisplayName: data['reporter_display_name'],
       locationSource: _parseLocationSource(data['location_source']),
+      reviewStatus: _parseReviewStatus(data['status'], data['report_status']),
       createdAt: data['created_at'] != null
           ? (data['created_at'] as Timestamp).toDate()
           : DateTime.now(),
@@ -114,6 +117,30 @@ class Report {
     return 'gps';
   }
 
+  static String _parseReviewStatus(dynamic status, dynamic legacyStatus) {
+    final primaryStatus = _normalizeStatus(status);
+    final reportStatus = _normalizeStatus(legacyStatus);
+
+    if (primaryStatus == 'verified' || reportStatus == 'verified') {
+      return 'verified';
+    }
+    if (primaryStatus == 'resolved' || reportStatus == 'resolved') {
+      return 'resolved';
+    }
+    if (primaryStatus == 'duplicate_hidden' ||
+        reportStatus == 'duplicate_hidden') {
+      return 'duplicate_hidden';
+    }
+    if (primaryStatus.isNotEmpty) return primaryStatus;
+    if (reportStatus.isNotEmpty) return reportStatus;
+    return 'active';
+  }
+
+  static String _normalizeStatus(dynamic status) {
+    if (status is String) return status.trim().toLowerCase();
+    return '';
+  }
+
   bool get isManualLocation => locationSource == 'manual';
 
   String get locationSourceLabel {
@@ -146,6 +173,8 @@ class Report {
 
   bool get isArchived => freshness == ReportFreshness.archived;
 
+  bool get isAdminVerified => reviewStatus == 'verified';
+
   Map<String, dynamic> toFirestore() {
     final urls = allImageUrls;
 
@@ -162,6 +191,7 @@ class Report {
       'reporter_name': reporterName,
       'reporter_display_name': reporterDisplayName,
       'location_source': locationSource,
+      'status': reviewStatus,
       'created_at': Timestamp.fromDate(createdAt),
     };
   }
