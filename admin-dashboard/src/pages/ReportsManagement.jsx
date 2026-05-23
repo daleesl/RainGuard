@@ -1,9 +1,19 @@
 import { useMemo, useState } from 'react'
 import { doc, updateDoc } from 'firebase/firestore'
-import { Search } from 'lucide-react'
+import {
+  CheckCircle2,
+  Eye,
+  EyeOff,
+  ImageOff,
+  RotateCcw,
+  Search,
+  X,
+} from 'lucide-react'
+import { ConfirmActionModal } from '../components/ConfirmActionModal'
 import { db } from '../firebase'
 import { useReports } from '../hooks/useReports'
 import {
+  getReportLabel,
   getReportLocationName,
   getReportTypeName,
   getReviewStatus,
@@ -37,6 +47,8 @@ export function ReportsManagement({ onOpenMap }) {
   const [activeFilter, setActiveFilter] = useState('all')
   const [searchTerm, setSearchTerm] = useState('')
   const [actionMessage, setActionMessage] = useState('')
+  const [pendingAction, setPendingAction] = useState(null)
+  const [selectedReport, setSelectedReport] = useState(null)
 
   const filteredReports = useMemo(() => {
     const normalizedSearch = searchTerm.trim().toLowerCase()
@@ -91,6 +103,17 @@ export function ReportsManagement({ onOpenMap }) {
     } catch (updateError) {
       setActionMessage(updateError.message)
     }
+  }
+
+  function requestReportAction(report, action) {
+    setPendingAction({ ...action, report })
+  }
+
+  async function confirmReportAction() {
+    if (!pendingAction) return
+    const { report, successMessage, values } = pendingAction
+    setPendingAction(null)
+    await updateReportStatus(report, values, successMessage)
   }
 
   function exportCsv() {
@@ -253,54 +276,105 @@ export function ReportsManagement({ onOpenMap }) {
                     <td>
                       <div className="row-action-group">
                         <button
-                          className="table-action"
+                          className="table-action table-action-verify"
                           onClick={() =>
-                            updateReportStatus(
+                            requestReportAction(
                               report,
-                              { status: 'verified', report_status: 'verified' },
-                              'Report marked as verified.',
+                              report.status === 'verified'
+                                ? {
+                                    confirmLabel: 'Unverify report',
+                                    intent: 'primary',
+                                    message:
+                                      'This removes the admin verified mark and returns the report to the unreviewed queue.',
+                                    successMessage:
+                                      'Report moved back to unreviewed.',
+                                    title: 'Unverify this report?',
+                                    values: {
+                                      hidden: false,
+                                      status: 'active',
+                                      report_status: 'active',
+                                    },
+                                  }
+                                : {
+                                    confirmLabel: 'Verify report',
+                                    intent: 'primary',
+                                    message:
+                                      'This marks the report as reviewed and trusted by admin.',
+                                    successMessage:
+                                      'Report marked as verified.',
+                                    title: 'Verify this report?',
+                                    values: {
+                                      status: 'verified',
+                                      report_status: 'verified',
+                                    },
+                                  },
                             )
                           }
                           type="button"
+                          title={
+                            report.status === 'verified'
+                              ? 'Remove verified status'
+                              : 'Mark report as verified'
+                          }
                         >
-                          Verify
+                          <CheckCircle2 aria-hidden="true" size={13} />
+                          <span>
+                            {report.status === 'verified' ? 'Unverify' : 'Verify'}
+                          </span>
                         </button>
                         <button
-                          className="table-action"
+                          className="table-action table-action-resolve"
                           onClick={() =>
-                            updateReportStatus(
-                              report,
-                              { status: 'resolved', report_status: 'resolved' },
-                              'Report marked as resolved.',
-                            )
+                            requestReportAction(report, {
+                              confirmLabel: 'Resolve report',
+                              intent: 'primary',
+                              message:
+                                'This marks the report as resolved so admins know the issue no longer needs active handling.',
+                              successMessage: 'Report marked as resolved.',
+                              title: 'Resolve this report?',
+                              values: {
+                                status: 'resolved',
+                                report_status: 'resolved',
+                              },
+                            })
                           }
                           type="button"
+                          title="Mark report as resolved"
                         >
-                          Resolve
+                          <RotateCcw aria-hidden="true" size={13} />
+                          <span>Resolve</span>
                         </button>
                         <button
                           className="table-action table-action-danger"
                           onClick={() =>
-                            updateReportStatus(
-                              report,
-                              {
+                            requestReportAction(report, {
+                              confirmLabel: 'Hide report',
+                              intent: 'danger',
+                              message:
+                                'This hides the report from admin review because it is a duplicate or invalid entry.',
+                              successMessage: 'Report hidden as duplicate.',
+                              title: 'Hide this report?',
+                              values: {
                                 hidden: true,
                                 status: 'duplicate_hidden',
                                 report_status: 'duplicate_hidden',
                               },
-                              'Report hidden as duplicate.',
-                            )
+                            })
                           }
                           type="button"
+                          title="Hide duplicate report"
                         >
-                          Hide
+                          <EyeOff aria-hidden="true" size={13} />
+                          <span>Hide</span>
                         </button>
                         <button
                           className="table-action table-action-ghost"
-                          onClick={onOpenMap}
+                          onClick={() => setSelectedReport(report)}
                           type="button"
+                          title="View report details"
                         >
-                          Map
+                          <Eye aria-hidden="true" size={13} />
+                          <span>View</span>
                         </button>
                       </div>
                     </td>
@@ -320,6 +394,24 @@ export function ReportsManagement({ onOpenMap }) {
           </div>
         </section>
       </main>
+
+      {selectedReport ? (
+        <ReportViewModal
+          onClose={() => setSelectedReport(null)}
+          onOpenMap={onOpenMap}
+          report={selectedReport}
+        />
+      ) : null}
+      {pendingAction ? (
+        <ConfirmActionModal
+          confirmLabel={pendingAction.confirmLabel}
+          intent={pendingAction.intent}
+          message={pendingAction.message}
+          onCancel={() => setPendingAction(null)}
+          onConfirm={confirmReportAction}
+          title={pendingAction.title}
+        />
+      ) : null}
     </div>
   )
 }
@@ -344,10 +436,146 @@ function riskClass(report) {
 
 function statusClass(report) {
   const statusValue = getReviewStatus(report)
-  if (statusValue === 'Reviewed') return 'status-safe'
+  if (statusValue === 'Verified') return 'status-safe'
   if (statusValue === 'Flagged') return 'status-flood'
   if (statusValue === 'Review') return 'status-risk'
   return 'status-new'
+}
+
+function ReportViewModal({ onClose, onOpenMap, report }) {
+  const [imageIndex, setImageIndex] = useState(0)
+  const images = report.imageUrls || []
+  const safeImageIndex = Math.min(imageIndex, Math.max(images.length - 1, 0))
+  const currentImage = images[safeImageIndex]
+
+  function goToImage(direction) {
+    if (images.length <= 1) return
+    setImageIndex((safeImageIndex + direction + images.length) % images.length)
+  }
+
+  function openMapFromModal() {
+    onClose()
+    onOpenMap?.()
+  }
+
+  return (
+    <div
+      aria-labelledby="reports-view-modal-title"
+      aria-modal="true"
+      className="report-modal-backdrop"
+      onClick={onClose}
+      role="dialog"
+    >
+      <section
+        className="report-modal report-modal-simple reports-view-modal"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="simple-modal-header">
+          <div>
+            <p className="modal-eyebrow">Report details</p>
+            <h3 id="reports-view-modal-title">{getReportLabel(report)}</h3>
+          </div>
+          <button
+            aria-label="Close report details"
+            className="modal-close"
+            onClick={onClose}
+            type="button"
+          >
+            <X aria-hidden="true" size={18} />
+          </button>
+        </div>
+
+        <div className="simple-modal-content">
+          <div className="report-image-carousel reports-view-carousel">
+            <div className="report-image-main reports-view-image">
+              {currentImage ? (
+                <img alt="Submitted report evidence" src={currentImage} />
+              ) : (
+                <span className="report-modal-empty-image">
+                  <ImageOff aria-hidden="true" size={24} />
+                  <span>No photo attached</span>
+                </span>
+              )}
+            </div>
+
+            {images.length > 1 ? (
+              <div className="report-image-controls">
+                <button onClick={() => goToImage(-1)} type="button">
+                  Prev
+                </button>
+                <span>
+                  {safeImageIndex + 1} / {images.length}
+                </span>
+                <button onClick={() => goToImage(1)} type="button">
+                  Next
+                </button>
+              </div>
+            ) : null}
+          </div>
+
+          <div className="simple-modal-details">
+            <div className="simple-chip-row">
+              <span className="chip chip-blue">{getReportTypeName(report)}</span>
+              <span
+                className={`chip ${
+                  report.riskLevel === 'safe' ? 'chip-green' : 'chip-red'
+                }`}
+              >
+                {getRiskName(report)}
+              </span>
+              <span className={`status-pill ${statusClass(report)}`}>
+                {getReviewStatus(report)}
+              </span>
+            </div>
+
+            <div className="simple-report-title">
+              <span>Location</span>
+              <strong>{getReportLocationName(report)}</strong>
+            </div>
+
+            <p className="simple-description">
+              {report.description || 'No description was provided for this report.'}
+            </p>
+
+            <div className="simple-meta-list">
+              <InfoItem label="Reporter" value={report.reporterName || 'Anonymous'} />
+              <InfoItem label="Created" value={formatReportDateTime(report.createdAt)} />
+              <InfoItem
+                label="GPS"
+                value={`${report.latitude.toFixed(5)}, ${report.longitude.toFixed(5)}`}
+              />
+              <InfoItem label="Source" value={report.locationSource} />
+              <InfoItem
+                label="Images"
+                value={`${images.length || 0} attached`}
+              />
+              {report.floodLevel ? (
+                <InfoItem label="Flood level" value={report.floodLevel} />
+              ) : null}
+            </div>
+
+            <div className="simple-modal-actions">
+              <button className="panel-primary" onClick={openMapFromModal} type="button">
+                Open Map
+              </button>
+              <button className="panel-secondary" onClick={onClose} type="button">
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  )
+}
+
+function InfoItem({ label, value }) {
+  return (
+    <div className="modal-info-item">
+      <span>{label}</span>
+      <strong>{value}</strong>
+    </div>
+  )
 }
 
 function MetricCard({ accent, helper, label, value }) {

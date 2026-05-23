@@ -10,6 +10,7 @@ import {
   useMapEvents,
 } from 'react-leaflet'
 import { ImageOff, Search, X } from 'lucide-react'
+import { ConfirmActionModal } from '../components/ConfirmActionModal'
 import { db } from '../firebase'
 import { useReports } from '../hooks/useReports'
 import {
@@ -62,6 +63,7 @@ export function LiveRiskMap() {
   const [zoomImageUrl, setZoomImageUrl] = useState('')
   const [searchTerm, setSearchTerm] = useState('')
   const [actionMessage, setActionMessage] = useState('')
+  const [pendingAction, setPendingAction] = useState(null)
 
   const filteredReports = useMemo(() => {
     const normalizedSearch = searchTerm.trim().toLowerCase()
@@ -140,6 +142,17 @@ export function LiveRiskMap() {
     } catch (updateError) {
       setActionMessage(updateError.message)
     }
+  }
+
+  function requestReportAction(report, action) {
+    setPendingAction({ ...action, report })
+  }
+
+  async function confirmReportAction() {
+    if (!pendingAction) return
+    const { report, successMessage, values } = pendingAction
+    setPendingAction(null)
+    await updateReportStatus(report, values, successMessage)
   }
 
   return (
@@ -279,7 +292,14 @@ export function LiveRiskMap() {
           </article>
 
           <aside className="selected-panel">
-            <h3>Selected Report</h3>
+            <div className="selected-panel-header">
+              <h3>Selected Report</h3>
+              {selectedReport?.status === 'verified' ? (
+                <span className="chip chip-green selected-verified-chip">
+                  Verified
+                </span>
+              ) : null}
+            </div>
             {selectedReport ? (
               <Fragment>
                 <ReportImageCarousel
@@ -291,18 +311,20 @@ export function LiveRiskMap() {
 
                 <div className="selected-report-card" key={selectedReport.id}>
                   <div className="selected-chip-row">
-                    <span className="chip chip-blue">
-                      {getReportTypeName(selectedReport)}
-                    </span>
-                    <span
-                      className={`chip ${
-                        selectedReport.riskLevel === 'safe'
-                          ? 'chip-green'
-                          : 'chip-red'
-                      }`}
-                    >
-                      {getRiskName(selectedReport)}
-                    </span>
+                    <div className="selected-chip-group">
+                      <span className="chip chip-blue">
+                        {getReportTypeName(selectedReport)}
+                      </span>
+                      <span
+                        className={`chip ${
+                          selectedReport.riskLevel === 'safe'
+                            ? 'chip-green'
+                            : 'chip-red'
+                        }`}
+                      >
+                        {getRiskName(selectedReport)}
+                      </span>
+                    </div>
                   </div>
 
                   <div className="selected-copy">
@@ -338,15 +360,41 @@ export function LiveRiskMap() {
                   <button
                     className="panel-primary"
                     onClick={() =>
-                      updateReportStatus(
+                      requestReportAction(
                         selectedReport,
-                        { status: 'verified', report_status: 'verified' },
-                        'Report marked as verified.',
+                        selectedReport.status === 'verified'
+                          ? {
+                              confirmLabel: 'Unverify report',
+                              intent: 'primary',
+                              message:
+                                'This removes the admin verified mark and returns the report to the unreviewed queue.',
+                              successMessage: 'Report moved back to unreviewed.',
+                              title: 'Unverify this report?',
+                              values: {
+                                hidden: false,
+                                status: 'active',
+                                report_status: 'active',
+                              },
+                            }
+                          : {
+                              confirmLabel: 'Verify report',
+                              intent: 'primary',
+                              message:
+                                'This marks the report as reviewed and trusted by admin.',
+                              successMessage: 'Report marked as verified.',
+                              title: 'Verify this report?',
+                              values: {
+                                status: 'verified',
+                                report_status: 'verified',
+                              },
+                            },
                       )
                     }
                     type="button"
                   >
-                    Mark Verified
+                    {selectedReport.status === 'verified'
+                      ? 'Unverify Report'
+                      : 'Mark Verified'}
                   </button>
                   <button
                     className="panel-secondary"
@@ -358,11 +406,18 @@ export function LiveRiskMap() {
                   <button
                     className="panel-secondary"
                     onClick={() =>
-                      updateReportStatus(
-                        selectedReport,
-                        { status: 'resolved', report_status: 'resolved' },
-                        'Report marked as resolved.',
-                      )
+                      requestReportAction(selectedReport, {
+                        confirmLabel: 'Resolve report',
+                        intent: 'primary',
+                        message:
+                          'This marks the report as resolved so admins know the issue no longer needs active handling.',
+                        successMessage: 'Report marked as resolved.',
+                        title: 'Resolve this report?',
+                        values: {
+                          status: 'resolved',
+                          report_status: 'resolved',
+                        },
+                      })
                     }
                     type="button"
                   >
@@ -371,15 +426,19 @@ export function LiveRiskMap() {
                   <button
                     className="panel-danger"
                     onClick={() =>
-                      updateReportStatus(
-                        selectedReport,
-                        {
+                      requestReportAction(selectedReport, {
+                        confirmLabel: 'Hide report',
+                        intent: 'danger',
+                        message:
+                          'This hides the report from admin review because it is a duplicate or invalid entry.',
+                        successMessage: 'Report hidden as duplicate.',
+                        title: 'Hide this report?',
+                        values: {
                           hidden: true,
                           status: 'duplicate_hidden',
                           report_status: 'duplicate_hidden',
                         },
-                        'Report hidden as duplicate.',
-                      )
+                      })
                     }
                     type="button"
                   >
@@ -407,6 +466,16 @@ export function LiveRiskMap() {
       ) : null}
       {zoomImageUrl ? (
         <ImageZoomOverlay imageUrl={zoomImageUrl} onClose={() => setZoomImageUrl('')} />
+      ) : null}
+      {pendingAction ? (
+        <ConfirmActionModal
+          confirmLabel={pendingAction.confirmLabel}
+          intent={pendingAction.intent}
+          message={pendingAction.message}
+          onCancel={() => setPendingAction(null)}
+          onConfirm={confirmReportAction}
+          title={pendingAction.title}
+        />
       ) : null}
     </div>
   )

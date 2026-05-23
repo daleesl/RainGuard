@@ -84,7 +84,7 @@ export function getRiskName(report) {
 }
 
 export function getReviewStatus(report) {
-  if (report.status === 'verified') return 'Reviewed'
+  if (report.status === 'verified') return 'Verified'
   if (report.status === 'flagged' || report.status === 'duplicate_hidden') {
     return 'Flagged'
   }
