@@ -44,6 +44,8 @@ function parseUser(id, data) {
 
   return {
     id,
+    accountStatus:
+      data.account_status || data.accountStatus || (data.disabled ? 'disabled' : 'active'),
     disabled: Boolean(data.disabled),
     authProvider: data.auth_provider || data.authProvider || 'email',
     displayName,

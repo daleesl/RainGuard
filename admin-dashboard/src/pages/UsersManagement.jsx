@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
-import { doc, updateDoc } from 'firebase/firestore'
-import { Search } from 'lucide-react'
+import { doc, serverTimestamp, updateDoc } from 'firebase/firestore'
+import { Ban, IdCard, ImageOff, RotateCcw, Search, ShieldAlert, X } from 'lucide-react'
+import { ConfirmActionModal } from '../components/ConfirmActionModal'
 import { db } from '../firebase'
 import { useReports } from '../hooks/useReports'
 import { useUsers } from '../hooks/useUsers'
@@ -10,8 +11,9 @@ export function UsersManagement({ onOpenVerification }) {
   const { calambaReports } = useReports()
   const [now] = useState(() => Date.now())
   const [searchTerm, setSearchTerm] = useState('')
-  const [selectedUserId, setSelectedUserId] = useState('')
   const [message, setMessage] = useState('')
+  const [pendingAction, setPendingAction] = useState(null)
+  const [idPreviewUser, setIdPreviewUser] = useState(null)
 
   const reportCounts = useMemo(() => {
     const counts = new Map()
@@ -23,51 +25,57 @@ export function UsersManagement({ onOpenVerification }) {
     return counts
   }, [calambaReports])
 
+  const residentUsers = useMemo(
+    () => users.filter((user) => user.role !== 'admin'),
+    [users],
+  )
+
   const visibleUsers = useMemo(() => {
     const normalizedSearch = searchTerm.trim().toLowerCase()
-    if (!normalizedSearch) return users
+    if (!normalizedSearch) return residentUsers
 
-    return users.filter((user) =>
+    return residentUsers.filter((user) =>
       [
         user.displayName,
         user.email,
         user.authProvider,
         user.verificationStatus,
-        user.role,
+        user.accountStatus,
       ]
         .join(' ')
         .toLowerCase()
         .includes(normalizedSearch),
     )
-  }, [searchTerm, users])
-
-  const selectedUser =
-    visibleUsers.find((user) => user.id === selectedUserId) ||
-    visibleUsers[0] ||
-    null
+  }, [residentUsers, searchTerm])
 
   const metrics = useMemo(() => {
-    const verified = users.filter(
+    const verified = residentUsers.filter(
       (user) => user.verificationStatus === 'verified',
     ).length
-    const admins = users.filter((user) => user.role === 'admin').length
 
     return {
-      registered: users.length,
+      registered: residentUsers.length,
       verified,
-      unverified: users.length - verified,
-      admins,
+      unverified: residentUsers.length - verified,
+      withId: residentUsers.filter((user) => user.verificationIdFrontUrl).length,
     }
-  }, [users])
+  }, [residentUsers])
 
-  async function disableUser() {
-    if (!selectedUser) return
+  function requestUserAction(user, action) {
+    setPendingAction({ ...action, user })
+  }
+
+  async function confirmUserAction() {
+    if (!pendingAction) return
+    const { successMessage, user, values } = pendingAction
 
     try {
-      await updateDoc(doc(db, 'users', selectedUser.id), { disabled: true })
-      setMessage(
-        'User marked disabled in Firestore. To block login fully, add an admin cloud function or client-side access check.',
-      )
+      setPendingAction(null)
+      await updateDoc(doc(db, 'users', user.id), {
+        ...values,
+        updated_at: serverTimestamp(),
+      })
+      setMessage(successMessage)
     } catch (updateError) {
       setMessage(updateError.message)
     }
@@ -78,7 +86,7 @@ export function UsersManagement({ onOpenVerification }) {
       <header className="admin-topbar">
         <div>
           <h2>Users Management</h2>
-          <p>Search residents, inspect verification state, and manage admin roles.</p>
+          <p>Search residents, inspect verification state, and manage account access.</p>
         </div>
 
         <div className="topbar-actions">
@@ -107,7 +115,7 @@ export function UsersManagement({ onOpenVerification }) {
           <MetricCard accent="#1778d4" helper="Total users" label="Registered" value={metrics.registered} />
           <MetricCard accent="#28c59d" helper="Can report" label="Verified" value={metrics.verified} />
           <MetricCard accent="#e8b118" helper="Browse only" label="Unverified" value={metrics.unverified} />
-          <MetricCard accent="#0b355e" helper="Role holders" label="Admins" value={metrics.admins} />
+          <MetricCard accent="#0b355e" helper="Uploaded ID" label="With ID" value={metrics.withId} />
         </section>
 
         {error || message ? (
@@ -125,26 +133,35 @@ export function UsersManagement({ onOpenVerification }) {
                 <span>Email</span>
                 <span>Provider</span>
                 <span>Verify</span>
+                <span>Account</span>
                 <span>Reports</span>
                 <span>Last Seen</span>
+                <span>Actions</span>
               </div>
 
               {visibleUsers.slice(0, 8).map((user) => (
-                <button
-                  className={`users-table users-table-row ${
-                    selectedUser?.id === user.id ? 'is-selected' : ''
-                  }`}
+                <div
+                  className="users-table users-table-row"
                   key={user.id}
-                  onClick={() => setSelectedUserId(user.id)}
-                  type="button"
                 >
                   <strong>{user.displayName}</strong>
                   <span>{user.email || 'No email'}</span>
                   <span>{formatProvider(user.authProvider)}</span>
-                  <span>{formatStatus(user.verificationStatus)}</span>
+                  <span className={`mini-chip ${statusChipClass(user.verificationStatus)}`}>
+                    {formatStatus(user.verificationStatus)}
+                  </span>
+                  <span className={`mini-chip ${accountChipClass(user)}`}>
+                    {formatAccountStatus(user)}
+                  </span>
                   <span>{reportCounts.get(user.id) || 0}</span>
                   <span>{formatRelativeDate(user.lastLoginAt || user.updatedAt, now)}</span>
-                </button>
+                  <UserActions
+                    onOpenVerification={onOpenVerification}
+                    onRequestAction={requestUserAction}
+                    onViewId={setIdPreviewUser}
+                    user={user}
+                  />
+                </div>
               ))}
 
               {status === 'loading' ? (
@@ -155,49 +172,218 @@ export function UsersManagement({ onOpenVerification }) {
               ) : null}
             </div>
           </article>
-
-          <aside className="user-profile-panel">
-            {selectedUser ? (
-              <>
-                <div className="user-profile-heading">
-                  <span className="profile-avatar">
-                    {selectedUser.photoUrl ? <img alt="" src={selectedUser.photoUrl} /> : null}
-                  </span>
-                  <div>
-                    <h3>{selectedUser.displayName}</h3>
-                    <p>{selectedUser.email || 'No email'}</p>
-                  </div>
-                </div>
-
-                <span className={`chip ${statusChipClass(selectedUser.verificationStatus)}`}>
-                  {formatStatus(selectedUser.verificationStatus)}
-                </span>
-
-                <div className="user-profile-copy">
-                  <p>Auth provider: {formatProvider(selectedUser.authProvider)}</p>
-                  <p>Reports: {reportCounts.get(selectedUser.id) || 0}</p>
-                  <p>Last login: {formatRelativeDate(selectedUser.lastLoginAt || selectedUser.updatedAt, now)}</p>
-                  <p>Created: {formatMonthYear(selectedUser.createdAt)}</p>
-                  {selectedUser.disabled ? <p>Status: Disabled</p> : null}
-                </div>
-
-                <button
-                  className="panel-primary"
-                  onClick={onOpenVerification}
-                  type="button"
-                >
-                  Open Verification
-                </button>
-                <button className="panel-danger" onClick={disableUser} type="button">
-                  Disable User
-                </button>
-              </>
-            ) : (
-              <p className="table-state">Select a user to inspect account details.</p>
-            )}
-          </aside>
         </section>
       </main>
+
+      {pendingAction ? (
+        <ConfirmActionModal
+          confirmLabel={pendingAction.confirmLabel}
+          intent={pendingAction.intent}
+          message={pendingAction.message}
+          onCancel={() => setPendingAction(null)}
+          onConfirm={confirmUserAction}
+          title={pendingAction.title}
+        />
+      ) : null}
+      {idPreviewUser ? (
+        <UserIdPreviewModal
+          onClose={() => setIdPreviewUser(null)}
+          onOpenVerification={() => {
+            setIdPreviewUser(null)
+            onOpenVerification()
+          }}
+          user={idPreviewUser}
+        />
+      ) : null}
+    </div>
+  )
+}
+
+function UserActions({ onOpenVerification, onRequestAction, onViewId, user }) {
+  const accountStatus = getAccountStatus(user)
+  const needsVerification = user.verificationStatus !== 'verified'
+  const hasIdPhoto = Boolean(user.verificationIdFrontUrl)
+
+  return (
+    <div className="user-action-group">
+      {hasIdPhoto ? (
+        <button
+          className="table-action table-action-ghost"
+          onClick={() => onViewId(user)}
+          title="View submitted ID"
+          type="button"
+        >
+          <IdCard aria-hidden="true" size={13} />
+          <span>View ID</span>
+        </button>
+      ) : null}
+
+      {needsVerification ? (
+        <button
+          className="table-action table-action-ghost"
+          onClick={onOpenVerification}
+          title="Open Verification Review"
+          type="button"
+        >
+          <ShieldAlert aria-hidden="true" size={13} />
+          <span>Review ID</span>
+        </button>
+      ) : null}
+
+      {accountStatus === 'active' ? (
+        <>
+          <button
+            className="table-action table-action-resolve"
+            onClick={() =>
+              onRequestAction(user, {
+                confirmLabel: 'Suspend account',
+                intent: 'primary',
+                message:
+                  'This marks the resident account as suspended in Firestore. Add client or rules enforcement before relying on it as a hard block.',
+                successMessage: 'User account marked as suspended.',
+                title: 'Suspend this account?',
+                values: { account_status: 'suspended', disabled: false },
+              })
+            }
+            title="Suspend account"
+            type="button"
+          >
+            <Ban aria-hidden="true" size={13} />
+            <span>Suspend</span>
+          </button>
+          <button
+            className="table-action table-action-danger"
+            onClick={() =>
+              onRequestAction(user, {
+                confirmLabel: 'Disable account',
+                intent: 'danger',
+                message:
+                  'This marks the account as disabled in Firestore. To fully block Firebase Auth login, connect this to a Cloud Function or enforce the field in the app.',
+                successMessage: 'User account marked as disabled.',
+                title: 'Disable this account?',
+                values: { account_status: 'disabled', disabled: true },
+              })
+            }
+            title="Disable account"
+            type="button"
+          >
+            <Ban aria-hidden="true" size={13} />
+            <span>Disable</span>
+          </button>
+        </>
+      ) : (
+        <button
+          className="table-action table-action-verify"
+          onClick={() =>
+            onRequestAction(user, {
+              confirmLabel: 'Restore account',
+              intent: 'primary',
+              message:
+                'This returns the resident account to active status in Firestore.',
+              successMessage: 'User account restored to active.',
+              title: 'Restore this account?',
+              values: { account_status: 'active', disabled: false },
+            })
+          }
+          title="Restore account"
+          type="button"
+        >
+          <RotateCcw aria-hidden="true" size={13} />
+          <span>Restore</span>
+        </button>
+      )}
+    </div>
+  )
+}
+
+function UserIdPreviewModal({ onClose, onOpenVerification, user }) {
+  return (
+    <div
+      aria-labelledby="user-id-preview-title"
+      aria-modal="true"
+      className="report-modal-backdrop"
+      onClick={onClose}
+      role="dialog"
+    >
+      <section
+        className="report-modal report-modal-simple user-id-preview-modal"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="simple-modal-header">
+          <div>
+            <p className="modal-eyebrow">Resident identity record</p>
+            <h3 id="user-id-preview-title">{user.displayName}</h3>
+          </div>
+          <button
+            aria-label="Close ID preview"
+            className="modal-close"
+            onClick={onClose}
+            type="button"
+          >
+            <X aria-hidden="true" size={18} />
+          </button>
+        </div>
+
+        <div className="simple-modal-content">
+          <div className="simple-chip-row">
+            <span className={`chip ${statusChipClass(user.verificationStatus)}`}>
+              {formatStatus(user.verificationStatus)}
+            </span>
+            <span className={`chip ${accountChipClass(user)}`}>
+              {formatAccountStatus(user)}
+            </span>
+          </div>
+
+          <div className="user-id-preview-image">
+            {user.verificationIdFrontUrl ? (
+              <a
+                href={user.verificationIdFrontUrl}
+                rel="noreferrer"
+                target="_blank"
+              >
+                <img
+                  alt={`${user.displayName} submitted ID`}
+                  src={user.verificationIdFrontUrl}
+                />
+                <span>Open image</span>
+              </a>
+            ) : (
+              <span className="report-modal-empty-image">
+                <ImageOff aria-hidden="true" size={24} />
+                <span>No ID image uploaded</span>
+              </span>
+            )}
+          </div>
+
+          <div className="simple-meta-list">
+            <InfoItem label="Email" value={user.email || 'No email'} />
+            <InfoItem label="Provider" value={formatProvider(user.authProvider)} />
+            <InfoItem
+              label="Submitted"
+              value={formatFullDate(user.verificationSubmittedAt)}
+            />
+            <InfoItem label="Created" value={formatFullDate(user.createdAt)} />
+          </div>
+
+          <div className="simple-modal-actions">
+            <button className="panel-primary" onClick={onOpenVerification} type="button">
+              Open Verification Review
+            </button>
+            <button className="panel-secondary" onClick={onClose} type="button">
+              Close
+            </button>
+          </div>
+        </div>
+      </section>
+    </div>
+  )
+}
+
+function InfoItem({ label, value }) {
+  return (
+    <div className="modal-info-item">
+      <span>{label}</span>
+      <strong>{value}</strong>
     </div>
   )
 }
@@ -229,6 +415,23 @@ function statusChipClass(status) {
   return 'chip-blue'
 }
 
+function getAccountStatus(user) {
+  if (user.disabled) return 'disabled'
+  return user.accountStatus || 'active'
+}
+
+function formatAccountStatus(user) {
+  return formatStatus(getAccountStatus(user))
+}
+
+function accountChipClass(user) {
+  const accountStatus = getAccountStatus(user)
+  if (accountStatus === 'active') return 'chip-green'
+  if (accountStatus === 'suspended') return 'chip-amber'
+  if (accountStatus === 'disabled') return 'chip-red'
+  return 'chip-blue'
+}
+
 function formatRelativeDate(date, now) {
   if (!date) return 'Never'
   const days = Math.floor((now - date.getTime()) / 86400000)
@@ -237,10 +440,11 @@ function formatRelativeDate(date, now) {
   return `${days} days`
 }
 
-function formatMonthYear(date) {
-  if (!date) return 'Unknown'
+function formatFullDate(date) {
+  if (!date) return 'Not recorded'
   return new Intl.DateTimeFormat('en-PH', {
     month: 'short',
+    day: 'numeric',
     year: 'numeric',
   }).format(date)
 }
