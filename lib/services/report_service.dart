@@ -190,10 +190,10 @@ class ReportService {
     final userId = currentUser.uid;
     final reporterName =
         userProfile?.publicReporterName ??
-        currentUser?.displayName ??
+        currentUser.displayName ??
         'Anonymous';
     final reporterDisplayName =
-        userProfile?.displayName ?? currentUser?.displayName ?? 'Anonymous';
+        userProfile?.displayName ?? currentUser.displayName ?? 'Anonymous';
 
     final reportData = {
       'user_id': userId,
