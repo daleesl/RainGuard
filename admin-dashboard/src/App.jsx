@@ -5,6 +5,7 @@ import { useAdminAuth } from './hooks/useAdminAuth'
 import { AdminLogin } from './pages/AdminLogin'
 import { AlertsManagement } from './pages/AlertsManagement'
 import { AnalyticsPage } from './pages/AnalyticsPage'
+import { DashboardPage } from './pages/DashboardPage'
 import { LiveRiskMap } from './pages/LiveRiskMap'
 import { PlaceholderPage } from './pages/PlaceholderPage'
 import { ReportsManagement } from './pages/ReportsManagement'
@@ -23,7 +24,7 @@ const pageTitles = {
 }
 
 function App() {
-  const [activePage, setActivePage] = useState('liveMap')
+  const [activePage, setActivePage] = useState('dashboard')
   const { adminProfile, error, signOutAdmin, status, user } = useAdminAuth()
 
   if (status !== 'admin') {
@@ -43,7 +44,9 @@ function App() {
       onNavigate={setActivePage}
       onSignOut={signOutAdmin}
     >
-      {activePage === 'liveMap' ? (
+      {activePage === 'dashboard' ? (
+        <DashboardPage onNavigate={setActivePage} />
+      ) : activePage === 'liveMap' ? (
         <LiveRiskMap />
       ) : activePage === 'reports' ? (
         <ReportsManagement onOpenMap={() => setActivePage('liveMap')} />
