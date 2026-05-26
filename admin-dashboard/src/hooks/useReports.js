@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
-import { collection, onSnapshot, orderBy, query } from 'firebase/firestore'
+import { collection, limit, onSnapshot, orderBy, query } from 'firebase/firestore'
 import { db } from '../firebase'
 import { isCalambaReport, parseReport } from '../utils/reports'
+
+const REPORT_QUERY_LIMIT = 150
 
 export function useReports() {
   const [reports, setReports] = useState([])
@@ -12,6 +14,7 @@ export function useReports() {
     const reportsQuery = query(
       collection(db, 'reports'),
       orderBy('created_at', 'desc'),
+      limit(REPORT_QUERY_LIMIT),
     )
 
     const unsubscribe = onSnapshot(
