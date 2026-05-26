@@ -1,27 +1,26 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import {
   addDoc,
   collection,
   deleteDoc,
   doc,
-  onSnapshot,
-  orderBy,
-  query,
   serverTimestamp,
   updateDoc,
 } from 'firebase/firestore'
-import { Search } from 'lucide-react'
 import { ConfirmActionModal } from '../components/ConfirmActionModal'
+import { MetricCard } from '../components/MetricCard'
+import { PageTopbar } from '../components/PageTopbar'
+import { StatusChip } from '../components/StatusChip'
 import { auth, db } from '../firebase'
+import { isAlertToday, useAlerts } from '../hooks/useAlerts'
 
 const alertAreas = ['Lingga', 'Aplaya', 'Calamba', 'All residents']
 const riskLevels = ['info', 'watch', 'warning', 'critical']
 
 export function AlertsManagement() {
-  const [alerts, setAlerts] = useState([])
+  const { alerts, error } = useAlerts()
   const [alertTitle, setAlertTitle] = useState('Heavy rainfall near Lingga Creek')
   const [area, setArea] = useState('Lingga')
-  const [error, setError] = useState('')
   const [message, setMessage] = useState(
     'Avoid low-lying roads near Lingga Creek. Monitor updates and submit reports only when safe.',
   )
@@ -30,24 +29,6 @@ export function AlertsManagement() {
   const [riskLevel, setRiskLevel] = useState('warning')
   const [searchTerm, setSearchTerm] = useState('')
   const [statusMessage, setStatusMessage] = useState('')
-
-  useEffect(() => {
-    const alertsQuery = query(
-      collection(db, 'alerts'),
-      orderBy('created_at', 'desc'),
-    )
-
-    return onSnapshot(
-      alertsQuery,
-      (snapshot) => {
-        setAlerts(snapshot.docs.map((alertDoc) => parseAlert(alertDoc.id, alertDoc.data())))
-        setError('')
-      },
-      (snapshotError) => {
-        setError(snapshotError.message)
-      },
-    )
-  }, [])
 
   const filteredAlerts = useMemo(() => {
     const normalizedSearch = searchTerm.trim().toLowerCase()
@@ -72,7 +53,7 @@ export function AlertsManagement() {
       active: alerts.filter((alert) => alert.status === 'published').length,
       drafts: alerts.filter((alert) => alert.status === 'draft').length,
       sentToday: alerts.filter(
-        (alert) => alert.status === 'published' && isToday(alert.publishedAt),
+        (alert) => alert.status === 'published' && isAlertToday(alert.publishedAt),
       ).length,
     }),
     [alerts],
@@ -169,22 +150,8 @@ export function AlertsManagement() {
 
   return (
     <div className="alerts-page">
-      <header className="admin-topbar">
-        <div>
-          <h2>Alerts Management</h2>
-          <p>Create safety advisories and manage active/resolved alert messages.</p>
-        </div>
-        <div className="topbar-actions">
-          <label className="search-field">
-            <Search aria-hidden="true" size={14} />
-            <input
-              aria-label="Search alert records"
-              onChange={(event) => setSearchTerm(event.target.value)}
-              placeholder="Search admin records"
-              type="search"
-              value={searchTerm}
-            />
-          </label>
+      <PageTopbar
+        action={
           <button
             className="primary-action"
             onClick={() => saveAlert('published')}
@@ -192,8 +159,15 @@ export function AlertsManagement() {
           >
             Publish Alert
           </button>
-        </div>
-      </header>
+        }
+        description="Create safety advisories and manage active/resolved alert messages."
+        search={{
+          ariaLabel: 'Search alert records',
+          onChange: setSearchTerm,
+          value: searchTerm,
+        }}
+        title="Alerts Management"
+      />
 
       <main className="alerts-content">
         <section className="metric-row review-metrics" aria-label="Alert metrics">
@@ -251,13 +225,13 @@ export function AlertsManagement() {
               </label>
             </div>
             <div className="composer-chips">
-              <span className="chip chip-blue">{area}</span>
-              <span className={`chip ${riskChipClass(riskLevel)}`}>
+              <StatusChip>{area}</StatusChip>
+              <StatusChip tone={riskChipClass(riskLevel)}>
                 {formatLabel(riskLevel)}
-              </span>
-              <span className="chip chip-green">
+              </StatusChip>
+              <StatusChip tone="green">
                 Push notification
-              </span>
+              </StatusChip>
             </div>
             <div className="composer-actions">
               <button className="panel-primary" onClick={() => saveAlert('published')} type="button">
@@ -282,9 +256,9 @@ export function AlertsManagement() {
                 <div className="mini-table-row" key={alert.id}>
                   <strong>{alert.title}</strong>
                   <span>{alert.area}</span>
-                  <span className={`mini-chip ${statusChipClass(alert.status)}`}>
+                  <StatusChip size="mini" tone={statusChipClass(alert.status)}>
                     {formatLabel(alert.status)}
-                  </span>
+                  </StatusChip>
                   <span className="alert-row-actions">
                     {alert.status === 'published' ? (
                       <button
@@ -349,40 +323,6 @@ export function AlertsManagement() {
         />
       ) : null}
     </div>
-  )
-}
-
-function MetricCard({ accent, helper, label, value }) {
-  return (
-    <article className="metric-card" style={{ '--metric-accent': accent }}>
-      <p>{label}</p>
-      <strong>{value}</strong>
-      <span>{helper}</span>
-    </article>
-  )
-}
-
-function parseAlert(id, data) {
-  return {
-    id,
-    area: data.area || 'All residents',
-    delivery: Array.isArray(data.delivery) ? data.delivery : ['in_app'],
-    message: data.message || '',
-    publishedAt: data.published_at?.toDate?.() || null,
-    riskLevel: data.risk_level || 'info',
-    source: data.source || 'manual',
-    status: data.status || 'draft',
-    title: data.title || 'Untitled advisory',
-  }
-}
-
-function isToday(date) {
-  if (!date) return false
-  const now = new Date()
-  return (
-    date.getFullYear() === now.getFullYear() &&
-    date.getMonth() === now.getMonth() &&
-    date.getDate() === now.getDate()
   )
 }
 

@@ -1,5 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
-import { collection, onSnapshot, orderBy, query } from 'firebase/firestore'
+import { useMemo, useState } from 'react'
 import {
   Activity,
   ArrowRight,
@@ -12,7 +11,9 @@ import {
   Users,
   Waves,
 } from 'lucide-react'
-import { db } from '../firebase'
+import { MetricCard } from '../components/MetricCard'
+import { PageTopbar } from '../components/PageTopbar'
+import { useAlerts } from '../hooks/useAlerts'
 import { useReports } from '../hooks/useReports'
 import { useUsers } from '../hooks/useUsers'
 import {
@@ -26,7 +27,7 @@ import {
 export function DashboardPage({ onNavigate }) {
   const { calambaReports, error: reportsError, status: reportsStatus } = useReports()
   const { users, pendingUsers, error: usersError } = useUsers()
-  const { alerts, error: alertsError } = useDashboardAlerts()
+  const { alerts, error: alertsError } = useAlerts()
   const [now] = useState(() => Date.now())
 
   const residentUsers = useMemo(
@@ -142,13 +143,8 @@ export function DashboardPage({ onNavigate }) {
 
   return (
     <div className="dashboard-page">
-      <header className="admin-topbar">
-        <div>
-          <h2>Dashboard</h2>
-          <p>Open key admin tools and check current RainGuard operations.</p>
-        </div>
-
-        <div className="topbar-actions">
+      <PageTopbar
+        action={
           <button
             className="primary-action"
             onClick={() => onNavigate('liveMap')}
@@ -156,8 +152,10 @@ export function DashboardPage({ onNavigate }) {
           >
             Open Live Map
           </button>
-        </div>
-      </header>
+        }
+        description="Open key admin tools and check current RainGuard operations."
+        title="Dashboard"
+      />
 
       <main className="dashboard-content">
         {reportsError || usersError || alertsError ? (
@@ -190,6 +188,7 @@ export function DashboardPage({ onNavigate }) {
         <section className="metric-row dashboard-metrics" aria-label="Dashboard metrics">
           <MetricCard
             accent="#1778d4"
+            className="dashboard-metric-card"
             helper="Open map pins"
             icon={Activity}
             label="Active Reports"
@@ -197,6 +196,7 @@ export function DashboardPage({ onNavigate }) {
           />
           <MetricCard
             accent="#e24d4d"
+            className="dashboard-metric-card"
             helper="Flood or flood risk"
             icon={Waves}
             label="Flood Signals"
@@ -204,6 +204,7 @@ export function DashboardPage({ onNavigate }) {
           />
           <MetricCard
             accent="#e8b118"
+            className="dashboard-metric-card"
             helper="Require review"
             icon={ShieldCheck}
             label="Pending IDs"
@@ -211,6 +212,7 @@ export function DashboardPage({ onNavigate }) {
           />
           <MetricCard
             accent="#28c59d"
+            className="dashboard-metric-card"
             helper="Published advisories"
             icon={Bell}
             label="Active Alerts"
@@ -372,19 +374,6 @@ export function DashboardPage({ onNavigate }) {
   )
 }
 
-function MetricCard({ accent, helper, icon: Icon, label, value }) {
-  return (
-    <article className="metric-card dashboard-metric-card" style={{ '--metric-accent': accent }}>
-      <span className="dashboard-metric-icon">
-        <Icon aria-hidden="true" size={16} />
-      </span>
-      <p>{label}</p>
-      <strong>{value}</strong>
-      <span>{helper}</span>
-    </article>
-  )
-}
-
 function PriorityButton({ count, icon: Icon, label, onClick }) {
   return (
     <button className="priority-button" onClick={onClick} type="button">
@@ -395,40 +384,6 @@ function PriorityButton({ count, icon: Icon, label, onClick }) {
       <strong>{count}</strong>
     </button>
   )
-}
-
-function useDashboardAlerts() {
-  const [alerts, setAlerts] = useState([])
-  const [error, setError] = useState('')
-
-  useEffect(() => {
-    const alertsQuery = query(
-      collection(db, 'alerts'),
-      orderBy('created_at', 'desc'),
-    )
-
-    return onSnapshot(
-      alertsQuery,
-      (snapshot) => {
-        setAlerts(snapshot.docs.map((alertDoc) => parseAlert(alertDoc.id, alertDoc.data())))
-        setError('')
-      },
-      (snapshotError) => setError(snapshotError.message),
-    )
-  }, [])
-
-  return { alerts, error }
-}
-
-function parseAlert(id, data) {
-  return {
-    id,
-    area: data.area || 'All residents',
-    publishedAt: data.published_at?.toDate?.() || data.created_at?.toDate?.() || null,
-    riskLevel: data.risk_level || 'info',
-    status: data.status || 'draft',
-    title: data.title || 'Untitled advisory',
-  }
 }
 
 function formatLabel(value) {
