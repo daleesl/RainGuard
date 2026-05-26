@@ -1,5 +1,7 @@
 import { useMemo, useState } from 'react'
-import { Search } from 'lucide-react'
+import { MetricCard } from '../components/MetricCard'
+import { PageTopbar } from '../components/PageTopbar'
+import { StatusChip } from '../components/StatusChip'
 import { useReports } from '../hooks/useReports'
 import { useUsers } from '../hooks/useUsers'
 import { getReportLocationName } from '../utils/reports'
@@ -153,28 +155,20 @@ export function AnalyticsPage() {
 
   return (
     <div className="analytics-page">
-      <header className="admin-topbar">
-        <div>
-          <h2>Analytics</h2>
-          <p>Track report trends, flood hotspots, verification throughput, and alert reach.</p>
-        </div>
-
-        <div className="topbar-actions">
-          <label className="search-field">
-            <Search aria-hidden="true" size={14} />
-            <input
-              aria-label="Search analytics records"
-              onChange={(event) => setSearchTerm(event.target.value)}
-              placeholder="Search admin records"
-              type="search"
-              value={searchTerm}
-            />
-          </label>
+      <PageTopbar
+        action={
           <button className="primary-action" onClick={exportReport} type="button">
             Export Report
           </button>
-        </div>
-      </header>
+        }
+        description="Track report trends, flood hotspots, verification throughput, and alert reach."
+        search={{
+          ariaLabel: 'Search analytics records',
+          onChange: setSearchTerm,
+          value: searchTerm,
+        }}
+        title="Analytics"
+      />
 
       <main className="analytics-content">
         <section className="metric-row analytics-metrics" aria-label="Analytics metrics">
@@ -200,9 +194,9 @@ export function AnalyticsPage() {
             <h3>Report Type Mix</h3>
             <BarChart data={reportMix} />
             <div className="chart-chips">
-              <span className="chip chip-blue">Rain</span>
-              <span className="chip chip-red">Flood</span>
-              <span className="chip chip-amber">Risk</span>
+              <StatusChip>Rain</StatusChip>
+              <StatusChip tone="red">Flood</StatusChip>
+              <StatusChip tone="amber">Risk</StatusChip>
             </div>
           </article>
 
@@ -230,23 +224,13 @@ export function AnalyticsPage() {
             <h3>Verification and Alert Performance</h3>
             <LineChart color="#28c59d" data={verificationSeries(metrics.verifiedUsers)} />
             <div className="chart-chips">
-              <span className="chip chip-green">Verification</span>
-              <span className="chip chip-blue">Alerts</span>
+              <StatusChip tone="green">Verification</StatusChip>
+              <StatusChip>Alerts</StatusChip>
             </div>
           </article>
         </section>
       </main>
     </div>
-  )
-}
-
-function MetricCard({ accent, helper, label, value }) {
-  return (
-    <article className="metric-card" style={{ '--metric-accent': accent }}>
-      <p>{label}</p>
-      <strong>{value}</strong>
-      <span>{helper}</span>
-    </article>
   )
 }
 

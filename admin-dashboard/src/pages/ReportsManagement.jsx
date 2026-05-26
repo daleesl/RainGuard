@@ -6,10 +6,12 @@ import {
   EyeOff,
   ImageOff,
   RotateCcw,
-  Search,
   X,
 } from 'lucide-react'
 import { ConfirmActionModal } from '../components/ConfirmActionModal'
+import { MetricCard } from '../components/MetricCard'
+import { PageTopbar } from '../components/PageTopbar'
+import { StatusChip } from '../components/StatusChip'
 import { db } from '../firebase'
 import { useReports } from '../hooks/useReports'
 import {
@@ -146,28 +148,20 @@ export function ReportsManagement({ onOpenMap }) {
 
   return (
     <div className="reports-page">
-      <header className="admin-topbar">
-        <div>
-          <h2>Reports Management</h2>
-          <p>Review, verify, hide, or resolve community rain and flood reports.</p>
-        </div>
-
-        <div className="topbar-actions">
-          <label className="search-field">
-            <Search aria-hidden="true" size={14} />
-            <input
-              aria-label="Search admin records"
-              onChange={(event) => setSearchTerm(event.target.value)}
-              placeholder="Search admin records"
-              type="search"
-              value={searchTerm}
-            />
-          </label>
+      <PageTopbar
+        action={
           <button className="primary-action" onClick={exportCsv} type="button">
             Export CSV
           </button>
-        </div>
-      </header>
+        }
+        description="Review, verify, hide, or resolve community rain and flood reports."
+        search={{
+          ariaLabel: 'Search admin records',
+          onChange: setSearchTerm,
+          value: searchTerm,
+        }}
+        title="Reports Management"
+      />
 
       <main className="reports-content">
         <section className="metric-row reports-metrics" aria-label="Report metrics">
@@ -515,14 +509,10 @@ function ReportViewModal({ onClose, onOpenMap, report }) {
 
           <div className="simple-modal-details">
             <div className="simple-chip-row">
-              <span className="chip chip-blue">{getReportTypeName(report)}</span>
-              <span
-                className={`chip ${
-                  report.riskLevel === 'safe' ? 'chip-green' : 'chip-red'
-                }`}
-              >
+              <StatusChip>{getReportTypeName(report)}</StatusChip>
+              <StatusChip tone={report.riskLevel === 'safe' ? 'green' : 'red'}>
                 {getRiskName(report)}
-              </span>
+              </StatusChip>
               <span className={`status-pill ${statusClass(report)}`}>
                 {getReviewStatus(report)}
               </span>
@@ -575,16 +565,6 @@ function InfoItem({ label, value }) {
       <span>{label}</span>
       <strong>{value}</strong>
     </div>
-  )
-}
-
-function MetricCard({ accent, helper, label, value }) {
-  return (
-    <article className="metric-card" style={{ '--metric-accent': accent }}>
-      <p>{label}</p>
-      <strong>{value}</strong>
-      <span>{helper}</span>
-    </article>
   )
 }
 

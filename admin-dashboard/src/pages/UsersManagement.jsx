@@ -1,7 +1,10 @@
 import { useMemo, useState } from 'react'
 import { doc, serverTimestamp, updateDoc } from 'firebase/firestore'
-import { Ban, IdCard, ImageOff, RotateCcw, Search, ShieldAlert, X } from 'lucide-react'
+import { Ban, IdCard, ImageOff, RotateCcw, ShieldAlert, X } from 'lucide-react'
 import { ConfirmActionModal } from '../components/ConfirmActionModal'
+import { MetricCard } from '../components/MetricCard'
+import { PageTopbar } from '../components/PageTopbar'
+import { StatusChip } from '../components/StatusChip'
 import { db } from '../firebase'
 import { useReports } from '../hooks/useReports'
 import { useUsers } from '../hooks/useUsers'
@@ -83,23 +86,8 @@ export function UsersManagement({ onOpenVerification }) {
 
   return (
     <div className="users-page">
-      <header className="admin-topbar">
-        <div>
-          <h2>Users Management</h2>
-          <p>Search residents, inspect verification state, and manage account access.</p>
-        </div>
-
-        <div className="topbar-actions">
-          <label className="search-field">
-            <Search aria-hidden="true" size={14} />
-            <input
-              aria-label="Search users"
-              onChange={(event) => setSearchTerm(event.target.value)}
-              placeholder="Search admin records"
-              type="search"
-              value={searchTerm}
-            />
-          </label>
+      <PageTopbar
+        action={
           <button
             className="primary-action"
             onClick={() => setMessage('Create admin accounts in Firebase Auth, then set role: admin in Firestore.')}
@@ -107,8 +95,15 @@ export function UsersManagement({ onOpenVerification }) {
           >
             Add Admin
           </button>
-        </div>
-      </header>
+        }
+        description="Search residents, inspect verification state, and manage account access."
+        search={{
+          ariaLabel: 'Search users',
+          onChange: setSearchTerm,
+          value: searchTerm,
+        }}
+        title="Users Management"
+      />
 
       <main className="users-content">
         <section className="metric-row users-metrics" aria-label="User metrics">
@@ -147,12 +142,12 @@ export function UsersManagement({ onOpenVerification }) {
                   <strong>{user.displayName}</strong>
                   <span>{user.email || 'No email'}</span>
                   <span>{formatProvider(user.authProvider)}</span>
-                  <span className={`mini-chip ${statusChipClass(user.verificationStatus)}`}>
+                  <StatusChip size="mini" tone={statusChipClass(user.verificationStatus)}>
                     {formatStatus(user.verificationStatus)}
-                  </span>
-                  <span className={`mini-chip ${accountChipClass(user)}`}>
+                  </StatusChip>
+                  <StatusChip size="mini" tone={accountChipClass(user)}>
                     {formatAccountStatus(user)}
-                  </span>
+                  </StatusChip>
                   <span>{reportCounts.get(user.id) || 0}</span>
                   <span>{formatRelativeDate(user.lastLoginAt || user.updatedAt, now)}</span>
                   <UserActions
@@ -326,12 +321,12 @@ function UserIdPreviewModal({ onClose, onOpenVerification, user }) {
 
         <div className="simple-modal-content">
           <div className="simple-chip-row">
-            <span className={`chip ${statusChipClass(user.verificationStatus)}`}>
+            <StatusChip tone={statusChipClass(user.verificationStatus)}>
               {formatStatus(user.verificationStatus)}
-            </span>
-            <span className={`chip ${accountChipClass(user)}`}>
+            </StatusChip>
+            <StatusChip tone={accountChipClass(user)}>
               {formatAccountStatus(user)}
-            </span>
+            </StatusChip>
           </div>
 
           <div className="user-id-preview-image">
@@ -385,16 +380,6 @@ function InfoItem({ label, value }) {
       <span>{label}</span>
       <strong>{value}</strong>
     </div>
-  )
-}
-
-function MetricCard({ accent, helper, label, value }) {
-  return (
-    <article className="metric-card" style={{ '--metric-accent': accent }}>
-      <p>{label}</p>
-      <strong>{value}</strong>
-      <span>{helper}</span>
-    </article>
   )
 }
 

@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react'
 import { doc, updateDoc } from 'firebase/firestore'
-import { Search } from 'lucide-react'
+import { MetricCard } from '../components/MetricCard'
+import { PageTopbar } from '../components/PageTopbar'
+import { StatusChip } from '../components/StatusChip'
 import { db } from '../firebase'
 import { useUsers } from '../hooks/useUsers'
 
@@ -65,22 +67,8 @@ export function VerificationReview() {
 
   return (
     <div className="verification-page">
-      <header className="admin-topbar">
-        <div>
-          <h2>Verification Review</h2>
-          <p>Approve valid IDs so trusted users can submit safety reports.</p>
-        </div>
-        <div className="topbar-actions">
-          <label className="search-field">
-            <Search aria-hidden="true" size={14} />
-            <input
-              aria-label="Search verification records"
-              onChange={(event) => setSearchTerm(event.target.value)}
-              placeholder="Search admin records"
-              type="search"
-              value={searchTerm}
-            />
-          </label>
+      <PageTopbar
+        action={
           <button
             className="primary-action"
             disabled={applicants.length === 0}
@@ -89,8 +77,15 @@ export function VerificationReview() {
           >
             Review Oldest
           </button>
-        </div>
-      </header>
+        }
+        description="Approve valid IDs so trusted users can submit safety reports."
+        search={{
+          ariaLabel: 'Search verification records',
+          onChange: setSearchTerm,
+          value: searchTerm,
+        }}
+        title="Verification Review"
+      />
 
       <main className="review-content">
         <section className="metric-row review-metrics" aria-label="Verification metrics">
@@ -142,9 +137,9 @@ export function VerificationReview() {
               <>
                 <div className="document-title">
                   <h3>{selectedApplicant.displayName}</h3>
-                  <span className={`chip ${statusChipClass(selectedApplicant.verificationStatus)}`}>
+                  <StatusChip tone={statusChipClass(selectedApplicant.verificationStatus)}>
                     {formatStatus(selectedApplicant.verificationStatus)}
-                  </span>
+                  </StatusChip>
                 </div>
 
                 <div className="document-previews">
@@ -207,16 +202,6 @@ export function VerificationReview() {
         </section>
       </main>
     </div>
-  )
-}
-
-function MetricCard({ accent, helper, label, value }) {
-  return (
-    <article className="metric-card" style={{ '--metric-accent': accent }}>
-      <p>{label}</p>
-      <strong>{value}</strong>
-      <span>{helper}</span>
-    </article>
   )
 }
 
