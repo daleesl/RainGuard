@@ -8,6 +8,7 @@ import 'package:latlong2/latlong.dart';
 
 import '../models/report_draft.dart';
 import '../models/report_model.dart';
+import 'geocoding_service.dart';
 import 'report_draft_service.dart';
 import 'location_service.dart';
 import 'storage_service.dart';
@@ -43,6 +44,7 @@ class ReportService {
   static const Duration _duplicateWindow = Duration(minutes: 15);
   static const Duration _duplicateCheckTimeout = Duration(seconds: 5);
   static const Duration _submitTimeout = Duration(seconds: 12);
+  static const Duration _submitTimeoutPerImage = Duration(seconds: 8);
   static const double _duplicateRadiusMeters = 250;
 
   static Timer? _draftRetryTimer;
@@ -109,7 +111,7 @@ class ReportService {
         longitude: longitude,
         locationSource: locationSource,
         createdAt: createdAt,
-      ).timeout(_submitTimeout);
+      ).timeout(_submitTimeoutFor(selectedImages.length));
     } catch (error) {
       if (error is ReportVerificationRequiredException) {
         rethrow;
@@ -152,7 +154,7 @@ class ReportService {
           longitude: draft.longitude,
           locationSource: draft.locationSource,
           createdAt: draft.createdAt,
-        ).timeout(_submitTimeout);
+        ).timeout(_submitTimeoutFor(images.length));
         await ReportDraftService.removeDraft(draft.id);
         submittedCount += 1;
       } catch (_) {
@@ -186,6 +188,7 @@ class ReportService {
         ? await StorageService.uploadReportImages(selectedImages)
         : const <String>[];
     final imageUrl = imageUrls.isNotEmpty ? imageUrls.first : null;
+    final locationName = await _resolveLocationName(latitude, longitude);
 
     final userId = currentUser.uid;
     final reporterName =
@@ -201,6 +204,7 @@ class ReportService {
       'reporter_display_name': reporterDisplayName,
       'latitude': latitude,
       'longitude': longitude,
+      'location_name': ?locationName,
       'location_source': locationSource,
       'report_type': type.name,
       'flood_level': type == ReportType.flood ? floodLevel : null,
@@ -220,7 +224,9 @@ class ReportService {
     required double longitude,
   }) async {
     try {
-      final cutoff = Timestamp.fromDate(DateTime.now().subtract(_duplicateWindow));
+      final cutoff = Timestamp.fromDate(
+        DateTime.now().subtract(_duplicateWindow),
+      );
       final snapshot = await FirebaseFirestore.instance
           .collection('reports')
           .where('created_at', isGreaterThan: cutoff)
@@ -270,5 +276,35 @@ class ReportService {
 
   static double _toRadians(double degrees) {
     return degrees * (math.pi / 180);
+  }
+
+  static Future<String?> _resolveLocationName(
+    double latitude,
+    double longitude,
+  ) async {
+    try {
+      final locationName = await GeocodingService.getAddressFromCoordinates(
+        latitude,
+        longitude,
+      );
+      final cleanName = locationName.trim();
+      if (cleanName.isEmpty ||
+          cleanName == 'Unknown Location' ||
+          cleanName == 'Location Error') {
+        return null;
+      }
+
+      return cleanName;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static Duration _submitTimeoutFor(int imageCount) {
+    final timeoutSeconds =
+        _submitTimeout.inSeconds +
+        (imageCount * _submitTimeoutPerImage.inSeconds);
+
+    return Duration(seconds: timeoutSeconds);
   }
 }

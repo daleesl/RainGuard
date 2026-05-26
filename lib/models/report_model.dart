@@ -19,6 +19,7 @@ class Report {
   final String? userId;
   final String? reporterName;
   final String? reporterDisplayName;
+  final String? locationName;
   final String locationSource;
   final String reviewStatus;
   final DateTime createdAt;
@@ -36,6 +37,7 @@ class Report {
     this.userId,
     this.reporterName,
     this.reporterDisplayName,
+    this.locationName,
     this.locationSource = 'gps',
     this.reviewStatus = 'active',
     required this.createdAt,
@@ -57,6 +59,7 @@ class Report {
       userId: data['user_id'],
       reporterName: data['reporter_name'],
       reporterDisplayName: data['reporter_display_name'],
+      locationName: _parseOptionalString(data['location_name']),
       locationSource: _parseLocationSource(data['location_source']),
       reviewStatus: _parseReviewStatus(data['status'], data['report_status']),
       createdAt: data['created_at'] != null
@@ -141,6 +144,12 @@ class Report {
     return '';
   }
 
+  static String? _parseOptionalString(dynamic value) {
+    if (value is! String) return null;
+    final cleanValue = value.trim();
+    return cleanValue.isEmpty ? null : cleanValue;
+  }
+
   bool get isManualLocation => locationSource == 'manual';
 
   String get locationSourceLabel {
@@ -190,6 +199,7 @@ class Report {
       'user_id': userId,
       'reporter_name': reporterName,
       'reporter_display_name': reporterDisplayName,
+      'location_name': locationName,
       'location_source': locationSource,
       'status': reviewStatus,
       'created_at': Timestamp.fromDate(createdAt),

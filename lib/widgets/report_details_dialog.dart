@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:timeago/timeago.dart' as timeago;
+
 import '../models/report_model.dart';
 import '../theme/rainguard_theme.dart';
 import '../utils/map_helper.dart';
@@ -26,6 +28,7 @@ class _ReportDetailsSheet extends StatelessWidget {
     final reportName = MapHelper.getReportTypeName(report.type);
     final reporterName = report.reporterName ?? 'Anonymous reporter';
     final freshnessLabel = MapHelper.getFreshnessName(report.freshness);
+    final statusLabel = '$freshnessLabel • ${timeago.format(report.createdAt)}';
 
     return DraggableScrollableSheet(
       initialChildSize: 0.82,
@@ -98,7 +101,7 @@ class _ReportDetailsSheet extends StatelessWidget {
                             _StatusPill(
                               color: freshnessColor,
                               icon: Icons.schedule_rounded,
-                              label: freshnessLabel,
+                              label: statusLabel,
                             ),
                             if (report.isAdminVerified)
                               const _StatusPill(
@@ -126,7 +129,6 @@ class _ReportDetailsSheet extends StatelessWidget {
                     child: _InfoTile(
                       label: 'Risk level',
                       value: MapHelper.getRiskLevelName(report.risk),
-                      color: riskColor,
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -134,45 +136,14 @@ class _ReportDetailsSheet extends StatelessWidget {
                     child: _InfoTile(
                       label: 'Flood level',
                       value: report.floodLevel ?? 'Not set',
-                      color: RainGuardColors.primary,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: _InfoTile(
-                      label: 'Latitude',
-                      value: report.latitude.toStringAsFixed(5),
-                      color: Colors.teal,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _InfoTile(
-                      label: 'Longitude',
-                      value: report.longitude.toStringAsFixed(5),
-                      color: Colors.teal,
                     ),
                   ),
                 ],
               ),
               const SizedBox(height: 12),
               _InfoTile(
-                label: 'Location source',
-                value: report.locationSourceLabel,
-                color: report.isManualLocation
-                    ? RainGuardColors.warningText
-                    : RainGuardColors.primary,
-              ),
-              const SizedBox(height: 12),
-              _InfoTile(
-                label: 'Report status',
-                value:
-                    '$freshnessLabel - ${MapHelper.getFreshnessDescription(report.freshness)}',
-                color: freshnessColor,
+                label: 'Location',
+                value: report.locationName ?? 'Exact name unavailable',
               ),
               const SizedBox(height: 18),
               _SectionCard(
@@ -530,12 +501,10 @@ class _InfoTile extends StatelessWidget {
   const _InfoTile({
     required this.label,
     required this.value,
-    required this.color,
   });
 
   final String label;
   final String value;
-  final Color color;
 
   @override
   Widget build(BuildContext context) {
@@ -554,7 +523,7 @@ class _InfoTile extends StatelessWidget {
             style: const TextStyle(
               fontSize: 8,
               color: RainGuardColors.secondaryText,
-              fontWeight: FontWeight.w700,
+              fontWeight: FontWeight.w900,
             ),
           ),
           const SizedBox(height: 8),
@@ -562,10 +531,10 @@ class _InfoTile extends StatelessWidget {
             value,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 12,
-              color: color,
-              fontWeight: FontWeight.w800,
+              color: RainGuardColors.ink,
+              fontWeight: FontWeight.w900,
             ),
           ),
         ],
