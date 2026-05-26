@@ -1,7 +1,10 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:timeago/timeago.dart' as timeago;
+
+import '../models/notification_feed.dart';
 import '../models/report_model.dart';
+import '../models/safety_alert.dart';
+import '../services/notification_feed_service.dart';
 import '../theme/rainguard_theme.dart';
 import '../utils/map_helper.dart';
 import '../widgets/rainguard_app_bar.dart';
@@ -19,155 +22,95 @@ class NotificationScreen extends StatefulWidget {
 
 class _NotificationScreenState extends State<NotificationScreen> {
   _NotificationFilter _selectedFilter = _NotificationFilter.all;
-  late final Stream<QuerySnapshot> _alertsStream = FirebaseFirestore.instance
-      .collection('alerts')
-      .orderBy('created_at', descending: true)
-      .snapshots();
-  late final Stream<QuerySnapshot> _reportsStream = FirebaseFirestore.instance
-      .collection('reports')
-      .orderBy('created_at', descending: true)
-      .snapshots();
+  late final Stream<NotificationFeed> _feedStream =
+      NotificationFeedService.feedStream();
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: RainGuardColors.background,
       appBar: const RainGuardAppBar(),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: _alertsStream,
-        builder: (context, alertSnapshot) {
-          if (alertSnapshot.connectionState == ConnectionState.waiting) {
+      body: StreamBuilder<NotificationFeed>(
+        stream: _feedStream,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
 
-          if (alertSnapshot.hasError) {
+          if (snapshot.hasError) {
             return const Center(child: Text('Error loading notifications'));
           }
 
-          final alerts = _parseAlerts(alertSnapshot.data?.docs ?? []);
+          final feed =
+              snapshot.data ?? const NotificationFeed(alerts: [], reports: []);
+          final alerts = feed.alerts;
+          final reports = feed.reports;
+          final filteredReports = _filterReports(reports);
 
-          return StreamBuilder<QuerySnapshot>(
-            stream: _reportsStream,
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
-              }
-
-              if (snapshot.hasError) {
-                return const Center(child: Text('Error loading notifications'));
-              }
-
-              final docs = snapshot.data?.docs ?? [];
-              final reports = <Report>[];
-
-              for (final doc in docs) {
-                try {
-                  reports.add(
-                    Report.fromFirestore(
-                      doc.data() as Map<String, dynamic>,
-                      doc.id,
-                    ),
-                  );
-                } catch (e) {
-                  debugPrint('Error parsing notification report ${doc.id}: $e');
-                }
-              }
-
-              final activeRiskCount = reports
-                  .where(
-                    (report) =>
-                        !report.isArchived &&
-                        (report.risk == RiskLevel.flood ||
-                            report.risk == RiskLevel.risk),
-                  )
-                  .length;
-              final latestReport = reports.isNotEmpty ? reports.first : null;
-              final filteredReports = _filterReports(reports);
-
-              return ListView(
-                padding: const EdgeInsets.fromLTRB(16, 18, 16, 24),
-                children: [
-                  const Text(
-                    'Notifications',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w900,
-                      color: RainGuardColors.ink,
-                    ),
+          return ListView(
+            padding: const EdgeInsets.fromLTRB(16, 18, 16, 24),
+            children: [
+              const Text(
+                'Notifications',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w900,
+                  color: RainGuardColors.ink,
+                ),
+              ),
+              const SizedBox(height: 6),
+              const Text(
+                'Latest community reports and flood-safety updates for Calamba.',
+                style: TextStyle(
+                  color: RainGuardColors.secondaryText,
+                  fontSize: 8,
+                  height: 1.35,
+                ),
+              ),
+              const SizedBox(height: 18),
+              _NotificationSummaryCard(
+                totalReports: reports.length,
+                activeRiskCount: feed.activeRiskCount,
+                latestReport: feed.latestReport,
+              ),
+              const SizedBox(height: 18),
+              _NotificationFilterBar(
+                selectedFilter: _selectedFilter,
+                totalCount: reports.length,
+                floodCount: reports
+                    .where((report) => report.type == ReportType.flood)
+                    .length,
+                rainCount: reports
+                    .where((report) => report.type == ReportType.rain)
+                    .length,
+                onChanged: (filter) {
+                  if (filter == _selectedFilter) return;
+                  setState(() => _selectedFilter = filter);
+                },
+              ),
+              if (alerts.isNotEmpty) ...[
+                const SizedBox(height: 18),
+                const _SectionHeader('Barangay Advisories'),
+                const SizedBox(height: 10),
+                ...alerts.map((alert) => _SafetyAlertCard(alert: alert)),
+              ],
+              const SizedBox(height: 18),
+              const _SectionHeader('Recent Reports'),
+              const SizedBox(height: 10),
+              if (filteredReports.isEmpty && alerts.isEmpty)
+                _EmptyNotifications(filter: _selectedFilter)
+              else
+                ...filteredReports.map(
+                  (report) => _NotificationCard(
+                    report: report,
+                    onTap: () => ReportDetailsDialog.show(context, report),
                   ),
-                  const SizedBox(height: 6),
-                  const Text(
-                    'Latest community reports and flood-safety updates for Calamba.',
-                    style: TextStyle(
-                      color: RainGuardColors.secondaryText,
-                      fontSize: 8,
-                      height: 1.35,
-                    ),
-                  ),
-                  const SizedBox(height: 18),
-                  _NotificationSummaryCard(
-                    totalReports: reports.length,
-                    activeRiskCount: activeRiskCount + alerts.length,
-                    latestReport: latestReport,
-                  ),
-                  const SizedBox(height: 18),
-                  _NotificationFilterBar(
-                    selectedFilter: _selectedFilter,
-                    totalCount: reports.length,
-                    floodCount: reports
-                        .where((report) => report.type == ReportType.flood)
-                        .length,
-                    rainCount: reports
-                        .where((report) => report.type == ReportType.rain)
-                        .length,
-                    onChanged: (filter) {
-                      if (filter == _selectedFilter) return;
-                      setState(() => _selectedFilter = filter);
-                    },
-                  ),
-                  if (alerts.isNotEmpty) ...[
-                    const SizedBox(height: 18),
-                    const _SectionHeader('Barangay Advisories'),
-                    const SizedBox(height: 10),
-                    ...alerts.map((alert) => _SafetyAlertCard(alert: alert)),
-                  ],
-                  const SizedBox(height: 18),
-                  const _SectionHeader('Recent Reports'),
-                  const SizedBox(height: 10),
-                  if (filteredReports.isEmpty && alerts.isEmpty)
-                    _EmptyNotifications(filter: _selectedFilter)
-                  else
-                    ...filteredReports.map(
-                      (report) => _NotificationCard(
-                        report: report,
-                        onTap: () => ReportDetailsDialog.show(context, report),
-                      ),
-                    ),
-                ],
-              );
-            },
+                ),
+            ],
           );
         },
       ),
     );
-  }
-
-  List<_SafetyAlert> _parseAlerts(List<QueryDocumentSnapshot> docs) {
-    final alerts = <_SafetyAlert>[];
-
-    for (final doc in docs) {
-      try {
-        final alert = _SafetyAlert.fromFirestore(
-          doc.data() as Map<String, dynamic>,
-          doc.id,
-        );
-        if (alert.status == 'published') alerts.add(alert);
-      } catch (e) {
-        debugPrint('Error parsing safety alert ${doc.id}: $e');
-      }
-    }
-
-    return alerts;
   }
 
   List<Report> _filterReports(List<Report> reports) {
@@ -310,45 +253,10 @@ class _NotificationFilterChip extends StatelessWidget {
   }
 }
 
-class _SafetyAlert {
-  const _SafetyAlert({
-    required this.area,
-    required this.id,
-    required this.message,
-    required this.publishedAt,
-    required this.riskLevel,
-    required this.status,
-    required this.title,
-  });
-
-  final String area;
-  final String id;
-  final String message;
-  final DateTime publishedAt;
-  final String riskLevel;
-  final String status;
-  final String title;
-
-  factory _SafetyAlert.fromFirestore(Map<String, dynamic> data, String id) {
-    return _SafetyAlert(
-      area: data['area'] as String? ?? 'All residents',
-      id: id,
-      message: data['message'] as String? ?? '',
-      publishedAt:
-          (data['published_at'] as Timestamp?)?.toDate() ??
-          (data['created_at'] as Timestamp?)?.toDate() ??
-          DateTime.now(),
-      riskLevel: data['risk_level'] as String? ?? 'info',
-      status: data['status'] as String? ?? 'draft',
-      title: data['title'] as String? ?? 'RainGuard advisory',
-    );
-  }
-}
-
 class _SafetyAlertCard extends StatelessWidget {
   const _SafetyAlertCard({required this.alert});
 
-  final _SafetyAlert alert;
+  final SafetyAlert alert;
 
   @override
   Widget build(BuildContext context) {
