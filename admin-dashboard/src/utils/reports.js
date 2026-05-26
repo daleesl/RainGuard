@@ -16,6 +16,7 @@ export function parseReport(id, data) {
     floodLevel: data.flood_level || '',
     imageUrl: imageUrls[0] || '',
     imageUrls,
+    locationName: normalizeText(data.location_name),
     locationSource: data.location_source || 'gps',
     reportType: data.report_type || 'report',
     riskLevel: data.risk_level || 'risk',
@@ -93,15 +94,16 @@ export function getReviewStatus(report) {
 }
 
 export function getReportLocationName(report) {
+  if (report.locationName) return report.locationName
+
   if (!Number.isFinite(report.latitude) || !Number.isFinite(report.longitude)) {
     return 'Unknown'
   }
 
-  if (report.latitude >= 14.18 && report.latitude <= 14.23) {
-    return 'Lingga Creek'
-  }
-
-  return report.locationSource === 'manual' ? 'Manual pin' : 'Calamba'
+  const coordinates = `${report.latitude.toFixed(5)}, ${report.longitude.toFixed(5)}`
+  return report.locationSource === 'manual'
+    ? `Manual pin ${coordinates}`
+    : `GPS ${coordinates}`
 }
 
 export function formatReportTime(date) {
@@ -124,4 +126,8 @@ export function isToday(date) {
 
 function readNumber(value) {
   return typeof value === 'number' ? value : Number(value)
+}
+
+function normalizeText(value) {
+  return typeof value === 'string' ? value.trim() : ''
 }
