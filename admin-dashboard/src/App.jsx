@@ -1,16 +1,45 @@
-import { useState } from 'react'
+import { lazy, Suspense, useState } from 'react'
 import './App.css'
 import { AdminLayout } from './components/AdminLayout'
 import { useAdminAuth } from './hooks/useAdminAuth'
 import { AdminLogin } from './pages/AdminLogin'
-import { AlertsManagement } from './pages/AlertsManagement'
-import { AnalyticsPage } from './pages/AnalyticsPage'
-import { DashboardPage } from './pages/DashboardPage'
-import { LiveRiskMap } from './pages/LiveRiskMap'
 import { PlaceholderPage } from './pages/PlaceholderPage'
-import { ReportsManagement } from './pages/ReportsManagement'
-import { UsersManagement } from './pages/UsersManagement'
-import { VerificationReview } from './pages/VerificationReview'
+
+const AlertsManagement = lazy(() =>
+  import('./pages/AlertsManagement').then((module) => ({
+    default: module.AlertsManagement,
+  })),
+)
+const AnalyticsPage = lazy(() =>
+  import('./pages/AnalyticsPage').then((module) => ({
+    default: module.AnalyticsPage,
+  })),
+)
+const DashboardPage = lazy(() =>
+  import('./pages/DashboardPage').then((module) => ({
+    default: module.DashboardPage,
+  })),
+)
+const LiveRiskMap = lazy(() =>
+  import('./pages/LiveRiskMap').then((module) => ({
+    default: module.LiveRiskMap,
+  })),
+)
+const ReportsManagement = lazy(() =>
+  import('./pages/ReportsManagement').then((module) => ({
+    default: module.ReportsManagement,
+  })),
+)
+const UsersManagement = lazy(() =>
+  import('./pages/UsersManagement').then((module) => ({
+    default: module.UsersManagement,
+  })),
+)
+const VerificationReview = lazy(() =>
+  import('./pages/VerificationReview').then((module) => ({
+    default: module.VerificationReview,
+  })),
+)
 
 const pageTitles = {
   dashboard: 'Dashboard',
@@ -44,24 +73,38 @@ function App() {
       onNavigate={setActivePage}
       onSignOut={signOutAdmin}
     >
-      {activePage === 'dashboard' ? (
-        <DashboardPage onNavigate={setActivePage} />
-      ) : activePage === 'liveMap' ? (
-        <LiveRiskMap />
-      ) : activePage === 'reports' ? (
-        <ReportsManagement onOpenMap={() => setActivePage('liveMap')} />
-      ) : activePage === 'verification' ? (
-        <VerificationReview />
-      ) : activePage === 'alerts' ? (
-        <AlertsManagement />
-      ) : activePage === 'users' ? (
-        <UsersManagement onOpenVerification={() => setActivePage('verification')} />
-      ) : activePage === 'analytics' ? (
-        <AnalyticsPage />
-      ) : (
-        <PlaceholderPage title={pageTitles[activePage]} />
-      )}
+      <Suspense fallback={<AdminPageLoading title={pageTitles[activePage]} />}>
+        {activePage === 'dashboard' ? (
+          <DashboardPage onNavigate={setActivePage} />
+        ) : activePage === 'liveMap' ? (
+          <LiveRiskMap />
+        ) : activePage === 'reports' ? (
+          <ReportsManagement onOpenMap={() => setActivePage('liveMap')} />
+        ) : activePage === 'verification' ? (
+          <VerificationReview />
+        ) : activePage === 'alerts' ? (
+          <AlertsManagement />
+        ) : activePage === 'users' ? (
+          <UsersManagement onOpenVerification={() => setActivePage('verification')} />
+        ) : activePage === 'analytics' ? (
+          <AnalyticsPage />
+        ) : (
+          <PlaceholderPage title={pageTitles[activePage]} />
+        )}
+      </Suspense>
     </AdminLayout>
+  )
+}
+
+function AdminPageLoading({ title }) {
+  return (
+    <main className="placeholder-page">
+      <section className="placeholder-card">
+        <p>RainGuard Admin</p>
+        <h2>{title || 'Loading'}</h2>
+        <span>Loading admin tools...</span>
+      </section>
+    </main>
   )
 }
 
