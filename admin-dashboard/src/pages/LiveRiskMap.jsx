@@ -1,5 +1,4 @@
 import { useMemo, useState } from 'react'
-import { doc, updateDoc } from 'firebase/firestore'
 import { ConfirmActionModal } from '../components/ConfirmActionModal'
 import { ImageZoomOverlay } from '../components/live-map/ImageZoomOverlay'
 import { LiveReportMap } from '../components/live-map/LiveReportMap'
@@ -7,8 +6,8 @@ import { ReportDetailModal } from '../components/live-map/ReportDetailModal'
 import { SelectedReportPanel } from '../components/live-map/SelectedReportPanel'
 import { MetricCard } from '../components/MetricCard'
 import { PageTopbar } from '../components/PageTopbar'
-import { db } from '../firebase'
 import { useReports } from '../hooks/useReports'
+import { updateReportStatus as saveReportStatus } from '../services/reportActions'
 import { isToday } from '../utils/reports'
 
 const metricConfig = [
@@ -126,7 +125,7 @@ export function LiveRiskMap() {
     if (!report) return
 
     try {
-      await updateDoc(doc(db, 'reports', report.id), values)
+      await saveReportStatus(report.id, values)
       setActionMessage(successMessage)
     } catch (updateError) {
       setActionMessage(updateError.message)

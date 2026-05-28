@@ -1,5 +1,4 @@
 import { useMemo, useState } from 'react'
-import { doc, updateDoc } from 'firebase/firestore'
 import {
   CheckCircle2,
   Eye,
@@ -12,8 +11,13 @@ import { ConfirmActionModal } from '../components/ConfirmActionModal'
 import { MetricCard } from '../components/MetricCard'
 import { PageTopbar } from '../components/PageTopbar'
 import { StatusChip } from '../components/StatusChip'
-import { db } from '../firebase'
 import { useReports } from '../hooks/useReports'
+import {
+  hideDuplicateReport,
+  resolveReport,
+  unverifyReport,
+  verifyReport,
+} from '../services/reportActions'
 import {
   getReportLabel,
   getReportLocationName,
@@ -45,7 +49,14 @@ const reportMetrics = [
 ]
 
 export function ReportsManagement({ onOpenMap }) {
-  const { calambaReports, error, status } = useReports()
+  const {
+    calambaReports,
+    error,
+    hasMore,
+    isLoadingMore,
+    loadMore,
+    status,
+  } = useReports()
   const [activeFilter, setActiveFilter] = useState('all')
   const [searchTerm, setSearchTerm] = useState('')
   const [actionMessage, setActionMessage] = useState('')
@@ -96,26 +107,22 @@ export function ReportsManagement({ onOpenMap }) {
     }
   }, [filteredReports])
 
-  async function updateReportStatus(report, values, successMessage) {
-    if (!report) return
-
-    try {
-      await updateDoc(doc(db, 'reports', report.id), values)
-      setActionMessage(successMessage)
-    } catch (updateError) {
-      setActionMessage(updateError.message)
-    }
-  }
-
   function requestReportAction(report, action) {
     setPendingAction({ ...action, report })
   }
 
   async function confirmReportAction() {
     if (!pendingAction) return
-    const { report, successMessage, values } = pendingAction
+    const { action, report, successMessage } = pendingAction
     setPendingAction(null)
-    await updateReportStatus(report, values, successMessage)
+    if (!report || !action) return
+
+    try {
+      await action(report.id)
+      setActionMessage(successMessage)
+    } catch (updateError) {
+      setActionMessage(updateError.message)
+    }
   }
 
   function exportCsv() {
@@ -241,7 +248,7 @@ export function ReportsManagement({ onOpenMap }) {
                 </tr>
               </thead>
               <tbody>
-                {filteredReports.slice(0, 12).map((report) => (
+                {filteredReports.map((report) => (
                   <tr key={report.id}>
                     <td>
                       <strong>{getReportTypeName(report)}</strong>
@@ -283,11 +290,7 @@ export function ReportsManagement({ onOpenMap }) {
                                     successMessage:
                                       'Report moved back to unreviewed.',
                                     title: 'Unverify this report?',
-                                    values: {
-                                      hidden: false,
-                                      status: 'active',
-                                      report_status: 'active',
-                                    },
+                                    action: unverifyReport,
                                   }
                                 : {
                                     confirmLabel: 'Verify report',
@@ -297,10 +300,7 @@ export function ReportsManagement({ onOpenMap }) {
                                     successMessage:
                                       'Report marked as verified.',
                                     title: 'Verify this report?',
-                                    values: {
-                                      status: 'verified',
-                                      report_status: 'verified',
-                                    },
+                                    action: verifyReport,
                                   },
                             )
                           }
@@ -326,10 +326,7 @@ export function ReportsManagement({ onOpenMap }) {
                                 'This marks the report as resolved so admins know the issue no longer needs active handling.',
                               successMessage: 'Report marked as resolved.',
                               title: 'Resolve this report?',
-                              values: {
-                                status: 'resolved',
-                                report_status: 'resolved',
-                              },
+                              action: resolveReport,
                             })
                           }
                           type="button"
@@ -348,11 +345,7 @@ export function ReportsManagement({ onOpenMap }) {
                                 'This hides the report from admin review because it is a duplicate or invalid entry.',
                               successMessage: 'Report hidden as duplicate.',
                               title: 'Hide this report?',
-                              values: {
-                                hidden: true,
-                                status: 'duplicate_hidden',
-                                report_status: 'duplicate_hidden',
-                              },
+                              action: hideDuplicateReport,
                             })
                           }
                           type="button"
@@ -384,6 +377,18 @@ export function ReportsManagement({ onOpenMap }) {
                 No reports match this view. Try another chip or clear the
                 search field.
               </p>
+            ) : null}
+            {hasMore ? (
+              <div className="table-load-more">
+                <button
+                  className="panel-secondary"
+                  disabled={isLoadingMore}
+                  onClick={loadMore}
+                  type="button"
+                >
+                  {isLoadingMore ? 'Loading older reports...' : 'Load more reports'}
+                </button>
+              </div>
             ) : null}
           </div>
         </section>
@@ -530,11 +535,6 @@ function ReportViewModal({ onClose, onOpenMap, report }) {
             <div className="simple-meta-list">
               <InfoItem label="Reporter" value={report.reporterName || 'Anonymous'} />
               <InfoItem label="Created" value={formatReportDateTime(report.createdAt)} />
-              <InfoItem
-                label="GPS"
-                value={`${report.latitude.toFixed(5)}, ${report.longitude.toFixed(5)}`}
-              />
-              <InfoItem label="Source" value={report.locationSource} />
               <InfoItem
                 label="Images"
                 value={`${images.length || 0} attached`}
