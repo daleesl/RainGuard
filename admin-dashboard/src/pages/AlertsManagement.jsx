@@ -1,30 +1,33 @@
 import { useMemo, useState } from 'react'
-import {
-  addDoc,
-  collection,
-  deleteDoc,
-  doc,
-  serverTimestamp,
-  updateDoc,
-} from 'firebase/firestore'
 import { ConfirmActionModal } from '../components/ConfirmActionModal'
 import { MetricCard } from '../components/MetricCard'
 import { PageTopbar } from '../components/PageTopbar'
 import { StatusChip } from '../components/StatusChip'
-import { auth, db } from '../firebase'
 import { isAlertToday, useAlerts } from '../hooks/useAlerts'
+import {
+  createAlert,
+  deleteAlert as removeAlert,
+  resolveAlert as markAlertResolved,
+} from '../services/alertActions'
 
 const alertAreas = ['Lingga', 'Aplaya', 'Calamba', 'All residents']
 const riskLevels = ['info', 'watch', 'warning', 'critical']
 
 export function AlertsManagement() {
-  const { alerts, error } = useAlerts()
+  const {
+    alerts,
+    error,
+    hasMore,
+    isLoadingMore,
+    loadMore,
+  } = useAlerts()
   const [alertTitle, setAlertTitle] = useState('Heavy rainfall near Lingga Creek')
   const [area, setArea] = useState('Lingga')
   const [message, setMessage] = useState(
     'Avoid low-lying roads near Lingga Creek. Monitor updates and submit reports only when safe.',
   )
   const [pendingDeleteAlert, setPendingDeleteAlert] = useState(null)
+  const [pendingPublishStatus, setPendingPublishStatus] = useState('')
   const [pendingResolveAlert, setPendingResolveAlert] = useState(null)
   const [riskLevel, setRiskLevel] = useState('warning')
   const [searchTerm, setSearchTerm] = useState('')
@@ -59,7 +62,19 @@ export function AlertsManagement() {
     [alerts],
   )
 
-  async function saveAlert(statusValue) {
+  function requestPublish(statusValue) {
+    const cleanTitle = alertTitle.trim()
+    const cleanMessage = message.trim()
+
+    if (!cleanTitle || !cleanMessage) {
+      setStatusMessage('Add an alert title and message first.')
+      return
+    }
+
+    setPendingPublishStatus(statusValue)
+  }
+
+  async function saveAlert(statusValue = pendingPublishStatus) {
     const cleanTitle = alertTitle.trim()
     const cleanMessage = message.trim()
 
@@ -70,22 +85,17 @@ export function AlertsManagement() {
 
     try {
       const isPublished = statusValue === 'published'
-      await addDoc(collection(db, 'alerts'), {
+      setPendingPublishStatus('')
+      await createAlert({
         area,
-        created_at: serverTimestamp(),
-        created_by: auth.currentUser?.uid || 'admin-dashboard',
-        delivery: ['in_app', 'push'],
         message: cleanMessage,
-        published_at: isPublished ? serverTimestamp() : null,
-        resolved_at: null,
-        risk_level: riskLevel,
-        source: 'manual',
+        riskLevel,
         status: statusValue,
         title: cleanTitle,
       })
       setStatusMessage(
         isPublished
-          ? 'Alert published. Mobile users will see it in Notifications.'
+          ? 'Alert published and push notification queued.'
           : 'Alert draft saved.',
       )
     } catch (saveError) {
@@ -99,10 +109,7 @@ export function AlertsManagement() {
     try {
       const alert = pendingResolveAlert
       setPendingResolveAlert(null)
-      await updateDoc(doc(db, 'alerts', alert.id), {
-        resolved_at: serverTimestamp(),
-        status: 'resolved',
-      })
+      await markAlertResolved(alert.id)
       setStatusMessage('Alert marked as resolved.')
     } catch (resolveError) {
       setStatusMessage(resolveError.message)
@@ -115,7 +122,7 @@ export function AlertsManagement() {
     try {
       const alert = pendingDeleteAlert
       setPendingDeleteAlert(null)
-      await deleteDoc(doc(db, 'alerts', alert.id))
+      await removeAlert(alert.id)
       setStatusMessage('Alert deleted.')
     } catch (deleteError) {
       setStatusMessage(deleteError.message)
@@ -154,7 +161,7 @@ export function AlertsManagement() {
         action={
           <button
             className="primary-action"
-            onClick={() => saveAlert('published')}
+            onClick={() => requestPublish('published')}
             type="button"
           >
             Publish Alert
@@ -210,19 +217,21 @@ export function AlertsManagement() {
                   ))}
                 </select>
               </label>
-              <label>
+              <div className="risk-pick-group">
                 <span>Risk level</span>
-                <select
-                  onChange={(event) => setRiskLevel(event.target.value)}
-                  value={riskLevel}
-                >
+                <div className="risk-option-grid">
                   {riskLevels.map((level) => (
-                    <option key={level} value={level}>
+                    <button
+                      className={`risk-option ${riskLevel === level ? 'is-active' : ''} ${riskChipClass(level)}`}
+                      key={level}
+                      onClick={() => setRiskLevel(level)}
+                      type="button"
+                    >
                       {formatLabel(level)}
-                    </option>
+                    </button>
                   ))}
-                </select>
-              </label>
+                </div>
+              </div>
             </div>
             <div className="composer-chips">
               <StatusChip>{area}</StatusChip>
@@ -233,8 +242,18 @@ export function AlertsManagement() {
                 Push notification
               </StatusChip>
             </div>
+            <div className="alert-preview-card">
+              <div>
+                <span>Mobile alert preview</span>
+                <strong>{alertTitle || 'Untitled alert'}</strong>
+                <p>{message || 'Alert message will appear here.'}</p>
+              </div>
+              <StatusChip tone={riskChipClass(riskLevel)}>
+                {formatLabel(riskLevel)}
+              </StatusChip>
+            </div>
             <div className="composer-actions">
-              <button className="panel-primary" onClick={() => saveAlert('published')} type="button">
+              <button className="panel-primary" onClick={() => requestPublish('published')} type="button">
                 Publish Now
               </button>
               <button className="panel-secondary" onClick={() => saveAlert('draft')} type="button">
@@ -252,7 +271,7 @@ export function AlertsManagement() {
                 <span>Status</span>
                 <span>Action</span>
               </div>
-              {filteredAlerts.slice(0, 8).map((alert) => (
+              {filteredAlerts.map((alert) => (
                 <div className="mini-table-row" key={alert.id}>
                   <strong>{alert.title}</strong>
                   <span>{alert.area}</span>
@@ -283,6 +302,18 @@ export function AlertsManagement() {
               ))}
               {filteredAlerts.length === 0 ? (
                 <p className="table-state">No alerts match the current view.</p>
+              ) : null}
+              {hasMore ? (
+                <div className="table-load-more">
+                  <button
+                    className="panel-secondary"
+                    disabled={isLoadingMore}
+                    onClick={loadMore}
+                    type="button"
+                  >
+                    {isLoadingMore ? 'Loading older alerts...' : 'Load more alerts'}
+                  </button>
+                </div>
               ) : null}
             </div>
 
@@ -322,6 +353,83 @@ export function AlertsManagement() {
           title="Delete this alert?"
         />
       ) : null}
+      {pendingPublishStatus === 'published' ? (
+        <PublishAlertModal
+          area={area}
+          message={message}
+          onCancel={() => setPendingPublishStatus('')}
+          onConfirm={() => saveAlert('published')}
+          riskLevel={riskLevel}
+          title={alertTitle}
+        />
+      ) : null}
+    </div>
+  )
+}
+
+function PublishAlertModal({
+  area,
+  message,
+  onCancel,
+  onConfirm,
+  riskLevel,
+  title,
+}) {
+  return (
+    <div
+      aria-labelledby="publish-alert-title"
+      aria-modal="true"
+      className="confirm-modal-backdrop"
+      onClick={onCancel}
+      role="dialog"
+    >
+      <section
+        className="confirm-modal publish-alert-modal"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="confirm-modal-header">
+          <div>
+            <p className="modal-eyebrow">Push notification</p>
+            <h3 id="publish-alert-title">Publish this alert?</h3>
+          </div>
+          <button
+            aria-label="Cancel publish"
+            className="modal-close"
+            onClick={onCancel}
+            type="button"
+          >
+            X
+          </button>
+        </div>
+        <div className="alert-confirm-preview">
+          <div className="alert-confirm-row">
+            <span>Target area</span>
+            <strong>{area}</strong>
+          </div>
+          <div className="alert-confirm-row">
+            <span>Risk level</span>
+            <StatusChip tone={riskChipClass(riskLevel)}>
+              {formatLabel(riskLevel)}
+            </StatusChip>
+          </div>
+          <div className="alert-confirm-message">
+            <strong>{title}</strong>
+            <p>{message}</p>
+          </div>
+        </div>
+        <p className="confirm-modal-message">
+          This will create a published alert. Your Cloud Function will use it for
+          push notification delivery.
+        </p>
+        <div className="confirm-modal-actions">
+          <button className="panel-secondary" onClick={onCancel} type="button">
+            Cancel
+          </button>
+          <button className="panel-primary" onClick={onConfirm} type="button">
+            Publish Alert
+          </button>
+        </div>
+      </section>
     </div>
   )
 }

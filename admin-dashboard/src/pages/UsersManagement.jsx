@@ -1,13 +1,16 @@
 import { useMemo, useState } from 'react'
-import { doc, serverTimestamp, updateDoc } from 'firebase/firestore'
 import { Ban, IdCard, ImageOff, RotateCcw, ShieldAlert, X } from 'lucide-react'
 import { ConfirmActionModal } from '../components/ConfirmActionModal'
 import { MetricCard } from '../components/MetricCard'
 import { PageTopbar } from '../components/PageTopbar'
 import { StatusChip } from '../components/StatusChip'
-import { db } from '../firebase'
 import { useReports } from '../hooks/useReports'
 import { useUsers } from '../hooks/useUsers'
+import {
+  disableUser,
+  restoreUser,
+  suspendUser,
+} from '../services/userActions'
 
 export function UsersManagement({ onOpenVerification }) {
   const { users, error, status } = useUsers()
@@ -70,14 +73,11 @@ export function UsersManagement({ onOpenVerification }) {
 
   async function confirmUserAction() {
     if (!pendingAction) return
-    const { successMessage, user, values } = pendingAction
+    const { action, successMessage, user } = pendingAction
 
     try {
       setPendingAction(null)
-      await updateDoc(doc(db, 'users', user.id), {
-        ...values,
-        updated_at: serverTimestamp(),
-      })
+      await action(user.id)
       setMessage(successMessage)
     } catch (updateError) {
       setMessage(updateError.message)
@@ -237,7 +237,7 @@ function UserActions({ onOpenVerification, onRequestAction, onViewId, user }) {
                   'This marks the resident account as suspended in Firestore. Add client or rules enforcement before relying on it as a hard block.',
                 successMessage: 'User account marked as suspended.',
                 title: 'Suspend this account?',
-                values: { account_status: 'suspended', disabled: false },
+                action: suspendUser,
               })
             }
             title="Suspend account"
@@ -256,7 +256,7 @@ function UserActions({ onOpenVerification, onRequestAction, onViewId, user }) {
                   'This marks the account as disabled in Firestore. To fully block Firebase Auth login, connect this to a Cloud Function or enforce the field in the app.',
                 successMessage: 'User account marked as disabled.',
                 title: 'Disable this account?',
-                values: { account_status: 'disabled', disabled: true },
+                action: disableUser,
               })
             }
             title="Disable account"
@@ -277,7 +277,7 @@ function UserActions({ onOpenVerification, onRequestAction, onViewId, user }) {
                 'This returns the resident account to active status in Firestore.',
               successMessage: 'User account restored to active.',
               title: 'Restore this account?',
-              values: { account_status: 'active', disabled: false },
+              action: restoreUser,
             })
           }
           title="Restore account"

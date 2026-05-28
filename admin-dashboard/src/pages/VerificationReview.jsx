@@ -1,10 +1,14 @@
 import { useMemo, useState } from 'react'
-import { doc, updateDoc } from 'firebase/firestore'
+import { ConfirmActionModal } from '../components/ConfirmActionModal'
 import { MetricCard } from '../components/MetricCard'
 import { PageTopbar } from '../components/PageTopbar'
 import { StatusChip } from '../components/StatusChip'
-import { db } from '../firebase'
 import { useUsers } from '../hooks/useUsers'
+import {
+  approveVerification,
+  rejectVerification,
+  requestNewVerificationPhoto,
+} from '../services/userActions'
 
 const checklist = [
   ['Name is readable', 'Review ID photo'],
@@ -18,6 +22,8 @@ export function VerificationReview() {
   const [selectedId, setSelectedId] = useState('')
   const [searchTerm, setSearchTerm] = useState('')
   const [message, setMessage] = useState('')
+  const [pendingReviewAction, setPendingReviewAction] = useState(null)
+  const [rejectReason, setRejectReason] = useState('')
 
   const applicants = useMemo(() => {
     const reviewableUsers = pendingUsers.filter(
@@ -49,17 +55,43 @@ export function VerificationReview() {
       .length,
   }
 
-  async function updateVerification(statusValue, successMessage) {
+  function requestReviewAction(action) {
     if (!selectedApplicant) {
       setMessage('Select a submitted verification request first.')
       return
     }
 
+    setPendingReviewAction({ ...action, applicant: selectedApplicant })
+  }
+
+  async function confirmReviewAction() {
+    if (!pendingReviewAction) return
+    const { action, applicant, successMessage } = pendingReviewAction
+
     try {
-      await updateDoc(doc(db, 'users', selectedApplicant.id), {
-        verification_status: statusValue,
-      })
+      setPendingReviewAction(null)
+      await action(applicant.id)
       setMessage(successMessage)
+    } catch (updateError) {
+      setMessage(updateError.message)
+    }
+  }
+
+  async function confirmReject() {
+    if (!pendingReviewAction) return
+    const reason = rejectReason.trim()
+
+    if (!reason) {
+      setMessage('Add a short reason before rejecting the verification.')
+      return
+    }
+
+    try {
+      const { applicant } = pendingReviewAction
+      setPendingReviewAction(null)
+      setRejectReason('')
+      await rejectVerification(applicant.id, reason)
+      setMessage('Verification rejected with a saved reason.')
     } catch (updateError) {
       setMessage(updateError.message)
     }
@@ -136,7 +168,10 @@ export function VerificationReview() {
             {selectedApplicant ? (
               <>
                 <div className="document-title">
-                  <h3>{selectedApplicant.displayName}</h3>
+                  <div>
+                    <h3>{selectedApplicant.displayName}</h3>
+                    <p>{selectedApplicant.email || 'No email recorded'}</p>
+                  </div>
                   <StatusChip tone={statusChipClass(selectedApplicant.verificationStatus)}>
                     {formatStatus(selectedApplicant.verificationStatus)}
                   </StatusChip>
@@ -167,7 +202,14 @@ export function VerificationReview() {
                   <button
                     className="panel-primary"
                     onClick={() =>
-                      updateVerification('verified', 'Verification approved.')
+                      requestReviewAction({
+                        action: approveVerification,
+                        confirmLabel: 'Approve ID',
+                        message:
+                          'This marks the resident as verified. They can submit community reports after approval.',
+                        successMessage: 'Verification approved.',
+                        title: 'Approve this verification?',
+                      })
                     }
                     type="button"
                   >
@@ -175,9 +217,17 @@ export function VerificationReview() {
                   </button>
                   <button
                     className="panel-danger"
-                    onClick={() =>
-                      updateVerification('rejected', 'Verification rejected.')
-                    }
+                    onClick={() => {
+                      setRejectReason('')
+                      requestReviewAction({
+                        action: 'reject',
+                        confirmLabel: 'Reject ID',
+                        message:
+                          'Save a short reason so the resident knows what to correct.',
+                        successMessage: 'Verification rejected.',
+                        title: 'Reject this verification?',
+                      })
+                    }}
                     type="button"
                   >
                     Reject With Reason
@@ -185,7 +235,14 @@ export function VerificationReview() {
                   <button
                     className="panel-secondary"
                     onClick={() =>
-                      updateVerification('pending', 'New photo requested.')
+                      requestReviewAction({
+                        action: requestNewVerificationPhoto,
+                        confirmLabel: 'Request photo',
+                        message:
+                          'This asks the resident to upload a clearer valid ID photo before approval.',
+                        successMessage: 'New photo requested.',
+                        title: 'Ask for a new photo?',
+                      })
                     }
                     type="button"
                   >
@@ -201,6 +258,26 @@ export function VerificationReview() {
           </article>
         </section>
       </main>
+      {pendingReviewAction?.action === 'reject' ? (
+        <RejectReasonModal
+          onCancel={() => {
+            setPendingReviewAction(null)
+            setRejectReason('')
+          }}
+          onChange={setRejectReason}
+          onConfirm={confirmReject}
+          reason={rejectReason}
+        />
+      ) : null}
+      {pendingReviewAction && pendingReviewAction.action !== 'reject' ? (
+        <ConfirmActionModal
+          confirmLabel={pendingReviewAction.confirmLabel}
+          message={pendingReviewAction.message}
+          onCancel={() => setPendingReviewAction(null)}
+          onConfirm={confirmReviewAction}
+          title={pendingReviewAction.title}
+        />
+      ) : null}
     </div>
   )
 }
@@ -222,6 +299,54 @@ function DocumentPreview({ imageUrl, label }) {
       ) : (
         <span>No {label.toLowerCase()} uploaded yet.</span>
       )}
+    </div>
+  )
+}
+
+function RejectReasonModal({ onCancel, onChange, onConfirm, reason }) {
+  return (
+    <div
+      aria-labelledby="reject-verification-title"
+      aria-modal="true"
+      className="confirm-modal-backdrop"
+      onClick={onCancel}
+      role="dialog"
+    >
+      <section
+        className="confirm-modal reject-reason-modal"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="confirm-modal-header">
+          <div>
+            <p className="modal-eyebrow">Verification decision</p>
+            <h3 id="reject-verification-title">Reject this ID?</h3>
+          </div>
+          <button
+            aria-label="Cancel rejection"
+            className="modal-close"
+            onClick={onCancel}
+            type="button"
+          >
+            X
+          </button>
+        </div>
+        <label className="reject-reason-field">
+          <span>Reason</span>
+          <textarea
+            onChange={(event) => onChange(event.target.value)}
+            placeholder="Example: ID photo is blurry or incomplete."
+            value={reason}
+          />
+        </label>
+        <div className="confirm-modal-actions">
+          <button className="panel-secondary" onClick={onCancel} type="button">
+            Cancel
+          </button>
+          <button className="panel-danger" onClick={onConfirm} type="button">
+            Reject ID
+          </button>
+        </div>
+      </section>
     </div>
   )
 }

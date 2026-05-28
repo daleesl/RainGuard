@@ -113,20 +113,28 @@
 }
 
 .document-title {
-  display: grid;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
   gap: 16px;
+}
+
+.document-title p {
+  margin: 5px 0 0;
+  color: #697b8c;
+  font-size: 10px;
 }
 
 .document-previews {
   display: grid;
-  grid-template-columns: minmax(320px, 560px);
+  grid-template-columns: minmax(320px, 640px);
   justify-content: center;
   gap: 24px;
   margin-top: 28px;
 }
 
 .document-preview {
-  height: 220px;
+  height: clamp(260px, 38vh, 390px);
   border: 1px solid #d9e7ef;
   border-radius: 16px;
   background: #f4fafd;
@@ -153,7 +161,12 @@
 
 .document-preview img {
   display: block;
-  object-fit: cover;
+  object-fit: contain;
+  background: #f4fafd;
+}
+
+.review-table-row span {
+  justify-self: start;
 }
 
 .document-preview a span {
@@ -179,6 +192,10 @@
 .mini-table {
   display: grid;
   gap: 10px;
+}
+
+.mini-table .table-load-more {
+  padding-top: 8px;
 }
 
 .review-table-header,
@@ -245,6 +262,39 @@
   font-size: 10px;
   font-weight: 900;
   letter-spacing: 0.06em;
+}
+
+.risk-pick-group {
+  display: grid;
+  gap: 10px;
+}
+
+.risk-pick-group > span {
+  color: #667b8f;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+}
+
+.risk-option-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.risk-option {
+  min-width: 0;
+  min-height: 42px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 9px;
+  font-weight: 900;
+}
+
+.risk-option.is-active {
+  border-color: #1778d4;
+  box-shadow: 0 0 0 3px rgba(23, 120, 212, 0.1);
 }
 
 .alert-composer-card input,
@@ -331,6 +381,42 @@
   margin-top: 28px;
 }
 
+.alert-preview-card {
+  border: 1px solid #d9e7ef;
+  border-radius: 16px;
+  background: #f4fafd;
+  margin-top: 24px;
+  padding: 16px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.alert-preview-card span {
+  display: block;
+  color: #667b8f;
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.alert-preview-card strong {
+  display: block;
+  margin-top: 6px;
+  color: #102033;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.alert-preview-card p {
+  margin: 8px 0 0;
+  color: #697b8c;
+  font-size: 11px;
+  line-height: 1.55;
+}
+
 .composer-actions {
   display: flex;
   gap: 14px;
@@ -392,6 +478,82 @@
   justify-content: center;
 }
 
+.publish-alert-modal,
+.reject-reason-modal {
+  width: min(520px, calc(100vw - 32px));
+}
+
+.alert-confirm-preview {
+  display: grid;
+  gap: 10px;
+  margin: 18px 20px 0;
+}
+
+.alert-confirm-row {
+  min-height: 44px;
+  border: 1px solid #d9e7ef;
+  border-radius: 12px;
+  background: #f4fafd;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 14px;
+}
+
+.alert-confirm-row span,
+.reject-reason-field span {
+  color: #667b8f;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.alert-confirm-row strong {
+  color: #102033;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.alert-confirm-message {
+  border: 1px solid #d9e7ef;
+  border-radius: 14px;
+  padding: 14px;
+}
+
+.alert-confirm-message strong {
+  color: #102033;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.alert-confirm-message p {
+  margin: 8px 0 0;
+  color: #697b8c;
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.reject-reason-field {
+  display: grid;
+  gap: 10px;
+  padding: 18px 20px 0;
+}
+
+.reject-reason-field textarea {
+  min-height: 112px;
+  border: 1px solid #d9e7ef;
+  border-radius: 14px;
+  background: #f4fafd;
+  color: #102033;
+  font-size: 12px;
+  line-height: 1.5;
+  outline: none;
+  padding: 14px;
+  resize: vertical;
+}
+
 .mini-link-button {
   min-height: 26px;
   border: 1px solid #d9e7ef;
@@ -430,6 +592,24 @@
   }
 }
 
+@media (max-width: 1380px) {
+  .verification-grid {
+    grid-template-columns: minmax(330px, 0.72fr) minmax(500px, 1.28fr);
+    gap: 24px;
+  }
+
+  .alerts-grid {
+    gap: 24px;
+  }
+
+  .verification-list-card,
+  .document-review-card,
+  .alert-composer-card,
+  .alerts-list-card {
+    padding: 24px;
+  }
+}
+
 @media (max-width: 860px) {
   .review-actions {
     grid-template-columns: 1fr;
@@ -440,6 +620,16 @@
   }
 
   .composer-actions {
+    flex-direction: column;
+  }
+
+  .risk-option-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .alert-preview-card,
+  .alert-confirm-row {
+    align-items: flex-start;
     flex-direction: column;
   }
 
