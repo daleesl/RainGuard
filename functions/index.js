@@ -1,7 +1,10 @@
 const { initializeApp } = require("firebase-admin/app");
-const { getFirestore } = require("firebase-admin/firestore");
+const { FieldValue, getFirestore } = require("firebase-admin/firestore");
 const { getMessaging } = require("firebase-admin/messaging");
-const { onDocumentCreated } = require("firebase-functions/v2/firestore");
+const {
+  onDocumentCreated,
+  onDocumentWritten,
+} = require("firebase-functions/v2/firestore");
 const logger = require("firebase-functions/logger");
 
 initializeApp();
@@ -139,6 +142,149 @@ exports.notifyUsersOnReportCreated = onDocumentCreated(
 
     if (invalidTokens.length > 0) {
       logger.info("Removed invalid notification tokens", {
+        count: invalidTokens.length,
+      });
+    }
+  },
+);
+
+exports.notifyUsersOnAlertPublished = onDocumentWritten(
+  "alerts/{alertId}",
+  async (event) => {
+    const before = event.data?.before?.data();
+    const after = event.data?.after?.data();
+    const alertId = event.params.alertId;
+
+    if (!after) {
+      logger.info("Alert document deleted; no notification needed", {
+        alertId,
+      });
+      return;
+    }
+
+    const wasPublished = before?.status === "published";
+    const isPublished = after.status === "published";
+
+    if (!isPublished || wasPublished) {
+      return;
+    }
+
+    const tokenDocs = await db.collectionGroup("fcm_tokens").get();
+    const tokenRefsByToken = new Map();
+
+    for (const doc of tokenDocs.docs) {
+      const token = doc.get("token") || doc.id;
+      if (typeof token === "string" && token.trim().length > 0) {
+        tokenRefsByToken.set(token.trim(), doc.ref);
+      }
+    }
+
+    const tokens = [...tokenRefsByToken.keys()];
+    if (tokens.length === 0) {
+      logger.info("No notification tokens found for published alert", {
+        alertId,
+      });
+      await event.data.after.ref.set(
+        {
+          push_failure_count: 0,
+          push_sent_at: FieldValue.serverTimestamp(),
+          push_token_count: 0,
+        },
+        { merge: true },
+      );
+      return;
+    }
+
+    const alertTitle =
+      typeof after.title === "string" && after.title.trim()
+        ? after.title.trim()
+        : "Safety alert";
+    const area =
+      typeof after.area === "string" && after.area.trim()
+        ? after.area.trim()
+        : "All residents";
+    const body =
+      typeof after.message === "string" && after.message.trim()
+        ? after.message.trim()
+        : `Safety advisory for ${area}.`;
+    const title = `RainGuard: ${alertTitle}`;
+    const riskLevel =
+      typeof after.risk_level === "string" ? after.risk_level : "";
+
+    const invalidTokens = [];
+    let failureCount = 0;
+    const chunks = chunk(tokens, 500);
+
+    for (const tokenChunk of chunks) {
+      const response = await messaging.sendEachForMulticast({
+        tokens: tokenChunk,
+        notification: {
+          title,
+          body,
+        },
+        data: {
+          type: "safety_alert",
+          alert_id: alertId,
+          area,
+          body,
+          risk_level: riskLevel,
+          title,
+        },
+        android: {
+          priority: "high",
+          notification: {
+            channelId: "community_reports",
+            clickAction: "FLUTTER_NOTIFICATION_CLICK",
+            color: "#0B6BD3",
+            icon: "ic_stat_rainguard",
+            tag: `alert-${alertId}`,
+          },
+        },
+      });
+
+      failureCount += response.failureCount;
+
+      response.responses.forEach((sendResult, index) => {
+        if (sendResult.success) return;
+
+        const code = sendResult.error?.code;
+        if (
+          code === "messaging/invalid-registration-token" ||
+          code === "messaging/registration-token-not-registered"
+        ) {
+          invalidTokens.push(tokenChunk[index]);
+        } else {
+          logger.warn("Failed to send safety alert notification", {
+            alertId,
+            code,
+            message: sendResult.error?.message,
+          });
+        }
+      });
+
+      logger.info("Safety alert notification batch sent", {
+        alertId,
+        successCount: response.successCount,
+        failureCount: response.failureCount,
+      });
+    }
+
+    await Promise.all(
+      invalidTokens.map((token) => tokenRefsByToken.get(token)?.delete()),
+    );
+
+    await event.data.after.ref.set(
+      {
+        push_failure_count: failureCount,
+        push_sent_at: FieldValue.serverTimestamp(),
+        push_token_count: tokens.length,
+      },
+      { merge: true },
+    );
+
+    if (invalidTokens.length > 0) {
+      logger.info("Removed invalid notification tokens after alert push", {
+        alertId,
         count: invalidTokens.length,
       });
     }

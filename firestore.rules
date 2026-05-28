@@ -1,0 +1,84 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return signedIn() && request.auth.uid == userId;
+    }
+
+    function userDoc() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    function isAdmin() {
+      return signedIn() && userDoc().data.role == 'admin';
+    }
+
+    function isVerifiedUser() {
+      return signedIn() && userDoc().data.verification_status == 'verified';
+    }
+
+    function isSafeUserCreate(userId) {
+      return isOwner(userId) &&
+        !request.resource.data.keys().hasAny([
+          'role',
+          'admin',
+          'is_admin',
+          'disabled',
+          'account_status',
+        ]) &&
+        (!request.resource.data.keys().hasAny(['verification_status']) ||
+          request.resource.data.verification_status == 'unverified');
+    }
+
+    function ownerVerificationStatusIsSafe() {
+      return !request.resource.data.diff(resource.data).affectedKeys().hasAny(['verification_status']) ||
+        request.resource.data.verification_status == 'pending' ||
+        request.resource.data.verification_status == 'unverified';
+    }
+
+    function isSafeUserUpdate(userId) {
+      return isOwner(userId) &&
+        !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+          'role',
+          'admin',
+          'is_admin',
+          'disabled',
+          'account_status',
+        ]) &&
+        ownerVerificationStatusIsSafe();
+    }
+
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isSafeUserCreate(userId) || isAdmin();
+      allow update: if isSafeUserUpdate(userId) || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    match /users/{userId}/fcm_tokens/{tokenId} {
+      allow read, create, update, delete: if isOwner(userId) || isAdmin();
+    }
+
+    match /reports/{reportId} {
+      allow read: if true;
+      allow create: if signedIn() &&
+        isVerifiedUser() &&
+        request.resource.data.user_id == request.auth.uid;
+      allow update, delete: if isAdmin();
+    }
+
+    match /alerts/{alertId} {
+      allow read: if isAdmin() || resource.data.status == 'published';
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
