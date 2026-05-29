@@ -9,8 +9,8 @@ import 'package:latlong2/latlong.dart';
 import '../models/report_draft.dart';
 import '../models/report_model.dart';
 import 'geocoding_service.dart';
-import 'report_draft_service.dart';
 import 'location_service.dart';
+import 'report_draft_service.dart';
 import 'storage_service.dart';
 import 'user_profile_service.dart';
 
@@ -67,73 +67,29 @@ class ReportService {
     LatLng? manualLocation,
     bool skipDuplicateCheck = false,
   }) async {
-    final position = manualLocation == null
-        ? await LocationService.getCurrentPosition()
-        : null;
-    final latitude = manualLocation?.latitude ?? position!.latitude;
-    final longitude = manualLocation?.longitude ?? position!.longitude;
-    final locationSource = manualLocation == null ? 'gps' : 'manual';
-
-    final List<XFile> selectedImages;
-    if (images.isNotEmpty) {
-      selectedImages = images;
-    } else if (image != null) {
-      selectedImages = [image];
-    } else {
-      selectedImages = const <XFile>[];
-    }
-
-    final draftId = DateTime.now().microsecondsSinceEpoch.toString();
-    final createdAt = DateTime.now();
+    final request = await _prepareReportRequest(
+      type: type,
+      description: description,
+      floodLevel: floodLevel,
+      image: image,
+      images: images,
+      manualLocation: manualLocation,
+    );
 
     if (!skipDuplicateCheck) {
-      final duplicate =
-          await _findRecentDuplicateReport(
-            type: type,
-            latitude: latitude,
-            longitude: longitude,
-          ).timeout(
-            _duplicateCheckTimeout,
-            onTimeout: () => null,
-          );
-      if (duplicate != null) {
-        throw DuplicateReportException(duplicate);
-      }
+      await _ensureNoRecentDuplicate(request);
     }
 
     try {
-      await _submitPreparedReport(
-        type: type,
-        description: description,
-        floodLevel: floodLevel,
-        selectedImages: selectedImages,
-        latitude: latitude,
-        longitude: longitude,
-        locationSource: locationSource,
-        createdAt: createdAt,
-      ).timeout(_submitTimeoutFor(selectedImages.length));
+      await _submitPreparedReport(request).timeout(
+        _submitTimeoutFor(request.selectedImages.length),
+      );
     } catch (error) {
       if (error is ReportVerificationRequiredException) {
         rethrow;
       }
 
-      final draftImagePaths = await ReportDraftService.copyImagesForDraft(
-        draftId: draftId,
-        images: selectedImages,
-      );
-      final draft = ReportDraft(
-        id: draftId,
-        type: type,
-        floodLevel: floodLevel,
-        description: description.trim(),
-        latitude: latitude,
-        longitude: longitude,
-        locationSource: locationSource,
-        imagePaths: draftImagePaths,
-        createdAt: createdAt,
-      );
-
-      await ReportDraftService.saveDraft(draft);
+      await _saveReportDraft(request);
       throw ReportSavedAsDraftException(error);
     }
   }
@@ -144,17 +100,10 @@ class ReportService {
 
     for (final draft in drafts) {
       try {
-        final images = draft.imagePaths.map((path) => XFile(path)).toList();
-        await _submitPreparedReport(
-          type: draft.type,
-          description: draft.description,
-          floodLevel: draft.floodLevel,
-          selectedImages: images,
-          latitude: draft.latitude,
-          longitude: draft.longitude,
-          locationSource: draft.locationSource,
-          createdAt: draft.createdAt,
-        ).timeout(_submitTimeoutFor(images.length));
+        final request = _ReportRequest.fromDraft(draft);
+        await _submitPreparedReport(request).timeout(
+          _submitTimeoutFor(request.selectedImages.length),
+        );
         await ReportDraftService.removeDraft(draft.id);
         submittedCount += 1;
       } catch (_) {
@@ -165,16 +114,92 @@ class ReportService {
     return submittedCount;
   }
 
-  static Future<void> _submitPreparedReport({
+  static Future<_ReportRequest> _prepareReportRequest({
     required ReportType type,
     required String description,
-    required List<XFile> selectedImages,
-    required double latitude,
-    required double longitude,
-    required String locationSource,
-    required DateTime createdAt,
-    String? floodLevel,
+    required String? floodLevel,
+    required XFile? image,
+    required List<XFile> images,
+    required LatLng? manualLocation,
   }) async {
+    final location = await _resolveSubmissionLocation(manualLocation);
+
+    return _ReportRequest(
+      draftId: DateTime.now().microsecondsSinceEpoch.toString(),
+      type: type,
+      floodLevel: floodLevel,
+      description: description.trim(),
+      location: location,
+      selectedImages: _selectedImages(image: image, images: images),
+      createdAt: DateTime.now(),
+    );
+  }
+
+  static Future<_ReportLocation> _resolveSubmissionLocation(
+    LatLng? manualLocation,
+  ) async {
+    if (manualLocation != null) {
+      return _ReportLocation(
+        latitude: manualLocation.latitude,
+        longitude: manualLocation.longitude,
+        source: 'manual',
+      );
+    }
+
+    final position = await LocationService.getCurrentPosition();
+    return _ReportLocation(
+      latitude: position.latitude,
+      longitude: position.longitude,
+      source: 'gps',
+    );
+  }
+
+  static List<XFile> _selectedImages({
+    required XFile? image,
+    required List<XFile> images,
+  }) {
+    if (images.isNotEmpty) return images;
+    if (image != null) return [image];
+    return const <XFile>[];
+  }
+
+  static Future<void> _ensureNoRecentDuplicate(
+    _ReportRequest request,
+  ) async {
+    final duplicate =
+        await _findRecentDuplicateReport(
+          type: request.type,
+          latitude: request.location.latitude,
+          longitude: request.location.longitude,
+        ).timeout(
+          _duplicateCheckTimeout,
+          onTimeout: () => null,
+        );
+
+    if (duplicate != null) {
+      throw DuplicateReportException(duplicate);
+    }
+  }
+
+  static Future<void> _submitPreparedReport(_ReportRequest request) async {
+    final reporter = await _verifiedReporter();
+    final imageUrls = await _uploadReportImages(request.selectedImages);
+    final locationName = await _resolveLocationName(
+      request.location.latitude,
+      request.location.longitude,
+    );
+
+    final reportData = _buildReportData(
+      request: request,
+      reporter: reporter,
+      imageUrls: imageUrls,
+      locationName: locationName,
+    );
+
+    await FirebaseFirestore.instance.collection('reports').add(reportData);
+  }
+
+  static Future<_VerifiedReporter> _verifiedReporter() async {
     final currentUser = FirebaseAuth.instance.currentUser;
     final userProfile = await UserProfileService.getCurrentUserProfile();
 
@@ -184,38 +209,70 @@ class ReportService {
       );
     }
 
-    final imageUrls = selectedImages.isNotEmpty
-        ? await StorageService.uploadReportImages(selectedImages)
-        : const <String>[];
+    return _VerifiedReporter(
+      userId: currentUser.uid,
+      reporterName:
+          userProfile?.publicReporterName ??
+          currentUser.displayName ??
+          'Anonymous',
+      reporterDisplayName:
+          userProfile?.displayName ?? currentUser.displayName ?? 'Anonymous',
+    );
+  }
+
+  static Future<List<String>> _uploadReportImages(
+    List<XFile> selectedImages,
+  ) async {
+    if (selectedImages.isEmpty) return const <String>[];
+    return StorageService.uploadReportImages(selectedImages);
+  }
+
+  static Map<String, Object?> _buildReportData({
+    required _ReportRequest request,
+    required _VerifiedReporter reporter,
+    required List<String> imageUrls,
+    required String? locationName,
+  }) {
     final imageUrl = imageUrls.isNotEmpty ? imageUrls.first : null;
-    final locationName = await _resolveLocationName(latitude, longitude);
 
-    final userId = currentUser.uid;
-    final reporterName =
-        userProfile?.publicReporterName ??
-        currentUser.displayName ??
-        'Anonymous';
-    final reporterDisplayName =
-        userProfile?.displayName ?? currentUser.displayName ?? 'Anonymous';
-
-    final reportData = {
-      'user_id': userId,
-      'reporter_name': reporterName,
-      'reporter_display_name': reporterDisplayName,
-      'latitude': latitude,
-      'longitude': longitude,
+    return {
+      'user_id': reporter.userId,
+      'reporter_name': reporter.reporterName,
+      'reporter_display_name': reporter.reporterDisplayName,
+      'latitude': request.location.latitude,
+      'longitude': request.location.longitude,
       'location_name': ?locationName,
-      'location_source': locationSource,
-      'report_type': type.name,
-      'flood_level': type == ReportType.flood ? floodLevel : null,
+      'location_source': request.location.source,
+      'report_type': request.type.name,
+      'flood_level': request.type == ReportType.flood
+          ? request.floodLevel
+          : null,
       'risk_level': RiskLevel.risk.name,
-      'description': description.trim(),
+      'description': request.description,
       'image_url': imageUrl,
       'image_urls': imageUrls,
-      'created_at': Timestamp.fromDate(createdAt),
+      'created_at': Timestamp.fromDate(request.createdAt),
     };
+  }
 
-    await FirebaseFirestore.instance.collection('reports').add(reportData);
+  static Future<void> _saveReportDraft(_ReportRequest request) async {
+    final draftImagePaths = await ReportDraftService.copyImagesForDraft(
+      draftId: request.draftId,
+      images: request.selectedImages,
+    );
+    final draft = ReportDraft(
+      id: request.draftId,
+      type: request.type,
+      floodLevel: request.floodLevel,
+      description: request.description,
+      latitude: request.location.latitude,
+      longitude: request.location.longitude,
+      locationSource: request.location.source,
+      imagePaths: draftImagePaths,
+      createdAt: request.createdAt,
+    );
+
+    await ReportDraftService.saveDraft(draft);
   }
 
   static Future<Report?> _findRecentDuplicateReport({
@@ -307,4 +364,64 @@ class ReportService {
 
     return Duration(seconds: timeoutSeconds);
   }
+}
+
+class _ReportRequest {
+  const _ReportRequest({
+    required this.draftId,
+    required this.type,
+    required this.floodLevel,
+    required this.description,
+    required this.location,
+    required this.selectedImages,
+    required this.createdAt,
+  });
+
+  factory _ReportRequest.fromDraft(ReportDraft draft) {
+    return _ReportRequest(
+      draftId: draft.id,
+      type: draft.type,
+      floodLevel: draft.floodLevel,
+      description: draft.description,
+      location: _ReportLocation(
+        latitude: draft.latitude,
+        longitude: draft.longitude,
+        source: draft.locationSource,
+      ),
+      selectedImages: draft.imagePaths.map((path) => XFile(path)).toList(),
+      createdAt: draft.createdAt,
+    );
+  }
+
+  final String draftId;
+  final ReportType type;
+  final String? floodLevel;
+  final String description;
+  final _ReportLocation location;
+  final List<XFile> selectedImages;
+  final DateTime createdAt;
+}
+
+class _ReportLocation {
+  const _ReportLocation({
+    required this.latitude,
+    required this.longitude,
+    required this.source,
+  });
+
+  final double latitude;
+  final double longitude;
+  final String source;
+}
+
+class _VerifiedReporter {
+  const _VerifiedReporter({
+    required this.userId,
+    required this.reporterName,
+    required this.reporterDisplayName,
+  });
+
+  final String userId;
+  final String reporterName;
+  final String reporterDisplayName;
 }
