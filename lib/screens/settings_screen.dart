@@ -7,11 +7,12 @@ import '../services/notification_token_service.dart';
 import '../services/user_profile_service.dart';
 import '../theme/rainguard_theme.dart';
 import '../widgets/rainguard_app_bar.dart';
-import '../widgets/settings/settings_profile_card.dart';
-import '../widgets/settings/settings_tiles.dart';
+import '../widgets/settings/notification_preference_sheet.dart';
+import '../widgets/settings/settings_content.dart';
+import '../widgets/settings/settings_info_sheets.dart';
 import '../widgets/settings/verification_sheet.dart';
-import 'emergency_info_screen.dart';
 import 'auth/login_screen.dart';
+import 'emergency_info_screen.dart';
 import 'help_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -84,7 +85,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final cleanEmail = email?.trim();
     if (cleanEmail == null || cleanEmail.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No email address is linked to this account.')),
+        const SnackBar(
+          content: Text('No email address is linked to this account.'),
+        ),
       );
       return;
     }
@@ -133,7 +136,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
-      builder: (context) => const _ThemeInfoSheet(),
+      builder: (context) => const ThemeInfoSheet(),
     );
   }
 
@@ -141,7 +144,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
-      builder: (context) => const _BarangayLocationSheet(),
+      builder: (context) => const BarangayLocationSheet(),
     );
   }
 
@@ -279,10 +282,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _showNotificationPreferenceSheet() async {
-    final selection = await showModalBottomSheet<_NotificationPreferenceSelection>(
+    final selection =
+        await showModalBottomSheet<NotificationPreferenceSelection>(
       context: context,
       backgroundColor: Colors.transparent,
-      builder: (context) => _NotificationPreferenceSheet(
+      builder: (context) => NotificationPreferenceSheet(
         selectedPreference: _notificationPreference,
         selectedRadiusKm: _nearbyRadiusKm,
       ),
@@ -320,12 +324,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
-  String get _notificationPreferenceSubtitle {
-    if (_notificationPreference == NotificationPreference.nearbyOnly) {
-      return 'Only alert me for reports within ${_nearbyRadiusKm.toStringAsFixed(0)} km.';
-    }
+  void _openHelp() {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(builder: (_) => const HelpScreen()),
+    );
+  }
 
-    return _notificationPreference.description;
+  void _openEmergencyInfo() {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(builder: (_) => const EmergencyInfoScreen()),
+    );
   }
 
   @override
@@ -336,583 +344,32 @@ class _SettingsScreenState extends State<SettingsScreen> {
       body: StreamBuilder<UserProfile?>(
         stream: UserProfileService.currentUserProfileStream(),
         builder: (context, snapshot) {
-          final profile = snapshot.data;
-          final displayName = profile?.displayName ?? 'RainGuard user';
-          final email = profile?.email ?? 'No email available';
-          final verificationStatus =
-              profile?.verificationStatus ?? 'unverified';
-
-          return ListView(
-            padding: const EdgeInsets.fromLTRB(20, 24, 20, 28),
-            children: [
-              const Text(
-                'Settings',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w900,
-                  color: RainGuardColors.ink,
-                ),
-              ),
-              const SizedBox(height: 6),
-              const Text(
-                'Manage account, alerts, location, and report verification.',
-                style: TextStyle(
-                  color: RainGuardColors.secondaryText,
-                  fontSize: 8,
-                  height: 1.35,
-                ),
-              ),
-              const SizedBox(height: 22),
-              SettingsProfileCard(
-                displayName: displayName,
-                email: email,
-                verificationStatus: verificationStatus,
-                onVerifyTap: _showVerificationSheet,
-              ),
-              const SizedBox(height: 22),
-              const SettingsSectionLabel('Account'),
-              SettingsTile(
-                icon: Icons.lock_outline_rounded,
-                title: 'Change Password',
-                subtitle: 'Send a password reset link to your email',
-                onTap: () => _sendPasswordResetEmail(profile?.email),
-              ),
-              SettingsTile(
-                icon: Icons.verified_user_outlined,
-                title: 'Identity Verification',
-                subtitle: 'Take or upload a valid ID photo',
-                status: _verificationStatusLabel(verificationStatus),
-                onTap: _showVerificationSheet,
-              ),
-              const SizedBox(height: 18),
-              const SettingsSectionLabel('Notifications'),
-              SettingsSwitchTile(
-                icon: Icons.notifications_none_rounded,
-                title: 'Allow Notifications',
-                subtitle: _pushNotificationSubtitle,
-                value: pushNotifications,
-                isLoading: _isUpdatingPushNotifications,
-                onChanged: _setPushNotifications,
-              ),
-              SettingsTile(
-                icon: Icons.tune_rounded,
-                title: 'Notification Type',
-                subtitle: _notificationPreferenceSubtitle,
-                status: _isUpdatingNotificationPreference
-                    ? 'Updating...'
-                    : _notificationPreference.label,
-                onTap: _isUpdatingNotificationPreference
-                    ? () {}
-                    : _showNotificationPreferenceSheet,
-              ),
-              const SizedBox(height: 18),
-              const SettingsSectionLabel('Location'),
-              SettingsTile(
-                icon: Icons.place_outlined,
-                title: 'Default Barangay Location',
-                subtitle: 'Barangay Lingga, Calamba',
-                onTap: _showBarangayLocationSheet,
-              ),
-              SettingsSwitchTile(
-                icon: Icons.my_location_rounded,
-                title: 'Use Current Location',
-                value: useCurrentLocation,
-                onChanged: (value) =>
-                    setState(() => useCurrentLocation = value),
-              ),
-              const SizedBox(height: 18),
-              const SettingsSectionLabel('App'),
-              SettingsTile(
-                icon: Icons.palette_outlined,
-                title: 'Theme',
-                subtitle: 'Light theme active',
-                onTap: _showThemeSheet,
-              ),
-              SettingsTile(
-                icon: Icons.help_outline_rounded,
-                title: 'Help',
-                subtitle: 'How RainGuard reports and verification work',
-                onTap: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute<void>(builder: (_) => const HelpScreen()),
-                  );
-                },
-              ),
-              SettingsTile(
-                icon: Icons.local_phone_outlined,
-                title: 'Emergency Info',
-                subtitle: 'Hotlines and flood safety reminders',
-                onTap: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute<void>(
-                      builder: (_) => const EmergencyInfoScreen(),
-                    ),
-                  );
-                },
-              ),
-              const SizedBox(height: 10),
-              SettingsLogoutTile(
-                isLoading: _isLoggingOut,
-                onTap: _isLoggingOut ? null : _logout,
-              ),
-            ],
+          return SettingsContent(
+            profile: snapshot.data,
+            pushNotifications: pushNotifications,
+            useCurrentLocation: useCurrentLocation,
+            isLoggingOut: _isLoggingOut,
+            isUpdatingPushNotifications: _isUpdatingPushNotifications,
+            isUpdatingNotificationPreference:
+                _isUpdatingNotificationPreference,
+            notificationPreference: _notificationPreference,
+            nearbyRadiusKm: _nearbyRadiusKm,
+            pushNotificationSubtitle: _pushNotificationSubtitle,
+            onVerifyTap: _showVerificationSheet,
+            onChangePasswordTap: () =>
+                _sendPasswordResetEmail(snapshot.data?.email),
+            onPushNotificationsChanged: _setPushNotifications,
+            onNotificationPreferenceTap: _showNotificationPreferenceSheet,
+            onBarangayLocationTap: _showBarangayLocationSheet,
+            onCurrentLocationChanged: (value) {
+              setState(() => useCurrentLocation = value);
+            },
+            onThemeTap: _showThemeSheet,
+            onHelpTap: _openHelp,
+            onEmergencyInfoTap: _openEmergencyInfo,
+            onLogoutTap: _isLoggingOut ? null : _logout,
           );
         },
-      ),
-    );
-  }
-
-  String _verificationStatusLabel(String status) {
-    switch (status) {
-      case 'verified':
-        return 'Verified resident';
-      case 'pending':
-        return 'Verification pending';
-      case 'rejected':
-        return 'Verification needs review';
-      case 'unverified':
-      default:
-        return 'Required to report';
-    }
-  }
-}
-
-class _NotificationPreferenceSelection {
-  const _NotificationPreferenceSelection({
-    required this.preference,
-    required this.nearbyRadiusKm,
-  });
-
-  final NotificationPreference preference;
-  final double nearbyRadiusKm;
-}
-
-class _ThemeInfoSheet extends StatelessWidget {
-  const _ThemeInfoSheet();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
-      decoration: const BoxDecoration(
-        color: RainGuardColors.background,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Center(
-            child: Container(
-              width: 44,
-              height: 5,
-              decoration: BoxDecoration(
-                color: Colors.blueGrey.shade200,
-                borderRadius: BorderRadius.circular(99),
-              ),
-            ),
-          ),
-          const SizedBox(height: 20),
-          const Text(
-            'Theme',
-            style: TextStyle(
-              color: RainGuardColors.ink,
-              fontSize: 20,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            'RainGuard is currently using the light theme. Dark theme can be added later as a separate app-wide pass.',
-            style: TextStyle(
-              color: RainGuardColors.secondaryText,
-              fontSize: 9,
-              height: 1.45,
-            ),
-          ),
-          const SizedBox(height: 16),
-          Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: RainGuardColors.primary),
-            ),
-            child: const Row(
-              children: [
-                SettingsTileIcon(icon: Icons.light_mode_outlined),
-                SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    'Light theme active',
-                    style: TextStyle(
-                      color: RainGuardColors.ink,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                ),
-                Icon(Icons.check_circle_rounded, color: RainGuardColors.primary),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _BarangayLocationSheet extends StatelessWidget {
-  const _BarangayLocationSheet();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
-      decoration: const BoxDecoration(
-        color: RainGuardColors.background,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Center(
-            child: Container(
-              width: 44,
-              height: 5,
-              decoration: BoxDecoration(
-                color: Colors.blueGrey.shade200,
-                borderRadius: BorderRadius.circular(99),
-              ),
-            ),
-          ),
-          const SizedBox(height: 20),
-          const Text(
-            'Default Barangay Location',
-            style: TextStyle(
-              color: RainGuardColors.ink,
-              fontSize: 20,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            'RainGuard is focused on Barangay Lingga, Calamba for this capstone. Weather summaries and default map context use this area, while submitted reports still use the user\'s actual GPS when available.',
-            style: TextStyle(
-              color: RainGuardColors.secondaryText,
-              fontSize: 9,
-              height: 1.45,
-            ),
-          ),
-          const SizedBox(height: 16),
-          Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: RainGuardColors.border),
-            ),
-            child: const Row(
-              children: [
-                SettingsTileIcon(icon: Icons.place_outlined),
-                SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    'Barangay Lingga, Calamba',
-                    style: TextStyle(
-                      color: RainGuardColors.ink,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _NotificationPreferenceSheet extends StatefulWidget {
-  const _NotificationPreferenceSheet({
-    required this.selectedPreference,
-    required this.selectedRadiusKm,
-  });
-
-  final NotificationPreference selectedPreference;
-  final double selectedRadiusKm;
-
-  @override
-  State<_NotificationPreferenceSheet> createState() =>
-      _NotificationPreferenceSheetState();
-}
-
-class _NotificationPreferenceSheetState
-    extends State<_NotificationPreferenceSheet> {
-  late NotificationPreference _selectedPreference;
-  late double _selectedRadiusKm;
-
-  @override
-  void initState() {
-    super.initState();
-    _selectedPreference = widget.selectedPreference;
-    _selectedRadiusKm = widget.selectedRadiusKm;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
-      decoration: const BoxDecoration(
-        color: RainGuardColors.background,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Center(
-            child: Container(
-              width: 44,
-              height: 5,
-              decoration: BoxDecoration(
-                color: Colors.blueGrey.shade200,
-                borderRadius: BorderRadius.circular(99),
-              ),
-            ),
-          ),
-          const SizedBox(height: 20),
-          const Text(
-            'Notification Type',
-            style: TextStyle(
-              color: RainGuardColors.ink,
-              fontSize: 20,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-          const SizedBox(height: 6),
-          const Text(
-            'Choose which community reports should alert this device.',
-            style: TextStyle(
-              color: RainGuardColors.secondaryText,
-              fontSize: 8,
-              height: 1.35,
-            ),
-          ),
-          const SizedBox(height: 14),
-          ...NotificationPreference.values.map(
-            (preference) => _NotificationPreferenceOption(
-              preference: preference,
-              selectedRadiusKm: _selectedRadiusKm,
-              isSelected: _selectedPreference == preference,
-              onRadiusChanged: (radiusKm) {
-                setState(() {
-                  _selectedPreference = NotificationPreference.nearbyOnly;
-                  _selectedRadiusKm = radiusKm;
-                });
-              },
-              onTap: () {
-                setState(() => _selectedPreference = preference);
-              },
-            ),
-          ),
-          const SizedBox(height: 4),
-          SizedBox(
-            width: double.infinity,
-            height: 48,
-            child: FilledButton(
-              onPressed: () {
-                Navigator.pop(
-                  context,
-                  _NotificationPreferenceSelection(
-                    preference: _selectedPreference,
-                    nearbyRadiusKm: _selectedRadiusKm,
-                  ),
-                );
-              },
-              style: FilledButton.styleFrom(
-                backgroundColor: RainGuardColors.primary,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
-                ),
-              ),
-              child: const Text(
-                'Save Preference',
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _NotificationPreferenceOption extends StatelessWidget {
-  const _NotificationPreferenceOption({
-    required this.preference,
-    required this.isSelected,
-    required this.selectedRadiusKm,
-    required this.onRadiusChanged,
-    required this.onTap,
-  });
-
-  final NotificationPreference preference;
-  final bool isSelected;
-  final double selectedRadiusKm;
-  final ValueChanged<double> onRadiusChanged;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(18),
-          child: Ink(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: isSelected ? RainGuardColors.softBlue : Colors.white,
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(
-                color: isSelected
-                    ? RainGuardColors.primary
-                    : RainGuardColors.border,
-                width: isSelected ? 1.4 : 1,
-              ),
-            ),
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      width: 36,
-                      height: 36,
-                      decoration: BoxDecoration(
-                        color: RainGuardColors.primary.withOpacity(0.10),
-                        borderRadius: BorderRadius.circular(13),
-                      ),
-                      child: Icon(
-                        _preferenceIcon(preference),
-                        color: RainGuardColors.primary,
-                        size: 20,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            preference.label,
-                            style: const TextStyle(
-                              color: RainGuardColors.ink,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w900,
-                            ),
-                          ),
-                          const SizedBox(height: 3),
-                          Text(
-                            preference.description,
-                            style: const TextStyle(
-                              color: RainGuardColors.secondaryText,
-                              fontSize: 8,
-                              height: 1.3,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    if (isSelected)
-                      const Icon(
-                        Icons.check_circle_rounded,
-                        color: RainGuardColors.primary,
-                      ),
-                  ],
-                ),
-                if (preference == NotificationPreference.nearbyOnly &&
-                    isSelected) ...[
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      for (final radiusKm
-                          in NotificationPreferenceService.nearbyRadiusOptionsKm)
-                        Expanded(
-                          child: Padding(
-                            padding: EdgeInsets.only(
-                              right: radiusKm == 5 ? 0 : 8,
-                            ),
-                            child: _RadiusChoiceChip(
-                              radiusKm: radiusKm,
-                              isSelected: selectedRadiusKm == radiusKm,
-                              onTap: () => onRadiusChanged(radiusKm),
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                ],
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  IconData _preferenceIcon(NotificationPreference preference) {
-    switch (preference) {
-      case NotificationPreference.allReports:
-        return Icons.notifications_active_outlined;
-      case NotificationPreference.floodOnly:
-        return Icons.water_drop_outlined;
-      case NotificationPreference.nearbyOnly:
-        return Icons.near_me_outlined;
-      case NotificationPreference.highRiskOnly:
-        return Icons.priority_high_rounded;
-    }
-  }
-}
-
-class _RadiusChoiceChip extends StatelessWidget {
-  const _RadiusChoiceChip({
-    required this.radiusKm,
-    required this.isSelected,
-    required this.onTap,
-  });
-
-  final double radiusKm;
-  final bool isSelected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return OutlinedButton(
-      onPressed: onTap,
-      style: OutlinedButton.styleFrom(
-        foregroundColor:
-            isSelected ? Colors.white : RainGuardColors.primary,
-        backgroundColor:
-            isSelected ? RainGuardColors.primary : Colors.white,
-        side: BorderSide(
-          color: isSelected ? RainGuardColors.primary : RainGuardColors.border,
-        ),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        padding: const EdgeInsets.symmetric(horizontal: 8),
-      ),
-      child: FittedBox(
-        fit: BoxFit.scaleDown,
-        child: Text(
-          '${radiusKm.toStringAsFixed(0)} km',
-          maxLines: 1,
-          style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900),
-        ),
       ),
     );
   }
