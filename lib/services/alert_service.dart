@@ -13,6 +13,7 @@ class AlertService {
   }) {
     return FirebaseFirestore.instance
         .collection('alerts')
+        .where('status', isEqualTo: 'published')
         .orderBy('created_at', descending: true)
         .limit(limitCount)
         .snapshots()
