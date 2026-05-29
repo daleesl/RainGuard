@@ -28,10 +28,12 @@ class _ReportDetailsSheet extends StatelessWidget {
     final reportName = MapHelper.getReportTypeName(report.type);
     final reporterName = report.reporterName ?? 'Anonymous reporter';
     final freshnessLabel = MapHelper.getFreshnessName(report.freshness);
-    final statusLabel = '$freshnessLabel • ${timeago.format(report.createdAt)}';
-
+    final statusTimeLabel =
+        '$freshnessLabel - ${timeago.format(report.createdAt)}';
+    final createdLabel = _formatReportDateTime(report.createdAt);
+    final imageCount = report.allImageUrls.length;
     return DraggableScrollableSheet(
-      initialChildSize: 0.82,
+      initialChildSize: 0.84,
       minChildSize: 0.5,
       maxChildSize: 0.94,
       builder: (context, scrollController) {
@@ -99,9 +101,14 @@ class _ReportDetailsSheet extends StatelessWidget {
                           runSpacing: 6,
                           children: [
                             _StatusPill(
+                              color: riskColor,
+                              icon: MapHelper.getReportIcon(report.type),
+                              label: reportName,
+                            ),
+                            _StatusPill(
                               color: freshnessColor,
                               icon: Icons.schedule_rounded,
-                              label: statusLabel,
+                              label: statusTimeLabel,
                             ),
                             if (report.isAdminVerified)
                               const _StatusPill(
@@ -123,29 +130,6 @@ class _ReportDetailsSheet extends StatelessWidget {
               const SizedBox(height: 18),
               _ReportImageGallery(imageUrls: report.allImageUrls),
               const SizedBox(height: 18),
-              Row(
-                children: [
-                  Expanded(
-                    child: _InfoTile(
-                      label: 'Risk level',
-                      value: MapHelper.getRiskLevelName(report.risk),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _InfoTile(
-                      label: 'Flood level',
-                      value: report.floodLevel ?? 'Not set',
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              _InfoTile(
-                label: 'Location',
-                value: report.locationName ?? 'Exact name unavailable',
-              ),
-              const SizedBox(height: 18),
               _SectionCard(
                 title: 'Description',
                 icon: Icons.description_outlined,
@@ -155,23 +139,68 @@ class _ReportDetailsSheet extends StatelessWidget {
                       : 'No description provided for this report.',
                   style: const TextStyle(
                     height: 1.45,
-                    fontSize: 8,
+                    fontSize: 10,
                     color: RainGuardColors.ink,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
               ),
               const SizedBox(height: 12),
               _SectionCard(
-                title: 'Report time',
-                icon: Icons.access_time_rounded,
+                title: 'Location',
+                icon: Icons.place_outlined,
                 child: Text(
-                  report.createdAt.toString().split('.').first,
+                  report.locationName ?? 'Exact name unavailable',
                   style: const TextStyle(
-                    fontSize: 8,
+                    fontSize: 12,
                     color: RainGuardColors.ink,
+                    fontWeight: FontWeight.w800,
                   ),
                 ),
               ),
+              const SizedBox(height: 18),
+              Row(
+                children: [
+                  Expanded(
+                    child: _InfoTile(
+                      label: 'Risk level',
+                      value: MapHelper.getRiskLevelName(report.risk),
+                      emphasizeLabel: true,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _InfoTile(
+                      label: 'Photos',
+                      value: imageCount == 1
+                          ? '1 attached'
+                          : '$imageCount attached',
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: _InfoTile(
+                      label: 'Reporter',
+                      value: reporterName,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _InfoTile(
+                      label: 'Created',
+                      value: createdLabel,
+                    ),
+                  ),
+                ],
+              ),
+              if (report.floodLevel != null) ...[
+                const SizedBox(height: 12),
+                _InfoTile(label: 'Flood level', value: report.floodLevel!),
+              ],
               const SizedBox(height: 20),
               SizedBox(
                 height: 52,
@@ -196,6 +225,27 @@ class _ReportDetailsSheet extends StatelessWidget {
       },
     );
   }
+}
+
+String _formatReportDateTime(DateTime date) {
+  const months = [
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
+  ];
+  final hour = date.hour == 0 || date.hour == 12 ? 12 : date.hour % 12;
+  final minute = date.minute.toString().padLeft(2, '0');
+  final period = date.hour >= 12 ? 'PM' : 'AM';
+  return '${months[date.month - 1]} ${date.day}, $hour:$minute $period';
 }
 
 class _ReportImageGallery extends StatefulWidget {
@@ -501,10 +551,12 @@ class _InfoTile extends StatelessWidget {
   const _InfoTile({
     required this.label,
     required this.value,
+    this.emphasizeLabel = false,
   });
 
   final String label;
   final String value;
+  final bool emphasizeLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -520,9 +572,11 @@ class _InfoTile extends StatelessWidget {
         children: [
           Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 8,
-              color: RainGuardColors.secondaryText,
+              color: emphasizeLabel
+                  ? RainGuardColors.primary
+                  : RainGuardColors.secondaryText,
               fontWeight: FontWeight.w900,
             ),
           ),
