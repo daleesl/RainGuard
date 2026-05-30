@@ -1,4 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
@@ -6,7 +5,10 @@ import 'package:latlong2/latlong.dart';
 import '../models/report_draft.dart';
 import '../models/report_model.dart';
 import '../services/report_draft_service.dart';
+import '../services/report_feed_service.dart';
+import '../services/report_service.dart';
 import '../theme/rainguard_theme.dart';
+import '../utils/firebase_error_messages.dart';
 import '../utils/location_constants.dart';
 import '../widgets/map/pending_draft_sheet.dart';
 import '../widgets/map/report_map_card.dart';
@@ -31,6 +33,7 @@ class _MapScreenState extends State<MapScreen> {
   final MapController _mapController = MapController();
   List<ReportDraft> _pendingDrafts = const [];
   String _selectedReportId = '';
+  bool _isRetryingDrafts = false;
 
   @override
   void initState() {
@@ -47,10 +50,8 @@ class _MapScreenState extends State<MapScreen> {
     super.dispose();
   }
 
-  Stream<QuerySnapshot> get _reportsStream => FirebaseFirestore.instance
-      .collection('reports')
-      .orderBy('created_at', descending: true)
-      .snapshots();
+  Stream<List<Report>> get _reportsStream =>
+      ReportFeedService.latestReportsStream();
 
   void _handleDraftCountChanged() {
     _loadPendingDrafts();
@@ -93,8 +94,32 @@ class _MapScreenState extends State<MapScreen> {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
-      builder: (context) => PendingDraftSheet(draft: draft),
+      builder: (context) => PendingDraftSheet(
+        draft: draft,
+        isRetrying: _isRetryingDrafts,
+        onRetryTap: _retryPendingDrafts,
+      ),
     );
+  }
+
+  Future<void> _retryPendingDrafts() async {
+    if (_isRetryingDrafts) return;
+
+    Navigator.of(context).maybePop();
+    setState(() => _isRetryingDrafts = true);
+
+    final submittedCount = await ReportService.submitPendingDrafts();
+    await _loadPendingDrafts();
+
+    if (!mounted) return;
+    setState(() => _isRetryingDrafts = false);
+
+    final message = submittedCount > 0
+        ? '$submittedCount pending report uploaded.'
+        : 'Draft is still saved locally. Check your connection and try again.';
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -102,10 +127,10 @@ class _MapScreenState extends State<MapScreen> {
     return Scaffold(
       backgroundColor: RainGuardColors.background,
       appBar: const RainGuardAppBar(),
-      body: StreamBuilder<QuerySnapshot>(
+      body: StreamBuilder<List<Report>>(
         stream: _reportsStream,
         builder: (context, snapshot) {
-          final reports = _parseReports(snapshot.data?.docs ?? []);
+          final reports = snapshot.data ?? const <Report>[];
           final selectedReport = _selectedReport(reports);
           final hasSelectedReport = selectedReport != null;
 
@@ -125,11 +150,7 @@ class _MapScreenState extends State<MapScreen> {
               ),
               if (snapshot.connectionState == ConnectionState.waiting &&
                   reports.isEmpty)
-                const Positioned(
-                  top: 16,
-                  right: 16,
-                  child: _MapLoadingBadge(),
-                ),
+                const Positioned(top: 16, right: 16, child: _MapLoadingBadge()),
               if (selectedReport != null)
                 Positioned(
                   left: 0,
@@ -157,7 +178,12 @@ class _MapScreenState extends State<MapScreen> {
                   left: 16,
                   right: 16,
                   top: 16,
-                  child: _MapErrorBanner(message: '${snapshot.error}'),
+                  child: _MapErrorBanner(
+                    message: friendlyFirebaseError(
+                      snapshot.error,
+                      fallback: 'Unable to load map reports.',
+                    ),
+                  ),
                 ),
             ],
           );
@@ -174,22 +200,6 @@ class _MapScreenState extends State<MapScreen> {
     }
 
     return null;
-  }
-
-  List<Report> _parseReports(List<QueryDocumentSnapshot> docs) {
-    final reports = <Report>[];
-
-    for (final doc in docs) {
-      try {
-        reports.add(
-          Report.fromFirestore(doc.data() as Map<String, dynamic>, doc.id),
-        );
-      } catch (error) {
-        debugPrint('Error parsing report ${doc.id}: $error');
-      }
-    }
-
-    return reports;
   }
 }
 

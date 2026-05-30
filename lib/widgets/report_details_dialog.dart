@@ -315,6 +315,39 @@ class _ReportImageGalleryState extends State<_ReportImageGallery> {
                       ),
                     ),
                   ),
+                Positioned(
+                  left: 12,
+                  bottom: imageUrls.length > 1 ? 30 : 12,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.50),
+                      borderRadius: BorderRadius.circular(99),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.zoom_in_rounded,
+                          color: Colors.white,
+                          size: 13,
+                        ),
+                        SizedBox(width: 5),
+                        Text(
+                          'Tap to zoom',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 8,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
                 if (imageUrls.length > 1)
                   Positioned(
                     bottom: 12,

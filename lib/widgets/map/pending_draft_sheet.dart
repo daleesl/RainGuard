@@ -6,9 +6,16 @@ import '../../theme/rainguard_theme.dart';
 import '../../utils/map_helper.dart';
 
 class PendingDraftSheet extends StatelessWidget {
-  const PendingDraftSheet({super.key, required this.draft});
+  const PendingDraftSheet({
+    super.key,
+    required this.draft,
+    required this.onRetryTap,
+    required this.isRetrying,
+  });
 
   final ReportDraft draft;
+  final VoidCallback onRetryTap;
+  final bool isRetrying;
 
   @override
   Widget build(BuildContext context) {
@@ -92,6 +99,46 @@ class PendingDraftSheet extends StatelessWidget {
             color: Colors.amber.shade800,
             icon: Icons.access_time_rounded,
             label: timeago.format(draft.createdAt),
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            height: 48,
+            child: FilledButton.icon(
+              onPressed: isRetrying ? null : onRetryTap,
+              style: FilledButton.styleFrom(
+                backgroundColor: RainGuardColors.primary,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+              icon: isRetrying
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Icon(Icons.cloud_upload_outlined, size: 18),
+              label: Text(
+                isRetrying ? 'Retrying upload...' : 'Retry upload now',
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Keep this draft until upload succeeds. It will be removed automatically after RainGuard saves it online.',
+            style: TextStyle(
+              color: RainGuardColors.secondaryText,
+              fontSize: 8,
+              height: 1.35,
+            ),
           ),
         ],
       ),
