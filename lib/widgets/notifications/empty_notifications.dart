@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../theme/rainguard_theme.dart';
+import '../rainguard_state_message.dart';
 import 'notification_filter_bar.dart';
 
 class EmptyNotifications extends StatelessWidget {
@@ -17,41 +17,10 @@ class EmptyNotifications extends StatelessWidget {
         'RainGuard will show community reports and weather alerts here.',
     };
 
-    return Container(
-      padding: const EdgeInsets.all(22),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: RainGuardColors.border),
-      ),
-      child: Column(
-        children: [
-          Icon(
-            Icons.notifications_none_rounded,
-            size: 44,
-            color: RainGuardColors.primary,
-          ),
-          const SizedBox(height: 12),
-          const Text(
-            'No notifications yet',
-            style: TextStyle(
-              fontWeight: FontWeight.w900,
-              fontSize: 12,
-              color: RainGuardColors.ink,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            message,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: RainGuardColors.secondaryText,
-              fontSize: 8,
-              height: 1.4,
-            ),
-          ),
-        ],
-      ),
+    return RainGuardStateMessage(
+      icon: Icons.notifications_none_rounded,
+      title: 'No notifications yet',
+      message: message,
     );
   }
 }

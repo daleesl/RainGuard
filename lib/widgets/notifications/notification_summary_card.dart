@@ -9,18 +9,22 @@ import '../rainguard_card.dart';
 class NotificationSummaryCard extends StatelessWidget {
   const NotificationSummaryCard({
     super.key,
+    required this.advisoryCount,
+    required this.urgentAdvisoryCount,
     required this.totalReports,
     required this.activeRiskCount,
     required this.latestReport,
   });
 
+  final int advisoryCount;
+  final int urgentAdvisoryCount;
   final int totalReports;
   final int activeRiskCount;
   final Report? latestReport;
 
   @override
   Widget build(BuildContext context) {
-    final hasActiveRisk = activeRiskCount > 0;
+    final hasActiveRisk = activeRiskCount > 0 || urgentAdvisoryCount > 0;
     final statusColor = hasActiveRisk
         ? Colors.red.shade700
         : Colors.green.shade700;
@@ -60,7 +64,7 @@ class NotificationSummaryCard extends StatelessWidget {
                   children: [
                     Text(
                       hasActiveRisk
-                          ? 'Active alerts in your area'
+                          ? 'Active safety updates'
                           : 'No active flood alerts',
                       style: const TextStyle(
                         color: RainGuardColors.ink,
@@ -90,8 +94,8 @@ class NotificationSummaryCard extends StatelessWidget {
             children: [
               Expanded(
                 child: _SummaryMetric(
-                  label: 'Reports',
-                  value: '$totalReports',
+                  label: 'Advisories',
+                  value: '$advisoryCount',
                   color: RainGuardColors.primary,
                 ),
               ),
@@ -99,8 +103,16 @@ class NotificationSummaryCard extends StatelessWidget {
               Expanded(
                 child: _SummaryMetric(
                   label: 'Need attention',
-                  value: '$activeRiskCount',
+                  value: '${activeRiskCount + urgentAdvisoryCount}',
                   color: statusColor,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _SummaryMetric(
+                  label: 'Reports',
+                  value: '$totalReports',
+                  color: Colors.blueGrey.shade700,
                 ),
               ),
             ],

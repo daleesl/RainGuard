@@ -3,20 +3,36 @@ import 'package:flutter/material.dart';
 import '../../theme/rainguard_theme.dart';
 
 class NotificationSectionHeader extends StatelessWidget {
-  const NotificationSectionHeader(this.label, {super.key});
+  const NotificationSectionHeader(this.label, {super.key, this.count});
 
   final String label;
+  final int? count;
 
   @override
   Widget build(BuildContext context) {
-    return Text(
-      label.toUpperCase(),
-      style: const TextStyle(
-        color: RainGuardColors.sectionLabel,
-        fontSize: 8,
-        fontWeight: FontWeight.w900,
-        letterSpacing: 0.8,
-      ),
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            label.toUpperCase(),
+            style: const TextStyle(
+              color: RainGuardColors.sectionLabel,
+              fontSize: 8,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 0.8,
+            ),
+          ),
+        ),
+        if (count != null)
+          Text(
+            '$count',
+            style: const TextStyle(
+              color: RainGuardColors.secondaryText,
+              fontSize: 8,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+      ],
     );
   }
 }

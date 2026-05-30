@@ -68,7 +68,7 @@ class SafetyAlertCard extends StatelessWidget {
                                   ),
                                   const SizedBox(height: 5),
                                   Text(
-                                    '${alert.area} barangay advisory',
+                                    '${alert.area} - Push advisory',
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                     style: const TextStyle(
