@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../theme/rainguard_theme.dart';
+import '../rainguard_status_chip.dart';
 
 class SettingsProfileCard extends StatelessWidget {
   const SettingsProfileCard({
@@ -76,24 +77,11 @@ class SettingsProfileCard extends StatelessWidget {
                 const SizedBox(height: 8),
                 InkWell(
                   onTap: onVerifyTap,
-                  borderRadius: BorderRadius.circular(99),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: RainGuardColors.warningFill,
-                      borderRadius: BorderRadius.circular(99),
-                    ),
-                    child: Text(
-                      _verificationPillLabel(verificationStatus),
-                      style: const TextStyle(
-                        color: RainGuardColors.warningText,
-                        fontSize: 10.5,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
+                  borderRadius: BorderRadius.circular(RainGuardRadii.pill),
+                  child: RainGuardStatusChip(
+                    label: _verificationPillLabel(verificationStatus),
+                    icon: _verificationPillIcon(verificationStatus),
+                    tone: _verificationPillTone(verificationStatus),
                   ),
                 ),
               ],
@@ -119,6 +107,33 @@ class SettingsProfileCard extends StatelessWidget {
       case 'unverified':
       default:
         return 'Unverified resident';
+    }
+  }
+
+  IconData _verificationPillIcon(String status) {
+    switch (status) {
+      case 'verified':
+        return Icons.verified_rounded;
+      case 'pending':
+        return Icons.schedule_rounded;
+      case 'rejected':
+        return Icons.error_outline_rounded;
+      case 'unverified':
+      default:
+        return Icons.shield_outlined;
+    }
+  }
+
+  RainGuardStatusTone _verificationPillTone(String status) {
+    switch (status) {
+      case 'verified':
+        return RainGuardStatusTone.success;
+      case 'pending':
+      case 'rejected':
+        return RainGuardStatusTone.warning;
+      case 'unverified':
+      default:
+        return RainGuardStatusTone.info;
     }
   }
 }

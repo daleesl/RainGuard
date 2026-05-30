@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../theme/rainguard_theme.dart';
+import '../rainguard_status_chip.dart';
 
 class SettingsSectionLabel extends StatelessWidget {
   const SettingsSectionLabel(this.label, {super.key});
@@ -83,14 +84,7 @@ class SettingsTile extends StatelessWidget {
                       ),
                       if (status != null) ...[
                         const SizedBox(height: 8),
-                        Text(
-                          status!,
-                          style: const TextStyle(
-                            color: RainGuardColors.warningText,
-                            fontSize: 10.5,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
+                        _SettingsStatusPill(label: status!),
                       ],
                     ],
                   ),
@@ -104,6 +98,31 @@ class SettingsTile extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _SettingsStatusPill extends StatelessWidget {
+  const _SettingsStatusPill({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final normalized = label.toLowerCase();
+    final isVerified = normalized.contains('verified resident');
+    final isPending =
+        normalized.contains('pending') || normalized.contains('updating');
+    final isRequired =
+        normalized.contains('required') || normalized.contains('review');
+
+    return RainGuardStatusChip(
+      label: label,
+      tone: isVerified
+          ? RainGuardStatusTone.success
+          : isPending || isRequired
+          ? RainGuardStatusTone.warning
+          : RainGuardStatusTone.info,
     );
   }
 }
