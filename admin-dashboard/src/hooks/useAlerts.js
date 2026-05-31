@@ -9,6 +9,7 @@ import {
   startAfter,
 } from 'firebase/firestore'
 import { db } from '../firebase'
+import { friendlyFirebaseError } from '../utils/firebaseErrors'
 
 const ALERT_PAGE_SIZE = 50
 
@@ -43,7 +44,7 @@ export function useAlerts() {
       },
       (snapshotError) => {
         setStatus('error')
-        setError(snapshotError.message)
+        setError(friendlyFirebaseError(snapshotError, 'Unable to load alerts.'))
       },
     )
 
@@ -76,7 +77,7 @@ export function useAlerts() {
       setHasMore(snapshot.docs.length === ALERT_PAGE_SIZE)
       setError('')
     } catch (loadError) {
-      setError(loadError.message)
+      setError(friendlyFirebaseError(loadError, 'Unable to load older alerts.'))
     } finally {
       setIsLoadingMore(false)
     }

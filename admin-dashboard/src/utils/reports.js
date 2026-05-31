@@ -86,6 +86,8 @@ export function getRiskName(report) {
 
 export function getReviewStatus(report) {
   if (report.status === 'verified') return 'Verified'
+  if (report.status === 'resolved') return 'Resolved'
+  if (report.status === 'rejected') return 'Rejected'
   if (report.status === 'flagged' || report.status === 'duplicate_hidden') {
     return 'Flagged'
   }
@@ -121,6 +123,31 @@ export function isToday(date) {
     date.getFullYear() === now.getFullYear() &&
     date.getMonth() === now.getMonth() &&
     date.getDate() === now.getDate()
+  )
+}
+
+export function isThisWeek(date) {
+  if (!date) return false
+  const now = new Date()
+  const weekAgo = new Date(now)
+  weekAgo.setDate(now.getDate() - 7)
+  return date >= weekAgo && date <= now
+}
+
+export function isDefaultMapReport(report) {
+  if (report.status === 'resolved' || report.status === 'rejected') {
+    return false
+  }
+
+  const ageHours = report.createdAt
+    ? (Date.now() - report.createdAt.getTime()) / (1000 * 60 * 60)
+    : 0
+
+  return (
+    ageHours <= 72 ||
+    report.status === 'active' ||
+    report.status === 'pending' ||
+    report.status === 'verified'
   )
 }
 

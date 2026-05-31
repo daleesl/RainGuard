@@ -9,6 +9,7 @@ import {
   startAfter,
 } from 'firebase/firestore'
 import { db } from '../firebase'
+import { friendlyFirebaseError } from '../utils/firebaseErrors'
 import { isCalambaReport, parseReport } from '../utils/reports'
 
 const REPORT_PAGE_SIZE = 50
@@ -42,7 +43,7 @@ export function useReports() {
       },
       (snapshotError) => {
         setStatus('error')
-        setError(snapshotError.message)
+        setError(friendlyFirebaseError(snapshotError, 'Unable to load reports.'))
       },
     )
 
@@ -81,7 +82,7 @@ export function useReports() {
       setHasMore(snapshot.docs.length === REPORT_PAGE_SIZE)
       setError('')
     } catch (loadError) {
-      setError(loadError.message)
+      setError(friendlyFirebaseError(loadError, 'Unable to load older reports.'))
     } finally {
       setIsLoadingMore(false)
     }

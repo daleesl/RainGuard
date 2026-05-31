@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { collection, onSnapshot } from 'firebase/firestore'
 import { db } from '../firebase'
+import { friendlyFirebaseError } from '../utils/firebaseErrors'
 
 export function useUsers() {
   const [users, setUsers] = useState([])
@@ -17,7 +18,7 @@ export function useUsers() {
       },
       (snapshotError) => {
         setStatus('error')
-        setError(snapshotError.message)
+        setError(friendlyFirebaseError(snapshotError, 'Unable to load users.'))
       },
     )
 
