@@ -13,6 +13,7 @@ import {
 } from 'lucide-react'
 import { MetricCard } from '../components/MetricCard'
 import { PageTopbar } from '../components/PageTopbar'
+import { PrimaryActionButton } from '../components/PrimaryActionButton'
 import { useAlerts } from '../hooks/useAlerts'
 import { useReports } from '../hooks/useReports'
 import { useUsers } from '../hooks/useUsers'
@@ -145,13 +146,9 @@ export function DashboardPage({ onNavigate }) {
     <div className="dashboard-page">
       <PageTopbar
         action={
-          <button
-            className="primary-action"
-            onClick={() => onNavigate('liveMap')}
-            type="button"
-          >
+          <PrimaryActionButton onClick={() => onNavigate('liveMap')}>
             Open Live Map
-          </button>
+          </PrimaryActionButton>
         }
         description="Open key admin tools and check current RainGuard operations."
         title="Dashboard"

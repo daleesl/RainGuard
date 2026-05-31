@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { MetricCard } from '../components/MetricCard'
 import { PageTopbar } from '../components/PageTopbar'
+import { PrimaryActionButton } from '../components/PrimaryActionButton'
 import { StatusChip } from '../components/StatusChip'
 import { useReports } from '../hooks/useReports'
 import { useUsers } from '../hooks/useUsers'
@@ -157,9 +158,9 @@ export function AnalyticsPage() {
     <div className="analytics-page">
       <PageTopbar
         action={
-          <button className="primary-action" onClick={exportReport} type="button">
+          <PrimaryActionButton onClick={exportReport}>
             Export Report
-          </button>
+          </PrimaryActionButton>
         }
         description="Track report trends, flood hotspots, verification throughput, and alert reach."
         search={{

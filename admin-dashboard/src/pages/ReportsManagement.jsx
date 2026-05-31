@@ -7,10 +7,14 @@ import {
   RotateCcw,
   X,
 } from 'lucide-react'
+import { AdminActionButton, AdminActionGroup } from '../components/AdminActionButton'
 import { ConfirmActionModal } from '../components/ConfirmActionModal'
+import { FilterChipButton } from '../components/FilterChipButton'
 import { MetricCard } from '../components/MetricCard'
 import { PageTopbar } from '../components/PageTopbar'
+import { PrimaryActionButton } from '../components/PrimaryActionButton'
 import { StatusChip } from '../components/StatusChip'
+import { TableState } from '../components/TableState'
 import { useReports } from '../hooks/useReports'
 import {
   hideDuplicateReport,
@@ -157,9 +161,9 @@ export function ReportsManagement({ onOpenMap }) {
     <div className="reports-page">
       <PageTopbar
         action={
-          <button className="primary-action" onClick={exportCsv} type="button">
+          <PrimaryActionButton onClick={exportCsv}>
             Export CSV
-          </button>
+          </PrimaryActionButton>
         }
         description="Review, verify, hide, or resolve community rain and flood reports."
         search={{
@@ -199,36 +203,35 @@ export function ReportsManagement({ onOpenMap }) {
             <div className="report-filter-chips" aria-label="Report filters">
               <FilterChip
                 activeFilter={activeFilter}
-                colorClass="chip-blue"
                 label="Today"
                 setActiveFilter={setActiveFilter}
+                tone="blue"
                 value="today"
               />
               <FilterChip
                 activeFilter={activeFilter}
-                colorClass="chip-red"
                 label="Flood"
                 setActiveFilter={setActiveFilter}
+                tone="red"
                 value="flood"
               />
               <FilterChip
                 activeFilter={activeFilter}
-                colorClass="chip-amber"
                 label="Unreviewed"
                 setActiveFilter={setActiveFilter}
+                tone="amber"
                 value="unreviewed"
               />
-              <button
-                className="chip chip-button chip-neutral"
+              <FilterChipButton
                 disabled={activeFilter === 'all' && !searchTerm}
                 onClick={() => {
                   setActiveFilter('all')
                   setSearchTerm('')
                 }}
-                type="button"
+                tone="neutral"
               >
                 Clear
-              </button>
+              </FilterChipButton>
             </div>
           </div>
 
@@ -275,9 +278,9 @@ export function ReportsManagement({ onOpenMap }) {
                         : 'No photo'}
                     </td>
                     <td>
-                      <div className="row-action-group">
-                        <button
-                          className="table-action table-action-verify"
+                      <AdminActionGroup>
+                        <AdminActionButton
+                          icon={CheckCircle2}
                           onClick={() =>
                             requestReportAction(
                               report,
@@ -310,14 +313,12 @@ export function ReportsManagement({ onOpenMap }) {
                               ? 'Remove verified status'
                               : 'Mark report as verified'
                           }
+                          tone="verify"
                         >
-                          <CheckCircle2 aria-hidden="true" size={13} />
-                          <span>
-                            {report.status === 'verified' ? 'Unverify' : 'Verify'}
-                          </span>
-                        </button>
-                        <button
-                          className="table-action table-action-resolve"
+                          {report.status === 'verified' ? 'Unverify' : 'Verify'}
+                        </AdminActionButton>
+                        <AdminActionButton
+                          icon={RotateCcw}
                           onClick={() =>
                             requestReportAction(report, {
                               confirmLabel: 'Resolve report',
@@ -329,14 +330,13 @@ export function ReportsManagement({ onOpenMap }) {
                               action: resolveReport,
                             })
                           }
-                          type="button"
                           title="Mark report as resolved"
+                          tone="resolve"
                         >
-                          <RotateCcw aria-hidden="true" size={13} />
-                          <span>Resolve</span>
-                        </button>
-                        <button
-                          className="table-action table-action-danger"
+                          Resolve
+                        </AdminActionButton>
+                        <AdminActionButton
+                          icon={EyeOff}
                           onClick={() =>
                             requestReportAction(report, {
                               confirmLabel: 'Hide report',
@@ -348,35 +348,33 @@ export function ReportsManagement({ onOpenMap }) {
                               action: hideDuplicateReport,
                             })
                           }
-                          type="button"
                           title="Hide duplicate report"
+                          tone="danger"
                         >
-                          <EyeOff aria-hidden="true" size={13} />
-                          <span>Hide</span>
-                        </button>
-                        <button
-                          className="table-action table-action-ghost"
+                          Hide
+                        </AdminActionButton>
+                        <AdminActionButton
+                          icon={Eye}
                           onClick={() => setSelectedReport(report)}
-                          type="button"
                           title="View report details"
+                          tone="ghost"
                         >
-                          <Eye aria-hidden="true" size={13} />
-                          <span>View</span>
-                        </button>
-                      </div>
+                          View
+                        </AdminActionButton>
+                      </AdminActionGroup>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
             {status === 'loading' ? (
-              <p className="table-state">Loading report queue...</p>
+              <TableState>Loading report queue...</TableState>
             ) : null}
             {status === 'ready' && filteredReports.length === 0 ? (
-              <p className="table-state">
+              <TableState>
                 No reports match this view. Try another chip or clear the
                 search field.
-              </p>
+              </TableState>
             ) : null}
             {hasMore ? (
               <div className="table-load-more">
@@ -570,20 +568,20 @@ function InfoItem({ label, value }) {
 
 function FilterChip({
   activeFilter,
-  colorClass,
   label,
   setActiveFilter,
+  tone,
   value,
 }) {
   const isActive = activeFilter === value
 
   return (
-    <button
-      className={`chip chip-button ${colorClass} ${isActive ? 'is-active' : ''}`}
+    <FilterChipButton
+      isActive={isActive}
       onClick={() => setActiveFilter(isActive ? 'all' : value)}
-      type="button"
+      tone={tone}
     >
       {label}
-    </button>
+    </FilterChipButton>
   )
 }

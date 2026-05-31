@@ -2,7 +2,9 @@ import { useMemo, useState } from 'react'
 import { ConfirmActionModal } from '../components/ConfirmActionModal'
 import { MetricCard } from '../components/MetricCard'
 import { PageTopbar } from '../components/PageTopbar'
+import { PrimaryActionButton } from '../components/PrimaryActionButton'
 import { StatusChip } from '../components/StatusChip'
+import { TableState } from '../components/TableState'
 import { useUsers } from '../hooks/useUsers'
 import {
   approveVerification,
@@ -101,14 +103,12 @@ export function VerificationReview() {
     <div className="verification-page">
       <PageTopbar
         action={
-          <button
-            className="primary-action"
+          <PrimaryActionButton
             disabled={applicants.length === 0}
             onClick={() => setSelectedId(applicants[0]?.id || '')}
-            type="button"
           >
             Review Oldest
-          </button>
+          </PrimaryActionButton>
         }
         description="Approve valid IDs so trusted users can submit safety reports."
         search={{
@@ -136,11 +136,13 @@ export function VerificationReview() {
           <article className="verification-list-card">
             <h3>Pending Applicants</h3>
             <div className="applicant-list">
-              {status === 'loading' ? <p className="table-state">Loading applicants...</p> : null}
+              {status === 'loading' ? (
+                <TableState>Loading applicants...</TableState>
+              ) : null}
               {status === 'ready' && applicants.length === 0 ? (
-                <p className="table-state">
+                <TableState>
                   No submitted ID verification requests yet.
-                </p>
+                </TableState>
               ) : null}
               {applicants.map((applicant) => (
                 <button
@@ -251,9 +253,9 @@ export function VerificationReview() {
                 </div>
               </>
             ) : (
-              <p className="table-state">
+              <TableState>
                 Select a submitted verification request to review the uploaded ID.
-              </p>
+              </TableState>
             )}
           </article>
         </section>

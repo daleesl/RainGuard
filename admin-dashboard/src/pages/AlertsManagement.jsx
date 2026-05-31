@@ -1,8 +1,11 @@
 import { useMemo, useState } from 'react'
 import { ConfirmActionModal } from '../components/ConfirmActionModal'
+import { FilterChipButton } from '../components/FilterChipButton'
 import { MetricCard } from '../components/MetricCard'
 import { PageTopbar } from '../components/PageTopbar'
+import { PrimaryActionButton } from '../components/PrimaryActionButton'
 import { StatusChip } from '../components/StatusChip'
+import { TableState } from '../components/TableState'
 import { isAlertToday, useAlerts } from '../hooks/useAlerts'
 import {
   createAlert,
@@ -159,13 +162,9 @@ export function AlertsManagement() {
     <div className="alerts-page">
       <PageTopbar
         action={
-          <button
-            className="primary-action"
-            onClick={() => requestPublish('published')}
-            type="button"
-          >
+          <PrimaryActionButton onClick={() => requestPublish('published')}>
             Publish Alert
-          </button>
+          </PrimaryActionButton>
         }
         description="Create safety advisories and manage active/resolved alert messages."
         search={{
@@ -301,7 +300,7 @@ export function AlertsManagement() {
                 </div>
               ))}
               {filteredAlerts.length === 0 ? (
-                <p className="table-state">No alerts match the current view.</p>
+                <TableState>No alerts match the current view.</TableState>
               ) : null}
               {hasMore ? (
                 <div className="table-load-more">
@@ -319,15 +318,15 @@ export function AlertsManagement() {
 
             <h4>Quick templates</h4>
             <div className="template-row">
-              <button className="chip chip-button chip-red" onClick={() => applyTemplate('flood')} type="button">
+              <FilterChipButton onClick={() => applyTemplate('flood')} tone="red">
                 Flood Watch
-              </button>
-              <button className="chip chip-button chip-blue" onClick={() => applyTemplate('rain')} type="button">
+              </FilterChipButton>
+              <FilterChipButton onClick={() => applyTemplate('rain')} tone="blue">
                 Rain Advisory
-              </button>
-              <button className="chip chip-button chip-green" onClick={() => applyTemplate('clear')} type="button">
+              </FilterChipButton>
+              <FilterChipButton onClick={() => applyTemplate('clear')} tone="green">
                 All Clear
-              </button>
+              </FilterChipButton>
             </div>
           </article>
         </section>

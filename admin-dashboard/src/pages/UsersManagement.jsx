@@ -1,9 +1,12 @@
 import { useMemo, useState } from 'react'
 import { Ban, IdCard, ImageOff, RotateCcw, ShieldAlert, X } from 'lucide-react'
+import { AdminActionButton, AdminActionGroup } from '../components/AdminActionButton'
 import { ConfirmActionModal } from '../components/ConfirmActionModal'
 import { MetricCard } from '../components/MetricCard'
 import { PageTopbar } from '../components/PageTopbar'
+import { PrimaryActionButton } from '../components/PrimaryActionButton'
 import { StatusChip } from '../components/StatusChip'
+import { TableState } from '../components/TableState'
 import { useReports } from '../hooks/useReports'
 import { useUsers } from '../hooks/useUsers'
 import {
@@ -88,13 +91,11 @@ export function UsersManagement({ onOpenVerification }) {
     <div className="users-page">
       <PageTopbar
         action={
-          <button
-            className="primary-action"
+          <PrimaryActionButton
             onClick={() => setMessage('Create admin accounts in Firebase Auth, then set role: admin in Firestore.')}
-            type="button"
           >
             Add Admin
-          </button>
+          </PrimaryActionButton>
         }
         description="Search residents, inspect verification state, and manage account access."
         search={{
@@ -160,10 +161,10 @@ export function UsersManagement({ onOpenVerification }) {
               ))}
 
               {status === 'loading' ? (
-                <p className="table-state">Loading resident accounts...</p>
+                <TableState>Loading resident accounts...</TableState>
               ) : null}
               {status === 'ready' && visibleUsers.length === 0 ? (
-                <p className="table-state">No resident account matches the current data.</p>
+                <TableState>No resident account matches the current data.</TableState>
               ) : null}
             </div>
           </article>
@@ -200,35 +201,33 @@ function UserActions({ onOpenVerification, onRequestAction, onViewId, user }) {
   const hasIdPhoto = Boolean(user.verificationIdFrontUrl)
 
   return (
-    <div className="user-action-group">
+    <AdminActionGroup className="w-[min(100%,252px)] flex-nowrap gap-[5px]">
       {hasIdPhoto ? (
-        <button
-          className="table-action table-action-ghost"
+        <AdminActionButton
+          icon={IdCard}
           onClick={() => onViewId(user)}
           title="View submitted ID"
-          type="button"
+          tone="ghost"
         >
-          <IdCard aria-hidden="true" size={13} />
-          <span>View ID</span>
-        </button>
+          View ID
+        </AdminActionButton>
       ) : null}
 
       {needsVerification ? (
-        <button
-          className="table-action table-action-ghost"
+        <AdminActionButton
+          icon={ShieldAlert}
           onClick={onOpenVerification}
           title="Open Verification Review"
-          type="button"
+          tone="ghost"
         >
-          <ShieldAlert aria-hidden="true" size={13} />
-          <span>Review ID</span>
-        </button>
+          Review ID
+        </AdminActionButton>
       ) : null}
 
       {accountStatus === 'active' ? (
         <>
-          <button
-            className="table-action table-action-resolve"
+          <AdminActionButton
+            icon={Ban}
             onClick={() =>
               onRequestAction(user, {
                 confirmLabel: 'Suspend account',
@@ -241,13 +240,12 @@ function UserActions({ onOpenVerification, onRequestAction, onViewId, user }) {
               })
             }
             title="Suspend account"
-            type="button"
+            tone="resolve"
           >
-            <Ban aria-hidden="true" size={13} />
-            <span>Suspend</span>
-          </button>
-          <button
-            className="table-action table-action-danger"
+            Suspend
+          </AdminActionButton>
+          <AdminActionButton
+            icon={Ban}
             onClick={() =>
               onRequestAction(user, {
                 confirmLabel: 'Disable account',
@@ -260,15 +258,14 @@ function UserActions({ onOpenVerification, onRequestAction, onViewId, user }) {
               })
             }
             title="Disable account"
-            type="button"
+            tone="danger"
           >
-            <Ban aria-hidden="true" size={13} />
-            <span>Disable</span>
-          </button>
+            Disable
+          </AdminActionButton>
         </>
       ) : (
-        <button
-          className="table-action table-action-verify"
+        <AdminActionButton
+          icon={RotateCcw}
           onClick={() =>
             onRequestAction(user, {
               confirmLabel: 'Restore account',
@@ -281,13 +278,12 @@ function UserActions({ onOpenVerification, onRequestAction, onViewId, user }) {
             })
           }
           title="Restore account"
-          type="button"
+          tone="verify"
         >
-          <RotateCcw aria-hidden="true" size={13} />
-          <span>Restore</span>
-        </button>
+          Restore
+        </AdminActionButton>
       )}
-    </div>
+    </AdminActionGroup>
   )
 }
 
