@@ -122,6 +122,53 @@
   font: inherit;
 }
 
+.monitoring-area-label {
+  max-width: 188px;
+  border: 1px solid rgba(31, 126, 214, 0.22);
+  border-radius: 999px;
+  padding: 5px 9px;
+  background: rgba(255, 255, 255, 0.86);
+  color: #1778d4;
+  display: block;
+  overflow: hidden;
+  box-shadow: 0 6px 14px rgba(8, 33, 56, 0.08);
+  font-size: 9px;
+  font-weight: 900;
+  line-height: 1;
+  pointer-events: none;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.monitoring-area-toolbar {
+  position: absolute;
+  z-index: 520;
+  left: 18px;
+  top: 52px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.monitoring-area-toolbar button {
+  height: 28px;
+  border: 1px solid #d9e7ef;
+  border-radius: 999px;
+  padding: 0 10px;
+  background: rgba(255, 255, 255, 0.94);
+  color: #667b8f;
+  cursor: pointer;
+  font-size: 9px;
+  font-weight: 900;
+  pointer-events: auto;
+}
+
+.monitoring-area-toolbar button.is-active {
+  color: #1778d4;
+}
+
 .report-cluster {
   width: 38px;
   height: 38px;

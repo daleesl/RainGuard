@@ -4,10 +4,16 @@ import {
   CircleMarker,
   MapContainer,
   Marker,
+  Polygon,
   TileLayer,
   useMap,
   useMapEvents,
 } from 'react-leaflet'
+import {
+  LINGGA_MONITORING_AREA_LABEL,
+  LINGGA_MONITORING_AREA_LABEL_POINT,
+  LINGGA_MONITORING_BOUNDARY,
+} from '../../utils/monitoringArea'
 import {
   CALAMBA_CENTER,
   getReportColor,
@@ -35,6 +41,8 @@ export function LiveReportMap({
   searchTerm,
   status,
 }) {
+  const [isBoundaryVisible, setIsBoundaryVisible] = useState(true)
+
   return (
     <article className="map-card">
       <div className="card-heading">
@@ -65,11 +73,22 @@ export function LiveReportMap({
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
+          {isBoundaryVisible ? <LinggaMonitoringBoundary /> : null}
           <ClusteredReportMarkers
             onOpenReport={onSelectReport}
             reports={filteredReports}
           />
         </MapContainer>
+        <div className="monitoring-area-toolbar" aria-label="Map overlays">
+          <button
+            aria-pressed={isBoundaryVisible}
+            className={isBoundaryVisible ? 'is-active' : ''}
+            onClick={() => setIsBoundaryVisible((isVisible) => !isVisible)}
+            type="button"
+          >
+            Boundary
+          </button>
+        </div>
         <div className="map-legend" aria-label="Map legend">
           <span>
             <i className="legend-dot legend-dot-flood" /> Flood
@@ -115,6 +134,41 @@ export function LiveReportMap({
         <span>{status === 'ready' ? 'Firebase live' : 'Syncing'}</span>
       </div>
     </article>
+  )
+}
+
+function LinggaMonitoringBoundary() {
+  const labelIcon = useMemo(
+    () =>
+      L.divIcon({
+        className: '',
+        html: `<span class="monitoring-area-label">${LINGGA_MONITORING_AREA_LABEL}</span>`,
+        iconAnchor: [94, 14],
+        iconSize: [188, 28],
+      }),
+    [],
+  )
+
+  return (
+    <>
+      <Polygon
+        interactive={false}
+        pathOptions={{
+          color: '#1f7ed6',
+          fillColor: '#1f7ed6',
+          fillOpacity: 0.06,
+          opacity: 0.62,
+          weight: 1.4,
+        }}
+        positions={LINGGA_MONITORING_BOUNDARY}
+      />
+      <Marker
+        icon={labelIcon}
+        interactive={false}
+        position={LINGGA_MONITORING_AREA_LABEL_POINT}
+        zIndexOffset={120}
+      />
+    </>
   )
 }
 
