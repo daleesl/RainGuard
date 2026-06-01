@@ -10,9 +10,11 @@ import '../services/report_service.dart';
 import '../theme/rainguard_theme.dart';
 import '../utils/firebase_error_messages.dart';
 import '../utils/location_constants.dart';
+import '../utils/map_report_filter.dart';
+import '../utils/report_filter_rules.dart';
 import '../widgets/map/pending_draft_sheet.dart';
 import '../widgets/map/report_map_card.dart';
-import '../widgets/map/selected_report_preview_card.dart';
+import '../widgets/map/report_preview_card.dart';
 import '../widgets/rainguard_app_bar.dart';
 import '../widgets/report_details_dialog.dart';
 import '../widgets/report_modal.dart';
@@ -34,6 +36,7 @@ class _MapScreenState extends State<MapScreen> {
   List<ReportDraft> _pendingDrafts = const [];
   String _selectedReportId = '';
   bool _isRetryingDrafts = false;
+  bool _isBoundaryVisible = true;
   MapReportFilter _activeFilter = MapReportFilter.active;
 
   @override
@@ -145,7 +148,9 @@ class _MapScreenState extends State<MapScreen> {
                   reports: filteredReports,
                   pendingDrafts: _pendingDrafts,
                   activeFilter: _activeFilter,
+                  isBoundaryVisible: _isBoundaryVisible,
                   onFilterChanged: _setFilter,
+                  onToggleBoundary: _setBoundaryVisibility,
                   onReportTap: _selectReport,
                   onPendingDraftTap: _showPendingDraftDetails,
                   onAddTap: _showAddReportModal,
@@ -162,7 +167,7 @@ class _MapScreenState extends State<MapScreen> {
                   bottom: 0,
                   child: SafeArea(
                     top: false,
-                    child: SelectedReportPreviewCard(
+                    child: ReportPreviewCard(
                       report: selectedReport,
                       onClose: _clearSelectedReport,
                       onViewDetails: () => _showReportDetails(selectedReport),
@@ -206,28 +211,18 @@ class _MapScreenState extends State<MapScreen> {
     return null;
   }
 
-  List<Report> _filteredReports(List<Report> reports) {
-    switch (_activeFilter) {
-      case MapReportFilter.rain:
-        return reports
-            .where((report) => report.type == ReportType.rain)
-            .toList();
-      case MapReportFilter.flood:
-        return reports
-            .where((report) => report.type == ReportType.flood)
-            .toList();
-      case MapReportFilter.verified:
-        return reports.where((report) => report.isAdminVerified).toList();
-      case MapReportFilter.active:
-        return reports;
-    }
-  }
+  List<Report> _filteredReports(List<Report> reports) =>
+      filterMapReports(reports, _activeFilter);
 
   void _setFilter(MapReportFilter filter) {
     setState(() {
       _activeFilter = filter;
       _selectedReportId = '';
     });
+  }
+
+  void _setBoundaryVisibility(bool isVisible) {
+    setState(() => _isBoundaryVisible = isVisible);
   }
 }
 
