@@ -34,6 +34,7 @@ class _MapScreenState extends State<MapScreen> {
   List<ReportDraft> _pendingDrafts = const [];
   String _selectedReportId = '';
   bool _isRetryingDrafts = false;
+  MapReportFilter _activeFilter = MapReportFilter.active;
 
   @override
   void initState() {
@@ -51,7 +52,7 @@ class _MapScreenState extends State<MapScreen> {
   }
 
   Stream<List<Report>> get _reportsStream =>
-      ReportFeedService.latestReportsStream();
+      ReportFeedService.activeMapReportsStream();
 
   void _handleDraftCountChanged() {
     _loadPendingDrafts();
@@ -131,7 +132,8 @@ class _MapScreenState extends State<MapScreen> {
         stream: _reportsStream,
         builder: (context, snapshot) {
           final reports = snapshot.data ?? const <Report>[];
-          final selectedReport = _selectedReport(reports);
+          final filteredReports = _filteredReports(reports);
+          final selectedReport = _selectedReport(filteredReports);
           final hasSelectedReport = selectedReport != null;
 
           return Stack(
@@ -140,8 +142,10 @@ class _MapScreenState extends State<MapScreen> {
                 child: ReportMapCard(
                   mapController: _mapController,
                   initialCenter: _calambaCenter,
-                  reports: reports,
+                  reports: filteredReports,
                   pendingDrafts: _pendingDrafts,
+                  activeFilter: _activeFilter,
+                  onFilterChanged: _setFilter,
                   onReportTap: _selectReport,
                   onPendingDraftTap: _showPendingDraftDetails,
                   onAddTap: _showAddReportModal,
@@ -165,7 +169,7 @@ class _MapScreenState extends State<MapScreen> {
                     ),
                   ),
                 ),
-              if (reports.isEmpty &&
+              if (filteredReports.isEmpty &&
                   snapshot.connectionState != ConnectionState.waiting)
                 const Positioned(
                   left: 16,
@@ -200,6 +204,30 @@ class _MapScreenState extends State<MapScreen> {
     }
 
     return null;
+  }
+
+  List<Report> _filteredReports(List<Report> reports) {
+    switch (_activeFilter) {
+      case MapReportFilter.rain:
+        return reports
+            .where((report) => report.type == ReportType.rain)
+            .toList();
+      case MapReportFilter.flood:
+        return reports
+            .where((report) => report.type == ReportType.flood)
+            .toList();
+      case MapReportFilter.verified:
+        return reports.where((report) => report.isAdminVerified).toList();
+      case MapReportFilter.active:
+        return reports;
+    }
+  }
+
+  void _setFilter(MapReportFilter filter) {
+    setState(() {
+      _activeFilter = filter;
+      _selectedReportId = '';
+    });
   }
 }
 

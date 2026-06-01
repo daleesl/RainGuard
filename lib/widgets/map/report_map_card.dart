@@ -16,6 +16,8 @@ class ReportMapCard extends StatelessWidget {
     required this.initialCenter,
     required this.reports,
     required this.pendingDrafts,
+    required this.activeFilter,
+    required this.onFilterChanged,
     required this.onReportTap,
     required this.onPendingDraftTap,
     required this.onAddTap,
@@ -26,6 +28,8 @@ class ReportMapCard extends StatelessWidget {
   final LatLng initialCenter;
   final List<Report> reports;
   final List<ReportDraft> pendingDrafts;
+  final MapReportFilter activeFilter;
+  final ValueChanged<MapReportFilter> onFilterChanged;
   final ValueChanged<Report> onReportTap;
   final ValueChanged<ReportDraft> onPendingDraftTap;
   final VoidCallback onAddTap;
@@ -75,9 +79,7 @@ class ReportMapCard extends StatelessWidget {
                 markers: markers,
                 showPolygon: false,
                 builder: (context, clusteredMarkers) {
-                  return _ReportClusterMarker(
-                    count: clusteredMarkers.length,
-                  );
+                  return _ReportClusterMarker(count: clusteredMarkers.length);
                 },
               ),
             ),
@@ -101,9 +103,21 @@ class ReportMapCard extends StatelessWidget {
         Positioned(
           top: 14,
           left: 14,
-          child: _MapBadge(
-            count: reports.length,
-            pendingCount: pendingDrafts.length,
+          right: 14,
+          child: Row(
+            children: [
+              _MapBadge(
+                count: reports.length,
+                pendingCount: pendingDrafts.length,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _MapFilterBar(
+                  activeFilter: activeFilter,
+                  onChanged: onFilterChanged,
+                ),
+              ),
+            ],
           ),
         ),
         Positioned(
@@ -119,6 +133,118 @@ class ReportMapCard extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+enum MapReportFilter { active, rain, flood, verified }
+
+class _MapFilterBar extends StatelessWidget {
+  const _MapFilterBar({required this.activeFilter, required this.onChanged});
+
+  final MapReportFilter activeFilter;
+  final ValueChanged<MapReportFilter> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minWidth: constraints.maxWidth),
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.94),
+                  borderRadius: BorderRadius.circular(99),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.08),
+                      blurRadius: 16,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(3),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _MapFilterChip(
+                        filter: MapReportFilter.active,
+                        isActive: activeFilter == MapReportFilter.active,
+                        label: 'Active',
+                        onChanged: onChanged,
+                      ),
+                      _MapFilterChip(
+                        filter: MapReportFilter.rain,
+                        isActive: activeFilter == MapReportFilter.rain,
+                        label: 'Rain',
+                        onChanged: onChanged,
+                      ),
+                      _MapFilterChip(
+                        filter: MapReportFilter.flood,
+                        isActive: activeFilter == MapReportFilter.flood,
+                        label: 'Flood',
+                        onChanged: onChanged,
+                      ),
+                      _MapFilterChip(
+                        filter: MapReportFilter.verified,
+                        isActive: activeFilter == MapReportFilter.verified,
+                        label: 'Verified',
+                        onChanged: onChanged,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _MapFilterChip extends StatelessWidget {
+  const _MapFilterChip({
+    required this.filter,
+    required this.isActive,
+    required this.label,
+    required this.onChanged,
+  });
+
+  final MapReportFilter filter;
+  final bool isActive;
+  final String label;
+  final ValueChanged<MapReportFilter> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 3),
+      child: InkWell(
+        onTap: () => onChanged(filter),
+        borderRadius: BorderRadius.circular(99),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 140),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+          decoration: BoxDecoration(
+            color: isActive ? RainGuardColors.primary : Colors.transparent,
+            borderRadius: BorderRadius.circular(99),
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              color: isActive ? Colors.white : RainGuardColors.secondaryText,
+              fontSize: 7.5,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -193,7 +319,7 @@ class _MapBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.94),
         borderRadius: BorderRadius.circular(99),
@@ -210,10 +336,10 @@ class _MapBadge extends StatelessWidget {
         children: [
           Icon(
             Icons.pin_drop_rounded,
-            size: 16,
+            size: 14,
             color: RainGuardColors.primary,
           ),
-          const SizedBox(width: 6),
+          const SizedBox(width: 5),
           Text(
             pendingCount > 0
                 ? '$count live, $pendingCount pending'

@@ -36,9 +36,10 @@ class _HomeScreenState extends State<HomeScreen> {
       final snapshot = await FirebaseFirestore.instance
           .collection('reports')
           .where('report_type', isEqualTo: 'flood')
+          .count()
           .get();
       if (!mounted) return;
-      setState(() => _floodCount = snapshot.docs.length);
+      setState(() => _floodCount = snapshot.count ?? 0);
     } catch (e) {
       debugPrint('Flood count error: $e');
     }
