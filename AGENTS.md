@@ -5,8 +5,10 @@ Use this file as the first stop for any AI assistant or coding agent working in 
 ## Source of Truth
 
 - Treat this repository as the source of truth for the current RainGuard implementation.
-- Treat `AGENTS.md` as the agent behavior and project-context source of truth until a dedicated `/docs` folder exists.
-- If a `/docs` folder is added later, read it before changing code and keep it aligned with this file.
+- Treat `AGENTS.md` as the behavior and coding-rules source of truth for AI agents.
+- Read `docs/RAINGUARD_CONTEXT.md` for the concise human-readable project overview used by ChatGPT, groupmates, and planning conversations.
+- Read `docs/firebase-backend.md` before changing Firebase rules, indexes, Storage behavior, Cloud Functions, admin permissions, or push-notification behavior.
+- Keep `AGENTS.md` and `docs/RAINGUARD_CONTEXT.md` aligned when product scope, data model, architecture, or major workflows change.
 - Use the current Flutter app in `lib/` as the implementation source of truth.
 - Treat the RainGuard mobile auth and settings Figma concept as the current visual reference for splash, onboarding, login, Google sign-up, and settings screens: https://www.figma.com/design/Zg7npN5AdMrGB3P5aUlOsY
 - Before implementing or changing those screens, inspect the matching Figma frame and follow its layout, hierarchy, copy direction, colors, and component treatment closely.
@@ -36,9 +38,9 @@ Use this file as the first stop for any AI assistant or coding agent working in 
 
 ## Current Technical Stack
 
-- Framework: Flutter.
-- Language: Dart.
-- Backend/services: Firebase Core, Cloud Firestore, Firebase Storage, Firebase Auth.
+- Mobile app: Flutter and Dart.
+- Admin dashboard: React + Vite with JavaScript, Firebase client SDK, Leaflet/React Leaflet, and gradual Tailwind CSS migration.
+- Backend/services: Firebase Core, Cloud Firestore, Firebase Storage, Firebase Auth, Firebase Cloud Messaging, and Cloud Functions.
 - Maps: `flutter_map`, `flutter_map_marker_cluster`, OpenStreetMap tiles, `latlong2`.
 - Device location: `geolocator`.
 - Image upload: `image_picker`, `flutter_image_compress`, plus Firebase Storage.
@@ -83,6 +85,7 @@ Use this file as the first stop for any AI assistant or coding agent working in 
   - `reporter_display_name`
   - `latitude`
   - `longitude`
+  - `location_name`
   - `location_source`
   - `report_type`
   - `risk_level`
@@ -90,6 +93,7 @@ Use this file as the first stop for any AI assistant or coding agent working in 
   - `image_url`
   - `image_urls`
   - `flood_level`
+  - `status`
   - `created_at`
 - Firestore collection: `users`.
 - Current user profile fields:
@@ -109,7 +113,7 @@ Use this file as the first stop for any AI assistant or coding agent working in 
   - `updated_at`
   - `last_login_at`
 - User notification tokens are stored under `users/{uid}/fcm_tokens/{token}` with `token`, `platform`, `created_at`, and `updated_at`.
-- Report types currently modeled in Dart: `rain`, `wind`, `brownout`, `flood`; current report UI should prioritize rain and flood unless the product scope changes.
+- Report types currently modeled in Dart: `rain`, `flood`.
 - Risk levels currently modeled in Dart: `safe`, `risk`, `flood`.
 - Keep Firestore field names stable unless a task explicitly requires a data migration or coordinated backend change.
 - When changing report data shape, update `lib/models/report_model.dart` and every read/write path together.
@@ -214,6 +218,7 @@ Use this file as the first stop for any AI assistant or coding agent working in 
 ## Agent Startup Checklist
 
 - Read `AGENTS.md` first.
+- Read `docs/RAINGUARD_CONTEXT.md` when you need project context, feature status, or a concise summary for ChatGPT/groupmates.
 - Check `git status --short` before editing.
 - Do not touch `.idea/` or local secret/config files.
 - For UI work, preserve compact RainGuard typography unless the user asks to change it.
@@ -248,7 +253,7 @@ Use this file as the first stop for any AI assistant or coding agent working in 
 
 - Create or update `/docs` when product scope, data model, architecture, permissions, setup steps, or major UI direction changes.
 - Record major product or architecture decisions in docs once a docs folder exists.
-- Keep `README.md` useful for human setup and `AGENTS.md` useful for AI/agent behavior.
+- Keep `README.md` useful for human setup, `AGENTS.md` useful for AI/agent behavior, and `docs/RAINGUARD_CONTEXT.md` useful for concise project context.
 - After editing, summarize changed files and the verification performed.
 
 ## Collaboration Rules
