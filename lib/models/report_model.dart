@@ -81,10 +81,10 @@ class Report {
     }
 
     final legacyUrl = data['image_url'];
-    if (legacyUrl is String &&
-        legacyUrl.trim().isNotEmpty &&
-        !urls.contains(legacyUrl.trim())) {
-      urls.insert(0, legacyUrl.trim());
+    if (legacyUrl is String && legacyUrl.trim().isNotEmpty) {
+      final cleanLegacyUrl = legacyUrl.trim();
+      urls.remove(cleanLegacyUrl);
+      urls.insert(0, cleanLegacyUrl);
     }
 
     return urls;
@@ -183,6 +183,19 @@ class Report {
   bool get isArchived => freshness == ReportFreshness.archived;
 
   bool get isAdminVerified => reviewStatus == 'verified';
+
+  bool get isResolved => reviewStatus == 'resolved';
+
+  bool get isRejected =>
+      reviewStatus == 'rejected' || reviewStatus == 'duplicate_hidden';
+
+  bool get isActiveOnMap {
+    if (isResolved || isRejected) return false;
+    return age <= const Duration(hours: 72) ||
+        reviewStatus == 'active' ||
+        reviewStatus == 'pending' ||
+        reviewStatus == 'verified';
+  }
 
   Map<String, dynamic> toFirestore() {
     final urls = allImageUrls;

@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:math' as math;
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -8,9 +7,9 @@ import 'package:latlong2/latlong.dart';
 
 import '../models/report_draft.dart';
 import '../models/report_model.dart';
-import 'geocoding_service.dart';
-import 'location_service.dart';
+import 'report_duplicate_service.dart';
 import 'report_draft_service.dart';
+import 'report_location_resolver.dart';
 import 'storage_service.dart';
 import 'user_profile_service.dart';
 
@@ -41,11 +40,9 @@ class ReportVerificationRequiredException implements Exception {
 class ReportService {
   const ReportService._();
 
-  static const Duration _duplicateWindow = Duration(minutes: 15);
   static const Duration _duplicateCheckTimeout = Duration(seconds: 5);
   static const Duration _submitTimeout = Duration(seconds: 12);
   static const Duration _submitTimeoutPerImage = Duration(seconds: 8);
-  static const double _duplicateRadiusMeters = 250;
 
   static Timer? _draftRetryTimer;
 
@@ -81,9 +78,9 @@ class ReportService {
     }
 
     try {
-      await _submitPreparedReport(request).timeout(
-        _submitTimeoutFor(request.selectedImages.length),
-      );
+      await _submitPreparedReport(
+        request,
+      ).timeout(_submitTimeoutFor(request.selectedImages.length));
     } catch (error) {
       if (error is ReportVerificationRequiredException) {
         rethrow;
@@ -101,9 +98,9 @@ class ReportService {
     for (final draft in drafts) {
       try {
         final request = _ReportRequest.fromDraft(draft);
-        await _submitPreparedReport(request).timeout(
-          _submitTimeoutFor(request.selectedImages.length),
-        );
+        await _submitPreparedReport(
+          request,
+        ).timeout(_submitTimeoutFor(request.selectedImages.length));
         await ReportDraftService.removeDraft(draft.id);
         submittedCount += 1;
       } catch (_) {
@@ -122,7 +119,9 @@ class ReportService {
     required List<XFile> images,
     required LatLng? manualLocation,
   }) async {
-    final location = await _resolveSubmissionLocation(manualLocation);
+    final location = await ReportLocationResolver.resolveSubmissionLocation(
+      manualLocation,
+    );
 
     return _ReportRequest(
       draftId: DateTime.now().microsecondsSinceEpoch.toString(),
@@ -135,25 +134,6 @@ class ReportService {
     );
   }
 
-  static Future<_ReportLocation> _resolveSubmissionLocation(
-    LatLng? manualLocation,
-  ) async {
-    if (manualLocation != null) {
-      return _ReportLocation(
-        latitude: manualLocation.latitude,
-        longitude: manualLocation.longitude,
-        source: 'manual',
-      );
-    }
-
-    final position = await LocationService.getCurrentPosition();
-    return _ReportLocation(
-      latitude: position.latitude,
-      longitude: position.longitude,
-      source: 'gps',
-    );
-  }
-
   static List<XFile> _selectedImages({
     required XFile? image,
     required List<XFile> images,
@@ -163,18 +143,12 @@ class ReportService {
     return const <XFile>[];
   }
 
-  static Future<void> _ensureNoRecentDuplicate(
-    _ReportRequest request,
-  ) async {
-    final duplicate =
-        await _findRecentDuplicateReport(
-          type: request.type,
-          latitude: request.location.latitude,
-          longitude: request.location.longitude,
-        ).timeout(
-          _duplicateCheckTimeout,
-          onTimeout: () => null,
-        );
+  static Future<void> _ensureNoRecentDuplicate(_ReportRequest request) async {
+    final duplicate = await ReportDuplicateService.findRecentDuplicateReport(
+      type: request.type,
+      latitude: request.location.latitude,
+      longitude: request.location.longitude,
+    ).timeout(_duplicateCheckTimeout, onTimeout: () => null);
 
     if (duplicate != null) {
       throw DuplicateReportException(duplicate);
@@ -184,7 +158,7 @@ class ReportService {
   static Future<void> _submitPreparedReport(_ReportRequest request) async {
     final reporter = await _verifiedReporter();
     final imageUrls = await _uploadReportImages(request.selectedImages);
-    final locationName = await _resolveLocationName(
+    final locationName = await ReportLocationResolver.resolveLocationName(
       request.location.latitude,
       request.location.longitude,
     );
@@ -275,88 +249,6 @@ class ReportService {
     await ReportDraftService.saveDraft(draft);
   }
 
-  static Future<Report?> _findRecentDuplicateReport({
-    required ReportType type,
-    required double latitude,
-    required double longitude,
-  }) async {
-    try {
-      final cutoff = Timestamp.fromDate(
-        DateTime.now().subtract(_duplicateWindow),
-      );
-      final snapshot = await FirebaseFirestore.instance
-          .collection('reports')
-          .where('created_at', isGreaterThan: cutoff)
-          .orderBy('created_at', descending: true)
-          .limit(50)
-          .get();
-
-      for (final doc in snapshot.docs) {
-        final report = Report.fromFirestore(doc.data(), doc.id);
-        if (report.type != type) continue;
-
-        final distance = _distanceMeters(
-          latitude,
-          longitude,
-          report.latitude,
-          report.longitude,
-        );
-        if (distance <= _duplicateRadiusMeters) {
-          return report;
-        }
-      }
-    } catch (_) {
-      return null;
-    }
-
-    return null;
-  }
-
-  static double _distanceMeters(
-    double lat1,
-    double lng1,
-    double lat2,
-    double lng2,
-  ) {
-    const earthRadiusMeters = 6371000.0;
-    final dLat = _toRadians(lat2 - lat1);
-    final dLng = _toRadians(lng2 - lng1);
-    final a =
-        math.sin(dLat / 2) * math.sin(dLat / 2) +
-        math.cos(_toRadians(lat1)) *
-            math.cos(_toRadians(lat2)) *
-            math.sin(dLng / 2) *
-            math.sin(dLng / 2);
-    final c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
-    return earthRadiusMeters * c;
-  }
-
-  static double _toRadians(double degrees) {
-    return degrees * (math.pi / 180);
-  }
-
-  static Future<String?> _resolveLocationName(
-    double latitude,
-    double longitude,
-  ) async {
-    try {
-      final locationName = await GeocodingService.getAddressFromCoordinates(
-        latitude,
-        longitude,
-      );
-      final cleanName = locationName.trim();
-      if (cleanName.isEmpty ||
-          cleanName == 'Unknown Location' ||
-          cleanName == 'Location Error') {
-        return null;
-      }
-
-      return cleanName;
-    } catch (_) {
-      return null;
-    }
-  }
-
   static Duration _submitTimeoutFor(int imageCount) {
     final timeoutSeconds =
         _submitTimeout.inSeconds +
@@ -383,7 +275,7 @@ class _ReportRequest {
       type: draft.type,
       floodLevel: draft.floodLevel,
       description: draft.description,
-      location: _ReportLocation(
+      location: ReportSubmissionLocation(
         latitude: draft.latitude,
         longitude: draft.longitude,
         source: draft.locationSource,
@@ -397,21 +289,9 @@ class _ReportRequest {
   final ReportType type;
   final String? floodLevel;
   final String description;
-  final _ReportLocation location;
+  final ReportSubmissionLocation location;
   final List<XFile> selectedImages;
   final DateTime createdAt;
-}
-
-class _ReportLocation {
-  const _ReportLocation({
-    required this.latitude,
-    required this.longitude,
-    required this.source,
-  });
-
-  final double latitude;
-  final double longitude;
-  final String source;
 }
 
 class _VerifiedReporter {

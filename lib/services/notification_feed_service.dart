@@ -1,17 +1,18 @@
 import 'dart:async';
 
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 
 import '../models/notification_feed.dart';
 import '../models/report_model.dart';
 import '../models/safety_alert.dart';
 import 'alert_service.dart';
+import 'report_feed_service.dart';
 
 class NotificationFeedService {
   const NotificationFeedService._();
 
-  static const int defaultReportLimit = 75;
+  static const int defaultReportLimit =
+      ReportFeedService.defaultNotificationReportLimit;
 
   static Stream<NotificationFeed> feedStream({
     int alertLimit = AlertService.defaultAlertLimit,
@@ -21,8 +22,7 @@ class NotificationFeedService {
     List<SafetyAlert>? latestAlerts;
     List<Report>? latestReports;
     StreamSubscription<List<SafetyAlert>>? alertsSubscription;
-    StreamSubscription<QuerySnapshot<Map<String, dynamic>>>?
-        reportsSubscription;
+    StreamSubscription<List<Report>>? reportsSubscription;
 
     void emitFeedIfReady() {
       final alerts = latestAlerts;
@@ -33,32 +33,27 @@ class NotificationFeedService {
     }
 
     controller.onListen = () {
-      alertsSubscription = AlertService.publishedAlertsStream(
-        limitCount: alertLimit,
-      ).listen(
-        (alerts) {
-          latestAlerts = alerts;
-          emitFeedIfReady();
-        },
-        onError: (error) {
-          debugPrint('Error loading safety alerts: $error');
-          latestAlerts = const <SafetyAlert>[];
-          emitFeedIfReady();
-        },
-      );
+      alertsSubscription =
+          AlertService.publishedAlertsStream(limitCount: alertLimit).listen(
+            (alerts) {
+              latestAlerts = alerts;
+              emitFeedIfReady();
+            },
+            onError: (error) {
+              debugPrint('Error loading safety alerts: $error');
+              latestAlerts = const <SafetyAlert>[];
+              emitFeedIfReady();
+            },
+          );
 
-      reportsSubscription = FirebaseFirestore.instance
-          .collection('reports')
-          .orderBy('created_at', descending: true)
-          .limit(reportLimit)
-          .snapshots()
-          .listen(
-        (snapshot) {
-          latestReports = _parseReports(snapshot.docs);
-          emitFeedIfReady();
-        },
-        onError: controller.addError,
-      );
+      reportsSubscription =
+          ReportFeedService.latestReportsStream(limitCount: reportLimit).listen(
+            (reports) {
+              latestReports = reports;
+              emitFeedIfReady();
+            },
+            onError: controller.addError,
+          );
     };
 
     controller.onCancel = () async {
@@ -67,21 +62,5 @@ class NotificationFeedService {
     };
 
     return controller.stream;
-  }
-
-  static List<Report> _parseReports(
-    List<QueryDocumentSnapshot<Map<String, dynamic>>> docs,
-  ) {
-    final reports = <Report>[];
-
-    for (final doc in docs) {
-      try {
-        reports.add(Report.fromFirestore(doc.data(), doc.id));
-      } catch (error) {
-        debugPrint('Error parsing notification report ${doc.id}: $error');
-      }
-    }
-
-    return reports;
   }
 }
