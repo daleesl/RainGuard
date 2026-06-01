@@ -149,6 +149,7 @@ Admin accounts:
 - Flutter report logic was split into smaller services.
 - Flutter notification feed and report feed services were improved.
 - Mobile map report filters were added.
+- Barangay Lingga monitoring boundary is sourced from `docs/geo/lingga-boundary.geojson`.
 - Shared Flutter state widgets were added for empty, loading, error, and section header states.
 - Lightweight tests were added for parsing and duplicate helper logic.
 
