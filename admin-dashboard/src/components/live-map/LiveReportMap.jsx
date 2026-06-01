@@ -15,6 +15,14 @@ import {
 
 const CLUSTER_RADIUS_PX = 48
 const CLUSTER_MAX_ZOOM = 17
+const mapFilters = [
+  { label: 'Active', value: 'active' },
+  { label: 'Today', value: 'today' },
+  { label: 'Week', value: 'week' },
+  { label: 'Resolved', value: 'resolved' },
+  { label: 'Rejected', value: 'rejected' },
+  { label: 'All', value: 'all' },
+]
 
 export function LiveReportMap({
   activeFilter,
@@ -31,28 +39,17 @@ export function LiveReportMap({
     <article className="map-card">
       <div className="card-heading">
         <h3>Calamba Report Map</h3>
-        <div className="chip-group">
-          <FilterChip
-            activeFilter={activeFilter}
-            colorClass="chip-blue"
-            label="Today"
-            setActiveFilter={onFilterChange}
-            value="today"
-          />
-          <FilterChip
-            activeFilter={activeFilter}
-            colorClass="chip-red"
-            label="Flood"
-            setActiveFilter={onFilterChange}
-            value="flood"
-          />
-          <FilterChip
-            activeFilter={activeFilter}
-            colorClass="chip-blue"
-            label="Rain"
-            setActiveFilter={onFilterChange}
-            value="rain"
-          />
+        <div className="map-filter-control" aria-label="Map report filters">
+          {mapFilters.map((filter) => (
+            <button
+              className={activeFilter === filter.value ? 'is-active' : ''}
+              key={filter.value}
+              onClick={() => onFilterChange(filter.value)}
+              type="button"
+            >
+              {filter.label}
+            </button>
+          ))}
         </div>
       </div>
 
@@ -106,7 +103,7 @@ export function LiveReportMap({
         <span>{filteredReports.length} map reports</span>
         <button
           className="footer-filter-reset"
-          disabled={activeFilter === 'all' && !searchTerm}
+          disabled={activeFilter === 'active' && !searchTerm}
           onClick={onClearFilters}
           type="button"
         >
@@ -118,26 +115,6 @@ export function LiveReportMap({
         <span>{status === 'ready' ? 'Firebase live' : 'Syncing'}</span>
       </div>
     </article>
-  )
-}
-
-function FilterChip({
-  activeFilter,
-  colorClass,
-  label,
-  setActiveFilter,
-  value,
-}) {
-  const isActive = activeFilter === value
-
-  return (
-    <button
-      className={`chip chip-button ${colorClass} ${isActive ? 'is-active' : ''}`}
-      onClick={() => setActiveFilter(isActive ? 'all' : value)}
-      type="button"
-    >
-      {label}
-    </button>
   )
 }
 

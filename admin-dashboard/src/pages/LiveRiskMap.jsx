@@ -6,9 +6,10 @@ import { ReportDetailModal } from '../components/live-map/ReportDetailModal'
 import { SelectedReportPanel } from '../components/live-map/SelectedReportPanel'
 import { MetricCard } from '../components/MetricCard'
 import { PageTopbar } from '../components/PageTopbar'
+import { PrimaryActionButton } from '../components/PrimaryActionButton'
 import { useReports } from '../hooks/useReports'
 import { updateReportStatus as saveReportStatus } from '../services/reportActions'
-import { isToday } from '../utils/reports'
+import { isDefaultMapReport, isThisWeek, isToday } from '../utils/reports'
 
 const metricConfig = [
   {
@@ -39,7 +40,7 @@ const metricConfig = [
 
 export function LiveRiskMap() {
   const { reports, calambaReports, status, error } = useReports()
-  const [activeFilter, setActiveFilter] = useState('all')
+  const [activeFilter, setActiveFilter] = useState('active')
   const [modalReportId, setModalReportId] = useState('')
   const [selectedReportId, setSelectedReportId] = useState('')
   const [selectedImageIndex, setSelectedImageIndex] = useState(0)
@@ -51,9 +52,12 @@ export function LiveRiskMap() {
   const filteredReports = useMemo(() => {
     const normalizedSearch = searchTerm.trim().toLowerCase()
     const visibleReports = calambaReports.filter((report) => {
+      if (activeFilter === 'active') return isDefaultMapReport(report)
       if (activeFilter === 'today') return isToday(report.createdAt)
-      if (activeFilter === 'flood') return report.reportType === 'flood'
-      if (activeFilter === 'rain') return report.reportType === 'rain'
+      if (activeFilter === 'week') return isThisWeek(report.createdAt)
+      if (activeFilter === 'resolved') return report.status === 'resolved'
+      if (activeFilter === 'rejected') return report.status === 'rejected'
+      if (activeFilter === 'all') return true
       return true
     })
 
@@ -112,7 +116,7 @@ export function LiveRiskMap() {
   )
 
   function clearFilters() {
-    setActiveFilter('all')
+    setActiveFilter('active')
     setSearchTerm('')
   }
 
@@ -147,9 +151,9 @@ export function LiveRiskMap() {
     <div className="live-map-page">
       <PageTopbar
         action={
-          <button className="primary-action" type="button">
+          <PrimaryActionButton>
             Create Alert
-          </button>
+          </PrimaryActionButton>
         }
         description="Monitor real-time Calamba flood/rain reports and active advisories."
         search={{
