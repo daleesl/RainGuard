@@ -167,11 +167,6 @@
   box-shadow: none;
 }
 
-.chip-green {
-  background: #e7f8f3;
-  color: #28a985;
-}
-
 @media (max-width: 720px) {
   .report-modal.report-modal-simple {
     overflow-y: auto;

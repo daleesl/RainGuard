@@ -59,11 +59,6 @@
   min-width: 180px;
 }
 
-.table-state {
-  margin: 14px 0 0;
-  padding: 14px 16px;
-}
-
 .reports-table {
   width: 100%;
   min-width: 0;
@@ -236,105 +231,6 @@
   color: #e24d4d;
 }
 
-.row-action-group {
-  width: 194px;
-  border: 1px solid #d9e7ef;
-  border-radius: 16px;
-  background: #f8fcff;
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 6px;
-  margin: 0 0 0 auto;
-  padding: 7px;
-}
-
-.table-action {
-  min-width: 0;
-  height: 28px;
-  border: 0;
-  border-radius: 11px;
-  background: #e7f4ff;
-  color: #1778d4;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  font-size: 8.5px;
-  font-weight: 900;
-  line-height: 1;
-  padding: 0 8px;
-  transition:
-    background 140ms ease,
-    box-shadow 140ms ease,
-    transform 140ms ease;
-}
-
-.table-action svg {
-  flex: 0 0 auto;
-}
-
-.table-action span {
-  overflow: visible;
-  text-overflow: clip;
-  white-space: nowrap;
-}
-
-.table-action:hover,
-.table-action:focus-visible {
-  background: #d6ecff;
-  box-shadow: 0 4px 10px rgba(23, 120, 212, 0.12);
-  outline: none;
-}
-
-.table-action:active {
-  transform: scale(0.98);
-}
-
-.table-action:disabled {
-  cursor: not-allowed;
-  opacity: 0.68;
-  transform: none;
-}
-
-.table-action-verify {
-  background: #e7f8f3;
-  color: #078266;
-}
-
-.table-action-verify:hover,
-.table-action-verify:focus-visible {
-  background: #d5f2e9;
-  box-shadow: 0 4px 10px rgba(40, 197, 157, 0.14);
-}
-
-.table-action-resolve {
-  background: #e7f4ff;
-  color: #1778d4;
-}
-
-.table-action-danger {
-  background: #ffe9e9;
-  color: #e24d4d;
-}
-
-.table-action-danger:hover,
-.table-action-danger:focus-visible {
-  background: #ffdede;
-  box-shadow: 0 4px 10px rgba(226, 77, 77, 0.12);
-}
-
-.table-action-ghost {
-  background: #ffffff;
-  color: #102033;
-}
-
-.table-action-ghost:hover,
-.table-action-ghost:focus-visible {
-  background: #f0f7fc;
-  box-shadow: 0 4px 10px rgba(8, 33, 56, 0.08);
-}
-
 .reports-view-modal .simple-modal-content {
   gap: 18px;
 }
@@ -445,10 +341,6 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
-}
-
-.report-detail-panel > .chip {
-  margin-top: 24px;
 }
 
 .report-detail-copy {
@@ -658,7 +550,7 @@
 
 @media (max-width: 1440px) {
   .reports-table-card {
-    padding: 24px 20px;
+    padding: 24px 18px;
   }
 
   .reports-table th,
@@ -668,19 +560,12 @@
 
   .reports-review-table th:last-child,
   .reports-review-table td:last-child {
-    width: 196px;
+    width: 188px;
   }
 
-  .row-action-group {
-    width: 178px;
-    gap: 5px;
-    padding: 6px;
-  }
-
-  .table-action {
-    font-size: 8px;
-    gap: 4px;
-    padding: 0 6px;
+  .reports-review-table th:nth-child(4),
+  .reports-review-table td:nth-child(4) {
+    width: 13%;
   }
 }
 

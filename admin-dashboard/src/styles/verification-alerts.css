@@ -594,11 +594,12 @@
 
 @media (max-width: 1380px) {
   .verification-grid {
-    grid-template-columns: minmax(330px, 0.72fr) minmax(500px, 1.28fr);
+    grid-template-columns: minmax(310px, 0.7fr) minmax(480px, 1.3fr);
     gap: 24px;
   }
 
   .alerts-grid {
+    grid-template-columns: minmax(380px, 0.92fr) minmax(420px, 1.08fr);
     gap: 24px;
   }
 
@@ -607,6 +608,16 @@
   .alert-composer-card,
   .alerts-list-card {
     padding: 24px;
+  }
+
+  .review-actions {
+    gap: 10px;
+  }
+
+  .review-actions .panel-primary,
+  .review-actions .panel-danger,
+  .review-actions .panel-secondary {
+    font-size: 9px;
   }
 }
 
