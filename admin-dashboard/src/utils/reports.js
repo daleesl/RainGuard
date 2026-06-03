@@ -25,7 +25,7 @@ export function parseReport(id, data) {
     userId: data.user_id || '',
     latitude: readNumber(data.latitude),
     longitude: readNumber(data.longitude),
-    createdAt: data.created_at?.toDate?.() || null,
+    createdAt: parseDate(data.created_at),
   }
 }
 
@@ -153,6 +153,15 @@ export function isDefaultMapReport(report) {
 
 function readNumber(value) {
   return typeof value === 'number' ? value : Number(value)
+}
+
+function parseDate(value) {
+  if (!value) return null
+  if (value instanceof Date) return value
+  if (typeof value?.toDate === 'function') return value.toDate()
+
+  const parsedDate = new Date(value)
+  return Number.isNaN(parsedDate.getTime()) ? null : parsedDate
 }
 
 function normalizeText(value) {

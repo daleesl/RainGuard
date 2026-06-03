@@ -52,6 +52,14 @@ const reportMetrics = [
   },
 ]
 
+const reportFilters = [
+  { label: 'All', tone: 'neutral', value: 'all' },
+  { label: 'Today', tone: 'blue', value: 'today' },
+  { label: 'Rain', tone: 'green', value: 'rain' },
+  { label: 'Flood', tone: 'red', value: 'flood' },
+  { label: 'Unreviewed', tone: 'amber', value: 'unreviewed' },
+]
+
 export function ReportsManagement({ onOpenMap }) {
   const {
     calambaReports,
@@ -71,6 +79,7 @@ export function ReportsManagement({ onOpenMap }) {
     const normalizedSearch = searchTerm.trim().toLowerCase()
     const visibleReports = calambaReports.filter((report) => {
       if (activeFilter === 'today') return isToday(report.createdAt)
+      if (activeFilter === 'rain') return report.reportType === 'rain'
       if (activeFilter === 'flood') return report.reportType === 'flood'
       if (activeFilter === 'unreviewed') return getReviewStatus(report) === 'New'
       return true
@@ -201,37 +210,16 @@ export function ReportsManagement({ onOpenMap }) {
             </div>
 
             <div className="report-filter-chips" aria-label="Report filters">
-              <FilterChip
-                activeFilter={activeFilter}
-                label="Today"
-                setActiveFilter={setActiveFilter}
-                tone="blue"
-                value="today"
-              />
-              <FilterChip
-                activeFilter={activeFilter}
-                label="Flood"
-                setActiveFilter={setActiveFilter}
-                tone="red"
-                value="flood"
-              />
-              <FilterChip
-                activeFilter={activeFilter}
-                label="Unreviewed"
-                setActiveFilter={setActiveFilter}
-                tone="amber"
-                value="unreviewed"
-              />
-              <FilterChipButton
-                disabled={activeFilter === 'all' && !searchTerm}
-                onClick={() => {
-                  setActiveFilter('all')
-                  setSearchTerm('')
-                }}
-                tone="neutral"
-              >
-                Clear
-              </FilterChipButton>
+              {reportFilters.map((filter) => (
+                <FilterChip
+                  activeFilter={activeFilter}
+                  key={filter.value}
+                  label={filter.label}
+                  setActiveFilter={setActiveFilter}
+                  tone={filter.tone}
+                  value={filter.value}
+                />
+              ))}
             </div>
           </div>
 
@@ -577,8 +565,9 @@ function FilterChip({
 
   return (
     <FilterChipButton
+      className="report-filter-chip"
       isActive={isActive}
-      onClick={() => setActiveFilter(isActive ? 'all' : value)}
+      onClick={() => setActiveFilter(value)}
       tone={tone}
     >
       {label}
