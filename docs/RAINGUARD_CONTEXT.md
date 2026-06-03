@@ -192,21 +192,3 @@ Recommended order:
 2. Gather local or Philippines-relevant flood/rainfall data.
 3. Train and evaluate the Random Forest model.
 4. Connect model output to alerts, admin dashboard indicators, and resident warnings.
-
-## How To Ask ChatGPT For Help
-
-Paste this file first, then ask focused questions such as:
-
-```text
-Based on this RainGuard context, what should I improve before adding machine learning?
-```
-
-```text
-Give me a safe refactor order for the Flutter mobile app only.
-```
-
-```text
-Help me write the methodology section for this capstone.
-```
-
-For code-level fixes, paste the specific file or error message. ChatGPT cannot see the actual codebase unless the needed code is included.
