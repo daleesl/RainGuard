@@ -30,6 +30,7 @@ export function FilterChipButton({
   return (
     <button
       className={classes}
+      data-active={isActive ? 'true' : 'false'}
       disabled={disabled}
       onClick={onClick}
       type="button"

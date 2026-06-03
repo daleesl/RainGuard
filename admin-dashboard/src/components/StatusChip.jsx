@@ -14,13 +14,13 @@ export function StatusChip({
   }[normalizedTone] || 'bg-[#e7f4ff] text-[#1778d4]'
   const sizeClass =
     size === 'mini'
-      ? 'h-6 min-w-[74px] px-2.5 text-[8px]'
-      : 'h-6 min-w-[72px] px-4 text-[9px] tracking-[0.05em]'
+      ? 'h-6 min-w-[74px] px-2.5 text-[9px]'
+      : 'h-6 min-w-[72px] px-4 text-[10px]'
 
   return (
     <span
       className={[
-        'inline-flex w-fit items-center justify-center rounded-full font-black uppercase',
+        'inline-flex w-fit items-center justify-center rounded-full font-semibold',
         sizeClass,
         toneClass,
         className,

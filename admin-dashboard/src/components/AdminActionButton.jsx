@@ -1,3 +1,30 @@
+const ACTION_TONE_CLASSES = {
+  danger:
+    'bg-[#ffe4e4] text-[#e24d4d] hover:bg-[#ffd8d8] focus-visible:bg-[#ffd8d8]',
+  ghost:
+    'border border-[#d9e7ef] bg-white text-[#102033] hover:border-[#1778d4] hover:text-[#1778d4] focus-visible:border-[#1778d4] focus-visible:text-[#1778d4]',
+  primary:
+    'bg-[#e7f4ff] text-[#1778d4] hover:bg-[#d9ecff] focus-visible:bg-[#d9ecff]',
+  resolve:
+    'bg-[#e7f4ff] text-[#1778d4] hover:bg-[#d9ecff] focus-visible:bg-[#d9ecff]',
+  verify:
+    'bg-[#e7f4ff] text-[#1778d4] hover:bg-[#d9ecff] focus-visible:bg-[#d9ecff]',
+}
+
+/**
+ * @typedef {'danger' | 'ghost' | 'primary' | 'resolve' | 'verify'} AdminActionTone
+ *
+ * @typedef {Object} AdminActionButtonProps
+ * @property {import('react').ReactNode} children
+ * @property {string} [className]
+ * @property {boolean} [disabled]
+ * @property {import('lucide-react').LucideIcon} [icon]
+ * @property {() => void} [onClick]
+ * @property {string} [title]
+ * @property {AdminActionTone} [tone]
+ */
+
+/** @param {AdminActionButtonProps} props */
 export function AdminActionButton({
   children,
   className = '',
@@ -7,18 +34,7 @@ export function AdminActionButton({
   title,
   tone = 'primary',
 }) {
-  const toneClass = {
-    danger:
-      'bg-[#ffe4e4] text-[#e24d4d] hover:bg-[#ffd8d8] focus-visible:bg-[#ffd8d8]',
-    ghost:
-      'border border-[#d9e7ef] bg-white text-[#102033] hover:border-[#1778d4] hover:text-[#1778d4] focus-visible:border-[#1778d4] focus-visible:text-[#1778d4]',
-    primary:
-      'bg-[#e7f4ff] text-[#1778d4] hover:bg-[#d9ecff] focus-visible:bg-[#d9ecff]',
-    resolve:
-      'bg-[#e7f4ff] text-[#1778d4] hover:bg-[#d9ecff] focus-visible:bg-[#d9ecff]',
-    verify:
-      'bg-[#e7f4ff] text-[#1778d4] hover:bg-[#d9ecff] focus-visible:bg-[#d9ecff]',
-  }[tone]
+  const toneClass = ACTION_TONE_CLASSES[tone] || ACTION_TONE_CLASSES.primary
 
   return (
     <button
@@ -45,6 +61,12 @@ export function AdminActionButton({
   )
 }
 
+/**
+ * @param {{
+ *   children: import('react').ReactNode,
+ *   className?: string,
+ * }} props
+ */
 export function AdminActionGroup({ children, className = '' }) {
   return (
     <div
