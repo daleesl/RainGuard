@@ -49,7 +49,6 @@ const pageTitles = {
   alerts: 'Alerts',
   users: 'Users',
   analytics: 'Analytics',
-  settings: 'Settings',
 }
 
 function App() {

@@ -4,7 +4,6 @@ import {
   ClipboardList,
   LayoutDashboard,
   Map,
-  Settings,
   ShieldCheck,
   LogOut,
   Users,
@@ -18,7 +17,6 @@ const navItems = [
   { id: 'alerts', label: 'Alerts', icon: Bell },
   { id: 'users', label: 'Users', icon: Users },
   { id: 'analytics', label: 'Analytics', icon: BarChart3 },
-  { id: 'settings', label: 'Settings', icon: Settings },
 ]
 
 export function AdminLayout({

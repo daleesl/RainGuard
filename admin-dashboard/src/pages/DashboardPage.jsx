@@ -6,7 +6,6 @@ import {
   Bell,
   ClipboardList,
   Map,
-  Settings,
   ShieldCheck,
   Users,
   Waves,
@@ -114,13 +113,6 @@ export function DashboardPage({ onNavigate }) {
       description: 'Review report trends, hotspots, and verification throughput.',
       icon: BarChart3,
       meta: `${metrics.verifiedReports} verified reports`,
-    },
-    {
-      id: 'settings',
-      title: 'Settings',
-      description: 'Prepare admin preferences and dashboard configuration.',
-      icon: Settings,
-      meta: 'Admin controls',
     },
   ]
 
