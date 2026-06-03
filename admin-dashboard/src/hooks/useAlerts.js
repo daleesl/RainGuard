@@ -10,6 +10,7 @@ import {
 } from 'firebase/firestore'
 import { db } from '../firebase'
 import { friendlyFirebaseError } from '../utils/firebaseErrors'
+import { isAlertToday, parseAlert } from '../utils/alerts'
 
 const ALERT_PAGE_SIZE = 50
 
@@ -86,29 +87,7 @@ export function useAlerts() {
   return { alerts, status, error, hasMore, isLoadingMore, loadMore }
 }
 
-export function isAlertToday(date) {
-  if (!date) return false
-  const now = new Date()
-  return (
-    date.getFullYear() === now.getFullYear() &&
-    date.getMonth() === now.getMonth() &&
-    date.getDate() === now.getDate()
-  )
-}
-
-function parseAlert(id, data) {
-  return {
-    id,
-    area: data.area || 'All residents',
-    delivery: Array.isArray(data.delivery) ? data.delivery : ['in_app'],
-    message: data.message || '',
-    publishedAt: data.published_at?.toDate?.() || data.created_at?.toDate?.() || null,
-    riskLevel: data.risk_level || 'info',
-    source: data.source || 'manual',
-    status: data.status || 'draft',
-    title: data.title || 'Untitled advisory',
-  }
-}
+export { isAlertToday }
 
 function dedupeAlerts(items) {
   return [...new Map(items.map((item) => [item.id, item])).values()]
