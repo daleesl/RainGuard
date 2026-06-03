@@ -213,7 +213,7 @@
   background: #e7f4ff;
   color: #667b8f;
   font-size: 8px;
-  font-weight: 900;
+  font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -402,6 +402,14 @@
   text-transform: uppercase;
 }
 
+.alert-preview-card > span:last-child {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 88px;
+  text-align: center;
+}
+
 .alert-preview-card strong {
   display: block;
   margin-top: 6px;
@@ -453,6 +461,7 @@
 .mini-table-row span {
   color: #697b8c;
   font-size: 10px;
+  font-weight: 600;
 }
 
 .alerts-table .mini-table-header,

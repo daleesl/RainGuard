@@ -1,6 +1,10 @@
 import { useMemo, useState } from 'react'
+import {
+  AdminMiniTable,
+  AdminMiniTableHeader,
+  AdminMiniTableRow,
+} from '../components/AdminMiniTable'
 import { ConfirmActionModal } from '../components/ConfirmActionModal'
-import { FilterChipButton } from '../components/FilterChipButton'
 import { MetricCard } from '../components/MetricCard'
 import { PageTopbar } from '../components/PageTopbar'
 import { PrimaryActionButton } from '../components/PrimaryActionButton'
@@ -12,9 +16,10 @@ import {
   deleteAlert as removeAlert,
   resolveAlert as markAlertResolved,
 } from '../services/alertActions'
+import { formatAlertLabel } from '../utils/alerts'
 
 const alertAreas = ['Lingga', 'Aplaya', 'Calamba', 'All residents']
-const riskLevels = ['info', 'watch', 'warning', 'critical']
+const riskLevels = ['advisory', 'watch', 'warning', 'critical']
 
 export function AlertsManagement() {
   const {
@@ -132,32 +137,6 @@ export function AlertsManagement() {
     }
   }
 
-  function applyTemplate(template) {
-    if (template === 'flood') {
-      setAlertTitle('Flood Watch')
-      setMessage(
-        'Flood-prone areas are being monitored. Avoid riverside and low-lying roads until conditions improve.',
-      )
-      setRiskLevel('warning')
-      return
-    }
-
-    if (template === 'rain') {
-      setAlertTitle('Rain Advisory')
-      setMessage(
-        'Rainfall is expected in the area. Monitor updates and prepare safety essentials.',
-      )
-      setRiskLevel('watch')
-      return
-    }
-
-    setAlertTitle('All Clear')
-    setMessage(
-      'Flood risk has eased for the monitored area. Continue to stay alert for new advisories.',
-    )
-    setRiskLevel('info')
-  }
-
   return (
     <div className="alerts-page">
       <PageTopbar
@@ -226,7 +205,7 @@ export function AlertsManagement() {
                       onClick={() => setRiskLevel(level)}
                       type="button"
                     >
-                      {formatLabel(level)}
+                      {formatAlertLabel(level)}
                     </button>
                   ))}
                 </div>
@@ -235,7 +214,7 @@ export function AlertsManagement() {
             <div className="composer-chips">
               <StatusChip>{area}</StatusChip>
               <StatusChip tone={riskChipClass(riskLevel)}>
-                {formatLabel(riskLevel)}
+                {formatAlertLabel(riskLevel)}
               </StatusChip>
               <StatusChip tone="green">
                 Push notification
@@ -248,7 +227,7 @@ export function AlertsManagement() {
                 <p>{message || 'Alert message will appear here.'}</p>
               </div>
               <StatusChip tone={riskChipClass(riskLevel)}>
-                {formatLabel(riskLevel)}
+                {formatAlertLabel(riskLevel)}
               </StatusChip>
             </div>
             <div className="composer-actions">
@@ -263,19 +242,16 @@ export function AlertsManagement() {
 
           <article className="alerts-list-card">
             <h3>Current / Published Alerts</h3>
-            <div className="mini-table alerts-table">
-              <div className="mini-table-header">
-                <span>Alert</span>
-                <span>Area</span>
-                <span>Status</span>
-                <span>Action</span>
-              </div>
+            <AdminMiniTable className="alerts-table">
+              <AdminMiniTableHeader
+                columns={['Alert', 'Area', 'Status', 'Action']}
+              />
               {filteredAlerts.map((alert) => (
-                <div className="mini-table-row" key={alert.id}>
+                <AdminMiniTableRow key={alert.id}>
                   <strong>{alert.title}</strong>
                   <span>{alert.area}</span>
                   <StatusChip size="mini" tone={statusChipClass(alert.status)}>
-                    {formatLabel(alert.status)}
+                    {formatAlertLabel(alert.status)}
                   </StatusChip>
                   <span className="alert-row-actions">
                     {alert.status === 'published' ? (
@@ -287,7 +263,7 @@ export function AlertsManagement() {
                         Resolve
                       </button>
                     ) : (
-                      <span>{formatLabel(alert.source)}</span>
+                      <span>{formatAlertLabel(alert.source)}</span>
                     )}
                     <button
                       className="mini-link-button is-danger"
@@ -297,7 +273,7 @@ export function AlertsManagement() {
                       Delete
                     </button>
                   </span>
-                </div>
+                </AdminMiniTableRow>
               ))}
               {filteredAlerts.length === 0 ? (
                 <TableState>No alerts match the current view.</TableState>
@@ -314,20 +290,8 @@ export function AlertsManagement() {
                   </button>
                 </div>
               ) : null}
-            </div>
+            </AdminMiniTable>
 
-            <h4>Quick templates</h4>
-            <div className="template-row">
-              <FilterChipButton onClick={() => applyTemplate('flood')} tone="red">
-                Flood Watch
-              </FilterChipButton>
-              <FilterChipButton onClick={() => applyTemplate('rain')} tone="blue">
-                Rain Advisory
-              </FilterChipButton>
-              <FilterChipButton onClick={() => applyTemplate('clear')} tone="green">
-                All Clear
-              </FilterChipButton>
-            </div>
           </article>
         </section>
       </main>
@@ -408,7 +372,7 @@ function PublishAlertModal({
           <div className="alert-confirm-row">
             <span>Risk level</span>
             <StatusChip tone={riskChipClass(riskLevel)}>
-              {formatLabel(riskLevel)}
+              {formatAlertLabel(riskLevel)}
             </StatusChip>
           </div>
           <div className="alert-confirm-message">
@@ -431,10 +395,6 @@ function PublishAlertModal({
       </section>
     </div>
   )
-}
-
-function formatLabel(value) {
-  return value.charAt(0).toUpperCase() + value.slice(1).replaceAll('_', ' ')
 }
 
 function riskChipClass(riskLevel) {
