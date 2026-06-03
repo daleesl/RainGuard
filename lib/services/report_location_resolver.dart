@@ -46,16 +46,21 @@ class ReportLocationResolver {
         latitude,
         longitude,
       );
-      final cleanName = locationName.trim();
-      if (cleanName.isEmpty ||
-          cleanName == 'Unknown Location' ||
-          cleanName == 'Location Error') {
-        return null;
-      }
-
-      return cleanName;
+      return cleanLocationName(locationName);
     } catch (_) {
       return null;
     }
+  }
+
+  static String? cleanLocationName(String? locationName) {
+    final cleanName = locationName?.trim();
+    if (cleanName == null ||
+        cleanName.isEmpty ||
+        cleanName == 'Unknown Location' ||
+        cleanName == 'Location Error') {
+      return null;
+    }
+
+    return cleanName;
   }
 }

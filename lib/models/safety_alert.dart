@@ -29,7 +29,7 @@ class SafetyAlert {
         fallback: data['created_at'],
       ),
       riskLevel: data['risk_level'] as String? ?? 'info',
-      status: data['status'] as String? ?? 'draft',
+      status: normalizeStatus(data['status']),
       title: data['title'] as String? ?? 'RainGuard advisory',
     );
   }
@@ -42,5 +42,12 @@ class SafetyAlert {
     if (fallback is Timestamp) return fallback.toDate();
     if (fallback is DateTime) return fallback;
     return DateTime.now();
+  }
+
+  static String normalizeStatus(Object? value) {
+    if (value is String && value.trim().isNotEmpty) {
+      return value.trim().toLowerCase();
+    }
+    return 'draft';
   }
 }
