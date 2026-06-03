@@ -1,282 +1,380 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
+import { ImageOff, X } from 'lucide-react'
+import {
+  AdminMiniTable,
+  AdminMiniTableHeader,
+  AdminMiniTableRow,
+} from '../components/AdminMiniTable'
 import { MetricCard } from '../components/MetricCard'
 import { PageTopbar } from '../components/PageTopbar'
-import { PrimaryActionButton } from '../components/PrimaryActionButton'
 import { StatusChip } from '../components/StatusChip'
-import { useReports } from '../hooks/useReports'
-import { useUsers } from '../hooks/useUsers'
-import { getReportLocationName } from '../utils/reports'
+import { TableState } from '../components/TableState'
+import { useAnalytics } from '../hooks/useAnalytics'
+import {
+  formatAnalyticsDateTime,
+  formatAnalyticsLabel,
+} from '../utils/analytics'
+import {
+  getReportLabel,
+  getReportLocationName,
+  getReportTypeName,
+  getReviewStatus,
+  getRiskName,
+} from '../utils/reports'
 
-const fallbackTrend = [8, 14, 10, 24, 19, 26, 27]
-const fallbackMix = [
-  { label: 'Rain', value: 58 },
-  { label: 'Flood', value: 31 },
-  { label: 'Risk', value: 18 },
-  { label: 'Safe', value: 43 },
-  { label: 'Other', value: 22 },
+const trendRanges = [
+  { label: '7 Days', value: '7' },
+  { label: '30 Days', value: '30' },
+  { label: 'All Time', value: 'all' },
 ]
 
 export function AnalyticsPage() {
-  const { calambaReports, error } = useReports()
-  const { users } = useUsers()
-  const [now] = useState(() => Date.now())
-  const [searchTerm, setSearchTerm] = useState('')
-  const [message, setMessage] = useState('')
-
-  const reportsWeek = useMemo(() => {
-    const weekAgo = now - 7 * 24 * 60 * 60 * 1000
-    return calambaReports.filter((report) => {
-      const time = report.createdAt?.getTime?.() || 0
-      return time >= weekAgo
-    })
-  }, [calambaReports, now])
-
-  const trendData = useMemo(() => {
-    if (calambaReports.length === 0) return fallbackTrend
-
-    return Array.from({ length: 7 }, (_, index) => {
-      const date = new Date(now)
-      date.setHours(0, 0, 0, 0)
-      date.setDate(date.getDate() - (6 - index))
-      const next = new Date(date)
-      next.setDate(date.getDate() + 1)
-
-      return calambaReports.filter((report) => {
-        const time = report.createdAt?.getTime?.() || 0
-        return time >= date.getTime() && time < next.getTime()
-      }).length
-    })
-  }, [calambaReports, now])
-
-  const reportMix = useMemo(() => {
-    if (calambaReports.length === 0) return fallbackMix
-
-    const buckets = {
-      Rain: 0,
-      Flood: 0,
-      Risk: 0,
-      Safe: 0,
-      Other: 0,
-    }
-
-    calambaReports.forEach((report) => {
-      if (report.reportType === 'rain') buckets.Rain += 1
-      else if (report.reportType === 'flood') buckets.Flood += 1
-      else if (report.riskLevel === 'risk') buckets.Risk += 1
-      else if (report.riskLevel === 'safe') buckets.Safe += 1
-      else buckets.Other += 1
-    })
-
-    return Object.entries(buckets).map(([label, value]) => ({ label, value }))
-  }, [calambaReports])
-
-  const hotspots = useMemo(() => {
-    if (calambaReports.length === 0) {
-      return [
-        { area: 'Lingga Creek', flood: 16, rain: 24, trend: 'Rising' },
-        { area: 'Real Road', flood: 9, rain: 21, trend: 'Stable' },
-        { area: 'Pansol', flood: 7, rain: 14, trend: 'Rising' },
-      ]
-    }
-
-    const areas = new Map()
-    calambaReports.forEach((report) => {
-      const area = getReportLocationName(report)
-      const current = areas.get(area) || { area, flood: 0, rain: 0 }
-      if (report.reportType === 'flood' || report.riskLevel === 'flood') {
-        current.flood += 1
-      }
-      if (report.reportType === 'rain') current.rain += 1
-      areas.set(area, current)
-    })
-
-    return [...areas.values()]
-      .map((area) => ({
-        ...area,
-        trend: area.flood + area.rain > 8 ? 'Rising' : 'Stable',
-      }))
-      .sort((a, b) => b.flood + b.rain - (a.flood + a.rain))
-      .slice(0, 3)
-  }, [calambaReports])
-
-  const metrics = useMemo(() => {
-    const floodReports = calambaReports.filter(
-      (report) => report.reportType === 'flood' || report.riskLevel === 'flood',
-    ).length
-    const floodRatio =
-      calambaReports.length > 0
-        ? Math.round((floodReports / calambaReports.length) * 100)
-        : 31
-
-    return {
-      reportsWeek: reportsWeek.length || 183,
-      floodRatio,
-      verifiedUsers:
-        users.filter((user) => user.verificationStatus === 'verified').length ||
-        214,
-    }
-  }, [calambaReports, reportsWeek.length, users])
-
-  const filteredHotspots = useMemo(() => {
-    const normalizedSearch = searchTerm.trim().toLowerCase()
-    if (!normalizedSearch) return hotspots
-    return hotspots.filter((hotspot) =>
-      hotspot.area.toLowerCase().includes(normalizedSearch),
-    )
-  }, [hotspots, searchTerm])
-
-  function exportReport() {
-    const rows = [
-      ['metric', 'value'],
-      ['reports_week', metrics.reportsWeek],
-      ['flood_ratio', `${metrics.floodRatio}%`],
-      ['verified_users', metrics.verifiedUsers],
-      ...hotspots.map((hotspot) => [
-        `hotspot_${hotspot.area}`,
-        `flood:${hotspot.flood} rain:${hotspot.rain}`,
-      ]),
-    ]
-
-    const csv = rows
-      .map((row) =>
-        row.map((cell) => `"${String(cell).replaceAll('"', '""')}"`).join(','),
-      )
-      .join('\n')
-
-    const url = URL.createObjectURL(
-      new Blob([csv], { type: 'text/csv;charset=utf-8;' }),
-    )
-    const link = document.createElement('a')
-    link.href = url
-    link.download = 'rainguard-analytics.csv'
-    link.click()
-    URL.revokeObjectURL(url)
-    setMessage('Analytics report exported.')
-  }
+  const [selectedReport, setSelectedReport] = useState(null)
+  const [trendRange, setTrendRange] = useState('7')
+  const { analytics, error, status } = useAnalytics(trendRange)
+  const {
+    distributions,
+    metrics,
+    needsAttention,
+    recentHighRiskReports,
+    trend,
+    trendSummary,
+  } = analytics
 
   return (
     <div className="analytics-page">
       <PageTopbar
-        action={
-          <PrimaryActionButton onClick={exportReport}>
-            Export Report
-          </PrimaryActionButton>
-        }
-        description="Track report trends, flood hotspots, verification throughput, and alert reach."
-        search={{
-          ariaLabel: 'Search analytics records',
-          onChange: setSearchTerm,
-          value: searchTerm,
-        }}
+        description="Decision support for report volume, active risks, unresolved issues, alerts, and verification activity."
         title="Analytics"
       />
 
       <main className="analytics-content">
         <section className="metric-row analytics-metrics" aria-label="Analytics metrics">
-          <MetricCard accent="#1778d4" helper="+18%" label="Reports week" value={metrics.reportsWeek} />
-          <MetricCard accent="#e24d4d" helper="High" label="Flood ratio" value={`${metrics.floodRatio}%`} />
-          <MetricCard accent="#28c59d" helper="Improved" label="Avg review" value="14m" />
-          <MetricCard accent="#e8b118" helper="This week" label="Alert reach" value="1.8k" />
+          <MetricCard accent="#1778d4" className="analytics-metric-card" helper={trendSummary.todayDirection} label="Reports Today" value={trendSummary.today} />
+          <MetricCard accent="#102f4d" className="analytics-metric-card" helper={trendSummary.weekDirection} label="7-Day Reports" value={trend.reduce((total, item) => total + item.total, 0)} />
+          <MetricCard accent="#e8b118" className="analytics-metric-card" helper="Risk or flood" label="Risk/Flood Reports" value={metrics.highRiskReports} />
+          <MetricCard accent="#e24d4d" className="analytics-metric-card" helper="Needs review" label="Pending Action" value={needsAttention.pendingAction} />
         </section>
 
-        {error || message ? (
-          <p className={error ? 'error-banner' : 'success-banner'}>
-            {error || message}
-          </p>
+        {error ? <p className="error-banner">{error}</p> : null}
+        {status === 'loading' ? (
+          <TableState>Loading analytics from Firestore...</TableState>
         ) : null}
+
+        <section className="analytics-attention-card">
+          <div className="analytics-section-heading">
+            <div>
+              <p>Barangay triage</p>
+              <h3>Needs Attention</h3>
+            </div>
+            <StatusChip tone={needsAttention.pendingAction > 0 ? 'red' : 'green'}>
+              {needsAttention.pendingAction > 0 ? 'Action needed' : 'Clear'}
+            </StatusChip>
+          </div>
+
+          <div className="attention-summary-grid">
+            <AttentionStat
+              label="Active flood reports, 24h"
+              tone="danger"
+              value={needsAttention.recentFlood}
+            />
+            <AttentionStat
+              label="Unresolved risk/flood reports"
+              tone="warning"
+              value={needsAttention.unresolvedRisk}
+            />
+            <AttentionStat
+              label="Pending admin action"
+              tone="neutral"
+              value={needsAttention.pendingAction}
+            />
+          </div>
+          {needsAttention.recentFlood +
+            needsAttention.unresolvedRisk +
+            needsAttention.pendingAction === 0 ? (
+            <TableState>No urgent flood, risk, or pending reports right now.</TableState>
+          ) : null}
+        </section>
 
         <section className="analytics-grid">
           <article className="analytics-card trend-card">
-            <h3>Reports Over Time</h3>
-            <LineChart color="#1778d4" data={trendData} />
+            <div className="analytics-card-heading">
+              <div>
+                <h3>Reports Over Time</h3>
+                <p>Daily rain and flood report activity</p>
+              </div>
+              <div className="analytics-range-filter" aria-label="Trend range">
+                {trendRanges.map((range) => (
+                  <button
+                    className={trendRange === range.value ? 'is-active' : ''}
+                    key={range.value}
+                    onClick={() => setTrendRange(range.value)}
+                    type="button"
+                  >
+                    {range.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <TrendChart data={trend} />
           </article>
 
           <article className="analytics-card mix-card">
-            <h3>Report Type Mix</h3>
-            <BarChart data={reportMix} />
-            <div className="chart-chips">
-              <StatusChip>Rain</StatusChip>
-              <StatusChip tone="red">Flood</StatusChip>
-              <StatusChip tone="amber">Risk</StatusChip>
-            </div>
+            <h3>Reports by Risk Level</h3>
+            <DistributionBars data={distributions.risk} />
           </article>
 
-          <article className="analytics-card hotspot-card">
-            <h3>Top Hotspots</h3>
-            <div className="hotspot-table">
-              <div className="hotspot-header">
-                <span>Area</span>
-                <span>Flood</span>
-                <span>Rain</span>
-                <span>Trend</span>
-              </div>
-              {filteredHotspots.map((hotspot) => (
-                <div className="hotspot-row" key={hotspot.area}>
-                  <strong>{hotspot.area}</strong>
-                  <span>{hotspot.flood}</span>
-                  <span>{hotspot.rain}</span>
-                  <span>{hotspot.trend}</span>
-                </div>
-              ))}
-            </div>
+          <article className="analytics-card mix-card">
+            <h3>Reports by Status</h3>
+            <DistributionBars data={distributions.status} emptyText="No report statuses yet." />
           </article>
 
-          <article className="analytics-card performance-card">
-            <h3>Verification and Alert Performance</h3>
-            <LineChart color="#28c59d" data={verificationSeries(metrics.verifiedUsers)} />
-            <div className="chart-chips">
-              <StatusChip tone="green">Verification</StatusChip>
-              <StatusChip>Alerts</StatusChip>
-            </div>
+          <article className="analytics-card recent-risk-card">
+            <h3>Recent High-Risk Reports</h3>
+            <RecentHighRiskTable
+              reports={recentHighRiskReports}
+              setSelectedReport={setSelectedReport}
+            />
           </article>
         </section>
       </main>
-    </div>
-  )
-}
 
-function LineChart({ color, data }) {
-  const max = Math.max(...data, 1)
-  const points = data.map((value, index) => {
-    const x = 16 + index * (368 / Math.max(data.length - 1, 1))
-    const y = 132 - (value / max) * 92
-    return `${x},${y}`
-  })
-
-  return (
-    <div className="line-chart" role="img" aria-label="Line chart">
-      <svg viewBox="0 0 400 160" preserveAspectRatio="none">
-        {[32, 64, 96, 128].map((line) => (
-          <line className="chart-grid-line" key={line} x1="16" x2="384" y1={line} y2={line} />
-        ))}
-        <polyline fill="none" points={points.join(' ')} stroke={color} strokeLinecap="round" strokeWidth="3" />
-        {points.map((point) => {
-          const [x, y] = point.split(',')
-          return <circle cx={x} cy={y} fill={color} key={point} r="4" />
-        })}
-      </svg>
-    </div>
-  )
-}
-
-function BarChart({ data }) {
-  const max = Math.max(...data.map((item) => item.value), 1)
-
-  return (
-    <div className="bar-chart" aria-label="Report type distribution">
-      {data.map((item) => (
-        <span
-          className="bar-column"
-          key={item.label}
-          style={{ height: `${42 + (item.value / max) * 98}px` }}
-          title={`${item.label}: ${item.value}`}
+      {selectedReport ? (
+        <AnalyticsReportModal
+          onClose={() => setSelectedReport(null)}
+          report={selectedReport}
         />
+      ) : null}
+    </div>
+  )
+}
+
+function AttentionStat({ label, tone, value }) {
+  return (
+    <div className={`attention-stat is-${tone}`}>
+      <strong>{value}</strong>
+      <span>{label}</span>
+    </div>
+  )
+}
+
+function DistributionBars({ data, emptyText = 'No records yet.' }) {
+  const max = Math.max(...data.map((item) => item.value), 0)
+
+  if (max === 0) return <TableState>{emptyText}</TableState>
+
+  return (
+    <div className="analytics-distribution-list">
+      {data.map((item) => (
+        <div
+          className="distribution-row"
+          key={item.label}
+          style={{ '--distribution-color': getDistributionColor(item.label) }}
+        >
+          <span>{item.label}</span>
+          <div className="distribution-track">
+            <i style={{ width: `${Math.max((item.value / max) * 100, 8)}%` }} />
+          </div>
+          <strong>{item.value}</strong>
+        </div>
       ))}
     </div>
   )
 }
 
-function verificationSeries(verifiedUsers) {
-  const base = Math.max(verifiedUsers, 24)
-  return [base - 18, base - 13, base - 8, base - 5, base - 2, base]
+function getDistributionColor(label) {
+  const normalizedLabel = label.toLowerCase()
+  if (normalizedLabel.includes('safe') || normalizedLabel.includes('resolved')) {
+    return '#28a985'
+  }
+  if (normalizedLabel.includes('flood') || normalizedLabel.includes('rejected')) {
+    return '#e24d4d'
+  }
+  if (normalizedLabel.includes('risk') || normalizedLabel.includes('pending')) {
+    return '#e8b118'
+  }
+  return '#1778d4'
+}
+
+function RecentHighRiskTable({ reports, setSelectedReport }) {
+  if (reports.length === 0) {
+    return <TableState>No high-risk reports found.</TableState>
+  }
+
+  return (
+    <AdminMiniTable className="analytics-risk-table">
+      <AdminMiniTableHeader
+        columns={['Date/time', 'Type', 'Risk', 'Status', 'Location', 'Action']}
+      />
+      {reports.map((report) => (
+        <AdminMiniTableRow key={report.id}>
+          <span>{formatAnalyticsDateTime(report.createdAt)}</span>
+          <strong>{getReportTypeName(report)}</strong>
+          <StatusChip size="mini" tone={report.riskLevel === 'safe' ? 'green' : 'red'}>
+            {getRiskName(report)}
+          </StatusChip>
+          <StatusChip size="mini" tone={statusTone(report.status)}>
+            {getReviewStatus(report)}
+          </StatusChip>
+          <span>{getReportLocationName(report)}</span>
+          <button
+            className="mini-link-button"
+            onClick={() => setSelectedReport(report)}
+            type="button"
+          >
+            View
+          </button>
+        </AdminMiniTableRow>
+      ))}
+    </AdminMiniTable>
+  )
+}
+
+function TrendChart({ data }) {
+  const max = Math.max(
+    ...data.flatMap((item) => [item.rain, item.flood]),
+    0,
+  )
+
+  if (max === 0) {
+    return <TableState>No reports in this time range yet.</TableState>
+  }
+
+  return (
+    <div className="trend-bar-chart" aria-label="Reports over time bar graph">
+      <div className="trend-chart-y-label">Number of Reports</div>
+      <div className="trend-bars">
+        {data.map((item, index) => {
+          const shouldShowLabel = index % Math.ceil(data.length / 7) === 0 ||
+            index === data.length - 1
+
+          return (
+            <div className="trend-bar-item" key={`${item.label}-${index}`} tabIndex={0}>
+              <strong>{item.total}</strong>
+              <div className="trend-paired-bars" aria-label={`${item.label} rain and flood reports`}>
+                <div className="trend-paired-bar">
+                  <em>{item.rain}</em>
+                  <span
+                    className="is-rain"
+                    style={{ height: `${Math.max((item.rain / max) * 150, item.rain ? 8 : 0)}px` }}
+                    title={`${item.label}: ${item.rain} rain reports`}
+                  />
+                </div>
+                <div className="trend-paired-bar">
+                  <em>{item.flood}</em>
+                  <span
+                    className="is-flood"
+                    style={{ height: `${Math.max((item.flood / max) * 150, item.flood ? 8 : 0)}px` }}
+                    title={`${item.label}: ${item.flood} flood reports`}
+                  />
+                </div>
+              </div>
+              <small>{shouldShowLabel ? item.label : ''}</small>
+              <div className="trend-tooltip" role="tooltip">
+                <strong>{item.label}</strong>
+                <span>Total reports: {item.total}</span>
+                <span>Rain reports: {item.rain}</span>
+                <span>Flood reports: {item.flood}</span>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+      <div className="trend-chart-x-label">Date</div>
+      <div className="trend-chart-legend">
+        <span className="is-rain">Rain Reports</span>
+        <span className="is-flood">Flood Reports</span>
+        <span className="is-total">Top number is total</span>
+      </div>
+    </div>
+  )
+}
+
+function AnalyticsReportModal({ onClose, report }) {
+  const image = report.imageUrl || report.imageUrls?.[0]
+
+  return (
+    <div
+      aria-labelledby="analytics-report-title"
+      aria-modal="true"
+      className="report-modal-backdrop"
+      onClick={onClose}
+      role="dialog"
+    >
+      <section
+        className="report-modal report-modal-simple analytics-report-modal"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="simple-modal-header">
+          <div>
+            <p className="modal-eyebrow">Analytics report</p>
+            <h3 id="analytics-report-title">{getReportLabel(report)}</h3>
+          </div>
+          <button
+            aria-label="Close report details"
+            className="modal-close"
+            onClick={onClose}
+            type="button"
+          >
+            <X aria-hidden="true" size={18} />
+          </button>
+        </div>
+        <div className="analytics-modal-body">
+          <div className="analytics-modal-image">
+            {image ? (
+              <img alt="Report evidence" src={image} />
+            ) : (
+              <span>
+                <ImageOff aria-hidden="true" size={24} />
+                No photo attached
+              </span>
+            )}
+          </div>
+          <div className="analytics-modal-details">
+            <div className="simple-chip-row">
+              <StatusChip>{getReportTypeName(report)}</StatusChip>
+              <StatusChip tone={report.riskLevel === 'safe' ? 'green' : 'red'}>
+                {getRiskName(report)}
+              </StatusChip>
+              <StatusChip tone={statusTone(report.status)}>
+                {formatAnalyticsLabel(report.status)}
+              </StatusChip>
+            </div>
+            <h4>{getReportLocationName(report)}</h4>
+            <p>{report.description || 'No description was provided.'}</p>
+            <div className="simple-meta-list">
+              <InfoItem label="Created" value={formatAnalyticsDateTime(report.createdAt)} />
+              <InfoItem label="Reporter" value={report.reporterName || 'Anonymous'} />
+              <InfoItem label="Latitude" value={formatCoordinate(report.latitude)} />
+              <InfoItem label="Longitude" value={formatCoordinate(report.longitude)} />
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  )
+}
+
+function InfoItem({ label, value }) {
+  return (
+    <div className="modal-info-item">
+      <span>{label}</span>
+      <strong>{value}</strong>
+    </div>
+  )
+}
+
+function formatCoordinate(value) {
+  return Number.isFinite(value) ? value.toFixed(5) : 'Unknown'
+}
+
+function statusTone(status) {
+  if (status === 'verified' || status === 'resolved' || status === 'published') {
+    return 'green'
+  }
+  if (status === 'rejected' || status === 'duplicate_hidden' || status === 'hidden') {
+    return 'red'
+  }
+  if (status === 'pending' || status === 'review') return 'amber'
+  return 'blue'
 }
