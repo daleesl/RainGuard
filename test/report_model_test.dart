@@ -41,5 +41,36 @@ void main() {
       expect(report.reviewStatus, 'verified');
       expect(report.isAdminVerified, isTrue);
     });
+
+    test('classifies active recent and archived freshness', () {
+      expect(
+        _reportCreatedAt(
+          DateTime.now().subtract(const Duration(hours: 2)),
+        ).freshness,
+        ReportFreshness.active,
+      );
+      expect(
+        _reportCreatedAt(
+          DateTime.now().subtract(const Duration(hours: 10)),
+        ).freshness,
+        ReportFreshness.recent,
+      );
+      expect(
+        _reportCreatedAt(
+          DateTime.now().subtract(const Duration(hours: 30)),
+        ).freshness,
+        ReportFreshness.archived,
+      );
+    });
   });
+}
+
+Report _reportCreatedAt(DateTime createdAt) {
+  return Report.fromFirestore({
+    'latitude': 14.2,
+    'longitude': 121.1,
+    'report_type': 'rain',
+    'risk_level': 'risk',
+    'created_at': Timestamp.fromDate(createdAt),
+  }, 'freshness-report');
 }

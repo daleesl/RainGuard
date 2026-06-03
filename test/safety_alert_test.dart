@@ -37,5 +37,14 @@ void main() {
       expect(alert.publishedAt, createdAt);
       expect(alert.isPublished, isFalse);
     });
+
+    test('normalizes alert status for reliable comparisons', () {
+      final alert = SafetyAlert.fromFirestore({
+        'status': ' Published ',
+      }, 'alert-3');
+
+      expect(alert.status, 'published');
+      expect(alert.isPublished, isTrue);
+    });
   });
 }
