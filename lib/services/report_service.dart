@@ -45,6 +45,8 @@ class ReportService {
   static const Duration _submitTimeoutPerImage = Duration(seconds: 8);
 
   static Timer? _draftRetryTimer;
+  static Future<int>? _pendingDraftRetry;
+  static final Map<String, Future<void>> _pendingReportSubmissions = {};
 
   static void startPendingDraftRetry() {
     if (_draftRetryTimer != null) return;
@@ -91,7 +93,24 @@ class ReportService {
     }
   }
 
-  static Future<int> submitPendingDrafts() async {
+  static Future<int> submitPendingDrafts() {
+    final inFlightRetry = _pendingDraftRetry;
+    if (inFlightRetry != null) return inFlightRetry;
+
+    final retry = _runPendingDraftRetry();
+    _pendingDraftRetry = retry;
+    return retry;
+  }
+
+  static Future<int> _runPendingDraftRetry() async {
+    try {
+      return await _submitPendingDraftsUnlocked();
+    } finally {
+      _pendingDraftRetry = null;
+    }
+  }
+
+  static Future<int> _submitPendingDraftsUnlocked() async {
     final drafts = await ReportDraftService.getPendingDrafts();
     var submittedCount = 0;
 
@@ -124,7 +143,7 @@ class ReportService {
     );
 
     return _ReportRequest(
-      draftId: DateTime.now().microsecondsSinceEpoch.toString(),
+      draftId: FirebaseFirestore.instance.collection('reports').doc().id,
       type: type,
       floodLevel: floodLevel,
       description: description.trim(),
@@ -156,8 +175,37 @@ class ReportService {
   }
 
   static Future<void> _submitPreparedReport(_ReportRequest request) async {
+    final pendingSubmission = _pendingReportSubmissions[request.draftId];
+    if (pendingSubmission != null) return pendingSubmission;
+
+    final submission = _runPreparedReportSubmission(request);
+    _pendingReportSubmissions[request.draftId] = submission;
+    return submission;
+  }
+
+  static Future<void> _runPreparedReportSubmission(
+    _ReportRequest request,
+  ) async {
+    try {
+      await _submitPreparedReportUnlocked(request);
+    } finally {
+      _pendingReportSubmissions.remove(request.draftId);
+    }
+  }
+
+  static Future<void> _submitPreparedReportUnlocked(
+    _ReportRequest request,
+  ) async {
+    final reportRef = FirebaseFirestore.instance
+        .collection('reports')
+        .doc(request.draftId);
+    if (await _isAlreadySubmitted(reportRef)) return;
+
     final reporter = await _verifiedReporter();
-    final imageUrls = await _uploadReportImages(request.selectedImages);
+    final imageUrls = await _uploadReportImages(
+      request.selectedImages,
+      reportId: request.draftId,
+    );
     final locationName = await ReportLocationResolver.resolveLocationName(
       request.location.latitude,
       request.location.longitude,
@@ -170,7 +218,22 @@ class ReportService {
       locationName: locationName,
     );
 
-    await FirebaseFirestore.instance.collection('reports').add(reportData);
+    await reportRef.set(reportData);
+  }
+
+  static Future<bool> _isAlreadySubmitted(
+    DocumentReference<Map<String, dynamic>> reportRef,
+  ) async {
+    final snapshot = await reportRef.get();
+    if (!snapshot.exists) return false;
+
+    final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+    final submittedUserId = snapshot.data()?['user_id'];
+    if (currentUserId != null && submittedUserId == currentUserId) {
+      return true;
+    }
+
+    throw StateError('A different report already uses this draft ID.');
   }
 
   static Future<_VerifiedReporter> _verifiedReporter() async {
@@ -195,10 +258,14 @@ class ReportService {
   }
 
   static Future<List<String>> _uploadReportImages(
-    List<XFile> selectedImages,
-  ) async {
+    List<XFile> selectedImages, {
+    required String reportId,
+  }) async {
     if (selectedImages.isEmpty) return const <String>[];
-    return StorageService.uploadReportImages(selectedImages);
+    return StorageService.uploadReportImages(
+      selectedImages,
+      reportId: reportId,
+    );
   }
 
   static Map<String, Object?> _buildReportData({
@@ -225,6 +292,7 @@ class ReportService {
       'description': request.description,
       'image_url': imageUrl,
       'image_urls': imageUrls,
+      'status': 'active',
       'created_at': Timestamp.fromDate(request.createdAt),
     };
   }
