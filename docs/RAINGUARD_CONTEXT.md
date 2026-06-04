@@ -39,8 +39,8 @@ Backend/support:
 
 - Splash: checks auth and onboarding state.
 - Onboarding: first-time introduction.
-- Login / Sign up: Firebase email/password and Google sign-in.
-- Home: Lingga/Calamba weather, flood safety summary, quick actions, and tips.
+- Login / Sign up: Firebase email/password authentication. Google sign-in is currently hidden from the auth UI while it is unavailable.
+- Home: Lingga/Calamba weather, current flood-risk assessment, source reason, last-updated time, quick actions, and tips.
 - Map: Calamba-centered report map with report pins, clusters, filters, selected report preview, and report submission.
 - Notifications: community report alerts and safety alerts.
 - Settings: account info, verification, password reset, help, emergency info, and logout.
@@ -126,6 +126,8 @@ Admin accounts:
 - User map should show active/recent reports by default.
 - Admin map should default to active/recent reports and allow filters for older/resolved/rejected/all reports.
 - Reports/history views should still allow admins to review older data.
+- Home current risk uses unresolved community flood reports from the last 6 hours and published official watch/warning alerts from the last 24 hours, refreshing periodically and when the app resumes.
+- Offline report retries reuse the permanent draft ID for the Firestore report and deterministic image paths, preventing duplicate submissions and reusing images already uploaded by an earlier attempt.
 
 ## Current Design Direction
 
@@ -152,6 +154,8 @@ Admin accounts:
 - Barangay Lingga monitoring boundary is sourced from `docs/geo/lingga-boundary.geojson`.
 - Shared Flutter state widgets were added for empty, loading, error, and section header states.
 - Lightweight tests were added for parsing and duplicate helper logic.
+- Home flood risk no longer counts historical/resolved reports as current danger and now includes current official alerts.
+- Offline report retries are idempotent across automatic and manual retry triggers.
 
 ## Recommended Improvements Before Machine Learning
 

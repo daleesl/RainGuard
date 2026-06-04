@@ -20,10 +20,11 @@ Use this file as the first stop for any AI assistant or coding agent working in 
 - App name: RainGuard.
 - Product purpose: help users monitor weather, view local flood/risk reports on a map, submit community reports, and review report notifications.
 - Current primary location context: Calamba, Laguna. Home weather uses the fixed Barangay Lingga/Calamba coordinates, report submission uses actual device GPS, and the map centers on Calamba reports.
+- Home flood risk uses unresolved community flood reports from the last 6 hours plus published official watch/warning alerts from the last 24 hours. Historical, resolved, rejected, duplicate-hidden, and clearly future-dated records must not keep Home in an active-risk state. Refresh this assessment periodically and when the app resumes.
 - Current navigation: Home, Map, Notification, Settings.
 - Entry flow: Splash -> first-time Onboarding -> Login / Sign up -> MainWrapper.
 - Onboarding should only appear for first-time users, controlled by `shared_preferences` with `OnboardingScreen.seenPreferenceKey`.
-- Auth supports email/password and Google sign-in through Firebase Auth.
+- Auth screens currently expose email/password authentication through Firebase Auth. Google sign-in remains implemented in `AuthService` but is hidden from the UI while it is unavailable.
 - New account creation should create/update the Firebase Auth user and a matching Firestore user profile document.
 - Settings is no longer a placeholder. It shows dynamic account data, verification status, notification/location toggles, and logout.
 - Logout is available in Settings and should return the user to Login using a route reset.
@@ -67,10 +68,10 @@ Use this file as the first stop for any AI assistant or coding agent working in 
 
 - `SplashScreen`: shows RainGuard logo briefly, checks Firebase Auth and onboarding preference, then routes to the correct next screen.
 - `OnboardingScreen`: introduces RainGuard and stores first-time completion before going to Login.
-- `LoginScreen`: email/password login, Google sign-in, and navigation to sign-up.
-- `SignupScreen`: first name, last name, email/password account creation, and Google sign-in.
+- `LoginScreen`: email/password login and navigation to sign-up.
+- `SignupScreen`: first name, last name, and email/password account creation.
 - `MainWrapper`: bottom navigation with Home, Map, Notification, and Settings.
-- `HomeScreen`: fixed Lingga/Calamba weather summary, flood risk assessment, quick actions, preparedness tips, and hotlines sheet.
+- `HomeScreen`: fixed Lingga/Calamba weather summary, current flood risk assessment with source reason and last-updated time, quick actions, preparedness tips, and hotlines sheet.
 - `MapScreen`: Calamba-centered OpenStreetMap view, Firestore report pins, report details, and add-report bottom sheet.
 - `MapScreen`: Calamba-centered OpenStreetMap view, Firestore report pins, local pending draft pins, report details, and add-report bottom sheet.
 - `NotificationScreen`: Firestore-based community report alerts, summary metrics, alert cards, and empty state.
@@ -115,6 +116,7 @@ Use this file as the first stop for any AI assistant or coding agent working in 
 - User notification tokens are stored under `users/{uid}/fcm_tokens/{token}` with `token`, `platform`, `created_at`, and `updated_at`.
 - Report types currently modeled in Dart: `rain`, `flood`.
 - Risk levels currently modeled in Dart: `safe`, `risk`, `flood`.
+- New report document IDs reuse the client draft/submission ID so offline retries remain idempotent.
 - Keep Firestore field names stable unless a task explicitly requires a data migration or coordinated backend change.
 - When changing report data shape, update `lib/models/report_model.dart` and every read/write path together.
 - When changing user profile shape, update `lib/models/user_profile.dart`, `lib/services/user_profile_service.dart`, and auth write paths together.
@@ -124,8 +126,9 @@ Use this file as the first stop for any AI assistant or coding agent working in 
 - `AuthService`: email/password auth, Google sign-in, user profile creation/update, and sign-out.
 - `UserProfileService`: streams and reads the current Firebase user's Firestore profile.
 - `LocationService`: location permission and current GPS position handling.
-- `StorageService`: report image compression and Firebase Storage upload behavior.
-- `ReportService`: report submission orchestration, duplicate warning checks, offline draft fallback, GPS/manual location, optional image upload, current user/profile info, and Firestore writes.
+- `StorageService`: report image compression and Firebase Storage upload behavior, including deterministic `reports/{draftId}/image-{index}` paths and reuse of images already uploaded by an earlier retry.
+- `ReportService`: report submission orchestration, duplicate warning checks, idempotent offline draft fallback/retry, GPS/manual location, optional image upload, current user/profile info, and Firestore writes.
+- `HomeRiskService`: combines recent unresolved flood reports and current published official alerts into the Home flood-risk assessment.
 - `NotificationTokenService`: Firebase Cloud Messaging permission, token registration, token refresh persistence, and logout cleanup.
 - `NotificationPreferenceService`: user notification preference reads/writes, including nearby alert location.
 - `ReportDraftService`: local pending report draft persistence and app-owned draft image copies for weak or unavailable connections.
