@@ -1,7 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../services/auth_service.dart';
@@ -23,13 +22,11 @@ class _LoginScreenState extends State<LoginScreen> {
   static const primaryBlue = RainGuardColors.primary;
   static const ink = RainGuardColors.ink;
   static const muted = RainGuardColors.muted;
-  static const fieldBorder = RainGuardColors.authFieldBorder;
 
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isLoading = false;
-  bool _isGoogleLoading = false;
   bool _obscurePassword = true;
 
   @override
@@ -83,53 +80,6 @@ class _LoginScreenState extends State<LoginScreen> {
     ).push(MaterialPageRoute<void>(builder: (_) => const SignupScreen()));
   }
 
-  Future<void> _continueWithGoogle() async {
-    setState(() => _isGoogleLoading = true);
-    try {
-      await AuthService.signInWithGoogle();
-      if (!mounted) return;
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute<void>(builder: (_) => const MainWrapper()),
-        (_) => false,
-      );
-    } on FirebaseAuthException catch (error) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(_messageFor(error))));
-    } catch (_) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Google sign-in was cancelled or failed.'),
-        ),
-      );
-    } finally {
-      if (mounted) setState(() => _isGoogleLoading = false);
-    }
-  }
-
-  Widget _googleButton(_LoginMetrics metrics) {
-    if (_isGoogleLoading) {
-      return RainGuardGoogleButton(
-        onPressed: null,
-        scale: metrics.controlScale,
-        height: metrics.buttonHeight,
-        fontSize: metrics.font(12),
-        radius: metrics.radius(18),
-        label: 'Connecting...',
-      );
-    }
-
-    return RainGuardGoogleButton(
-      onPressed: _continueWithGoogle,
-      scale: metrics.controlScale,
-      height: metrics.buttonHeight,
-      fontSize: metrics.font(12),
-      radius: metrics.radius(18),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return AnnotatedRegion<SystemUiOverlayStyle>(
@@ -181,10 +131,11 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         child: Row(
                           children: [
-                            SvgPicture.asset(
-                              'assets/images/rainGuard-Logo.svg',
+                            Image.asset(
+                              'assets/images/rainguard-icon-transparent.png',
                               width: 39.3 * metrics.logoScale,
                               height: 50 * metrics.logoScale,
+                              fit: BoxFit.contain,
                             ),
                             SizedBox(width: metrics.space(12)),
                             Text(
@@ -305,10 +256,6 @@ class _LoginScreenState extends State<LoginScreen> {
                               fontSize: metrics.font(12),
                               radius: metrics.radius(18),
                             ),
-                            SizedBox(height: metrics.gap(31)),
-                            _DividerWithText(metrics: metrics),
-                            SizedBox(height: metrics.gap(29)),
-                            _googleButton(metrics),
                             SizedBox(height: metrics.gap(25)),
                             Center(
                               child: TextButton(
@@ -402,31 +349,4 @@ class _LoginMetrics {
         horizontal: space(20).clamp(16, 22).toDouble(),
         vertical: gap(18).clamp(13, 19).toDouble(),
       );
-}
-
-class _DividerWithText extends StatelessWidget {
-  const _DividerWithText({required this.metrics});
-
-  final _LoginMetrics metrics;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        const Expanded(child: Divider(color: _LoginScreenState.fieldBorder)),
-        Padding(
-          padding: EdgeInsets.symmetric(horizontal: metrics.space(34)),
-          child: Text(
-            'or',
-            style: GoogleFonts.poppins(
-              color: _LoginScreenState.muted,
-              fontSize: metrics.font(8),
-              fontWeight: FontWeight.w400,
-            ),
-          ),
-        ),
-        const Expanded(child: Divider(color: _LoginScreenState.fieldBorder)),
-      ],
-    );
-  }
 }

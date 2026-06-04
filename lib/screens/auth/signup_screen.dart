@@ -31,7 +31,6 @@ class _SignupScreenState extends State<SignupScreen> {
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   bool _isLoading = false;
-  bool _isGoogleLoading = false;
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
 
@@ -82,34 +81,6 @@ class _SignupScreenState extends State<SignupScreen> {
         return 'Please check your internet connection.';
       default:
         return error.message ?? 'Account creation failed. Please try again.';
-    }
-  }
-
-  Future<void> _continueWithGoogle() async {
-    setState(() => _isGoogleLoading = true);
-    try {
-      await AuthService.signInWithGoogle();
-      if (!mounted) return;
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute<void>(builder: (_) => const MainWrapper()),
-        (_) => false,
-      );
-    } on FirebaseAuthException catch (error) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(_messageFor(error))));
-    } catch (_) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Google sign-up was not completed. Try again or use email sign-up.',
-          ),
-        ),
-      );
-    } finally {
-      if (mounted) setState(() => _isGoogleLoading = false);
     }
   }
 
@@ -175,7 +146,7 @@ class _SignupScreenState extends State<SignupScreen> {
                             ),
                             SizedBox(height: 12 * verticalScale),
                             Text(
-                              'Use email and password, or choose Google for\na faster sign-up.',
+                              'Create your account with email and password to\nkeep your community informed.',
                               style: GoogleFonts.poppins(
                                 color: const Color(0xFFD9F2FF),
                                 fontSize: 8 * scale,
@@ -208,18 +179,6 @@ class _SignupScreenState extends State<SignupScreen> {
                               verticalScale: verticalScale,
                             ),
                             SizedBox(height: 24 * verticalScale),
-                            Center(
-                              child: RainGuardGoogleButton(
-                                onPressed: _isGoogleLoading
-                                    ? null
-                                    : _continueWithGoogle,
-                                scale: scale,
-                                compact: true,
-                                label:
-                                    _isGoogleLoading ? 'Connecting...' : null,
-                              ),
-                            ),
-                            SizedBox(height: 19 * verticalScale),
                             RainGuardPrimaryButton(
                               label: 'Create account',
                               isLoading: _isLoading,
