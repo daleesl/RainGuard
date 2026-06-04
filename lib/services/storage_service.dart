@@ -3,7 +3,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:firebase_storage/firebase_storage.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kIsWeb, visibleForTesting;
 import 'package:flutter/material.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 
@@ -16,14 +16,29 @@ class StorageService {
   static const int _uploadRetryCount = 1;
   static const Duration _uploadTimeout = Duration(seconds: 45);
 
-  static Future<List<String>> uploadReportImages(List<XFile> images) async {
+  static Future<List<String>> uploadReportImages(
+    List<XFile> images, {
+    required String reportId,
+  }) async {
     if (images.isEmpty) return const <String>[];
 
     final urls = <String>[];
     var index = 0;
     while (index < images.length) {
-      final batch = images.skip(index).take(_maxParallelReportUploads);
-      final batchUrls = await Future.wait(batch.map(uploadReportImage));
+      final batch = images
+          .skip(index)
+          .take(_maxParallelReportUploads)
+          .toList();
+      final batchUrls = await Future.wait(
+        List.generate(
+          batch.length,
+          (batchIndex) => uploadReportImage(
+            batch[batchIndex],
+            reportId: reportId,
+            imageIndex: index + batchIndex,
+          ),
+        ),
+      );
       urls.addAll(batchUrls);
       index += _maxParallelReportUploads;
     }
@@ -31,8 +46,20 @@ class StorageService {
     return urls;
   }
 
-  static Future<String> uploadReportImage(XFile image) async {
-    return _uploadImageWithRetry(image, 'reports');
+  static Future<String> uploadReportImage(
+    XFile image, {
+    required String reportId,
+    required int imageIndex,
+  }) async {
+    final path = reportImagePath(reportId, imageIndex);
+    final existingUrl = await _existingDownloadUrl(path);
+    if (existingUrl != null) return existingUrl;
+
+    return _uploadImageWithRetry(
+      image,
+      'reports/${_safePathSegment(reportId)}',
+      objectName: 'image-$imageIndex',
+    );
   }
 
   static Future<String> uploadVerificationImage({
@@ -45,13 +72,18 @@ class StorageService {
 
   static Future<String> _uploadImageWithRetry(
     XFile image,
-    String folderPath,
-  ) async {
+    String folderPath, {
+    String? objectName,
+  }) async {
     Object? lastError;
 
     for (var attempt = 0; attempt <= _uploadRetryCount; attempt += 1) {
       try {
-        return await _uploadImage(image, folderPath).timeout(_uploadTimeout);
+        return await _uploadImage(
+          image,
+          folderPath,
+          objectName: objectName,
+        ).timeout(_uploadTimeout);
       } catch (error) {
         lastError = error;
         if (!_shouldRetryUpload(error) || attempt == _uploadRetryCount) {
@@ -64,14 +96,16 @@ class StorageService {
     throw Exception(_friendlyUploadError(lastError));
   }
 
-  static Future<String> _uploadImage(XFile image, String folderPath) async {
+  static Future<String> _uploadImage(
+    XFile image,
+    String folderPath, {
+    String? objectName,
+  }) async {
     final payload = await _prepareUploadPayload(image);
-    final cleanName = payload.fileName.replaceAll(
-      RegExp(r'[^a-zA-Z0-9\.]'),
-      '_',
-    );
-    final path =
-        '$folderPath/${DateTime.now().millisecondsSinceEpoch}_$cleanName';
+    final cleanName = objectName == null
+        ? '${DateTime.now().millisecondsSinceEpoch}_${_safePathSegment(payload.fileName)}'
+        : _safePathSegment(objectName);
+    final path = '$folderPath/$cleanName';
     final fileRef = FirebaseStorage.instance.ref().child(path);
     final metadata = SettableMetadata(contentType: payload.contentType);
 
@@ -83,6 +117,20 @@ class StorageService {
     }
 
     return snapshot.ref.getDownloadURL();
+  }
+
+  @visibleForTesting
+  static String reportImagePath(String reportId, int imageIndex) {
+    return 'reports/${_safePathSegment(reportId)}/image-$imageIndex';
+  }
+
+  static Future<String?> _existingDownloadUrl(String path) async {
+    try {
+      return await FirebaseStorage.instance.ref().child(path).getDownloadURL();
+    } on FirebaseException catch (error) {
+      if (error.code == 'object-not-found') return null;
+      rethrow;
+    }
   }
 
   static Future<_UploadPayload> _prepareUploadPayload(XFile image) async {
@@ -129,6 +177,11 @@ class StorageService {
   static String _jpegFileName(String name) {
     final baseName = name.replaceFirst(RegExp(r'\.[^.]+$'), '');
     return '$baseName.jpg';
+  }
+
+  static String _safePathSegment(String value) {
+    final cleanValue = value.replaceAll(RegExp(r'[^a-zA-Z0-9._-]'), '_');
+    return cleanValue.isEmpty ? 'upload' : cleanValue;
   }
 
   static bool _shouldRetryUpload(Object error) {
