@@ -1,6 +1,10 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+
+import '../models/home_risk_assessment.dart';
 import '../models/user_profile.dart';
+import '../services/home_risk_service.dart';
 import '../services/user_profile_service.dart';
 import '../services/weather_service.dart';
 import '../theme/rainguard_theme.dart';
@@ -17,31 +21,66 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
+  static const Duration _riskRefreshInterval = Duration(minutes: 5);
+
+  Timer? _riskRefreshTimer;
   String _weatherTemp = '-- \u00B0C';
   String _weatherDesc = 'Loading...';
   String _locationName = RainGuardCoverage.linggaLabel;
   bool _isLoadingWeather = true;
-  int _floodCount = 0;
+  bool _isLoadingRisk = true;
+  bool _riskLoadFailed = false;
+  HomeRiskAssessment? _riskAssessment;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _fetchWeatherData();
-    _fetchFloodActivityCount();
+    _fetchRiskAssessment();
+    _riskRefreshTimer = Timer.periodic(_riskRefreshInterval, (_) {
+      unawaited(_fetchRiskAssessment());
+    });
   }
 
-  Future<void> _fetchFloodActivityCount() async {
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      unawaited(_fetchRiskAssessment());
+    }
+  }
+
+  @override
+  void dispose() {
+    _riskRefreshTimer?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  Future<void> _fetchRiskAssessment() async {
+    if (mounted && _riskAssessment == null) {
+      setState(() {
+        _isLoadingRisk = true;
+        _riskLoadFailed = false;
+      });
+    }
+
     try {
-      final snapshot = await FirebaseFirestore.instance
-          .collection('reports')
-          .where('report_type', isEqualTo: 'flood')
-          .count()
-          .get();
+      final assessment = await HomeRiskService.loadCurrentAssessment();
       if (!mounted) return;
-      setState(() => _floodCount = snapshot.count ?? 0);
-    } catch (e) {
-      debugPrint('Flood count error: $e');
+      setState(() {
+        _riskAssessment = assessment;
+        _isLoadingRisk = false;
+        _riskLoadFailed = false;
+      });
+    } catch (error) {
+      debugPrint('Home risk assessment error: $error');
+      if (!mounted) return;
+      setState(() {
+        _isLoadingRisk = false;
+        _riskLoadFailed = true;
+      });
     }
   }
 
@@ -81,14 +120,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final hasActiveRisk = _floodCount > 0;
-
     return Scaffold(
       backgroundColor: RainGuardColors.background,
       appBar: const RainGuardAppBar(),
       body: RefreshIndicator(
         onRefresh: () async {
-          await Future.wait([_fetchWeatherData(), _fetchFloodActivityCount()]);
+          await Future.wait([_fetchWeatherData(), _fetchRiskAssessment()]);
         },
         child: ListView(
           padding: EdgeInsets.zero,
@@ -114,11 +151,16 @@ class _HomeScreenState extends State<HomeScreen> {
                       isLoading: _isLoadingWeather,
                       temp: _weatherTemp,
                       description: _weatherDesc,
-                      floodCount: _floodCount,
-                      hasActiveRisk: hasActiveRisk,
+                      riskAssessment: _riskAssessment,
+                      isLoadingRisk: _isLoadingRisk,
+                      riskLoadFailed: _riskLoadFailed,
                     ),
                     const SizedBox(height: 14),
-                    _SafetyActionCard(hasActiveRisk: hasActiveRisk),
+                    _SafetyActionCard(
+                      riskAssessment: _riskAssessment,
+                      isLoadingRisk: _isLoadingRisk,
+                      riskLoadFailed: _riskLoadFailed,
+                    ),
                     const SizedBox(height: 18),
                     _QuickActions(
                       onMapTap: () => widget.onNavigate(1),
@@ -202,21 +244,46 @@ class _WeatherRiskCard extends StatelessWidget {
     required this.isLoading,
     required this.temp,
     required this.description,
-    required this.floodCount,
-    required this.hasActiveRisk,
+    required this.riskAssessment,
+    required this.isLoadingRisk,
+    required this.riskLoadFailed,
   });
 
   final bool isLoading;
   final String temp;
   final String description;
-  final int floodCount;
-  final bool hasActiveRisk;
+  final HomeRiskAssessment? riskAssessment;
+  final bool isLoadingRisk;
+  final bool riskLoadFailed;
 
   @override
   Widget build(BuildContext context) {
-    final riskColor = hasActiveRisk
+    final riskLevel = riskAssessment?.level;
+    final hasActiveRisk = riskAssessment?.hasActiveRisk ?? false;
+    final riskColor = riskLoadFailed
         ? Colors.red.shade700
-        : Colors.green.shade700;
+        : switch (riskLevel) {
+            HomeFloodRiskLevel.high => Colors.red.shade700,
+            HomeFloodRiskLevel.watch => Colors.amber.shade800,
+            HomeFloodRiskLevel.clear => Colors.green.shade700,
+            null => RainGuardColors.primary,
+          };
+    final riskStatus = switch ((isLoadingRisk, riskLoadFailed, riskLevel)) {
+      (true, _, _) => 'Checking current risk',
+      (_, true, _) => 'Risk status unavailable',
+      (_, _, HomeFloodRiskLevel.high) => 'Active flood risk',
+      (_, _, HomeFloodRiskLevel.watch) => 'Flood watch',
+      _ => 'Clear',
+    };
+    final riskDetail = switch ((isLoadingRisk, riskLoadFailed)) {
+      (true, _) => 'Reviewing recent reports and official alerts',
+      (_, true) => 'Pull to refresh current safety information',
+      _ => riskAssessment?.reason ?? 'No current risk information',
+    };
+    final updateLabel = riskAssessment == null
+        ? null
+        : '${riskAssessment!.lastSourceUpdateAt == null ? 'Checked' : 'Updated'} '
+              '${TimeOfDay.fromDateTime(riskAssessment!.lastUpdatedAt).format(context)}';
 
     return RainGuardCard(
       padding: EdgeInsets.zero,
@@ -266,8 +333,10 @@ class _WeatherRiskCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(23),
                   ),
                   child: Icon(
-                    hasActiveRisk
+                    riskLevel == HomeFloodRiskLevel.high
                         ? Icons.thunderstorm_rounded
+                        : riskLevel == HomeFloodRiskLevel.watch
+                        ? Icons.water_drop_outlined
                         : Icons.wb_sunny_rounded,
                     size: 38,
                     color: hasActiveRisk
@@ -297,20 +366,18 @@ class _WeatherRiskCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 7),
                       Text(
-                        hasActiveRisk ? 'Active risk' : 'Clear',
+                        riskStatus,
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w900,
-                          color: hasActiveRisk
-                              ? Colors.red.shade700
+                          color: hasActiveRisk || riskLoadFailed
+                              ? riskColor
                               : RainGuardColors.ink,
                         ),
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        hasActiveRisk
-                            ? '$floodCount flood report(s) detected'
-                            : 'No flood activity detected',
+                        riskDetail,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
@@ -319,6 +386,17 @@ class _WeatherRiskCard extends StatelessWidget {
                           fontSize: 8,
                         ),
                       ),
+                      if (updateLabel != null) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          updateLabel,
+                          style: const TextStyle(
+                            color: RainGuardColors.muted,
+                            fontSize: 8,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -332,15 +410,21 @@ class _WeatherRiskCard extends StatelessWidget {
                   child: Column(
                     children: [
                       Icon(
-                        hasActiveRisk
+                        riskLevel == HomeFloodRiskLevel.high
                             ? Icons.warning_amber_rounded
+                            : riskLevel == HomeFloodRiskLevel.watch
+                            ? Icons.visibility_outlined
                             : Icons.shield_outlined,
                         color: riskColor,
                         size: 28,
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        hasActiveRisk ? 'High' : 'Green',
+                        isLoadingRisk
+                            ? '...'
+                            : riskLoadFailed
+                            ? 'N/A'
+                            : riskAssessment?.levelLabel ?? 'N/A',
                         style: TextStyle(
                           color: riskColor,
                           fontSize: 12,
@@ -360,13 +444,43 @@ class _WeatherRiskCard extends StatelessWidget {
 }
 
 class _SafetyActionCard extends StatelessWidget {
-  const _SafetyActionCard({required this.hasActiveRisk});
+  const _SafetyActionCard({
+    required this.riskAssessment,
+    required this.isLoadingRisk,
+    required this.riskLoadFailed,
+  });
 
-  final bool hasActiveRisk;
+  final HomeRiskAssessment? riskAssessment;
+  final bool isLoadingRisk;
+  final bool riskLoadFailed;
 
   @override
   Widget build(BuildContext context) {
-    final color = hasActiveRisk ? Colors.red.shade700 : Colors.green.shade700;
+    final level = riskAssessment?.level;
+    final color = riskLoadFailed
+        ? Colors.red.shade700
+        : switch (level) {
+            HomeFloodRiskLevel.high => Colors.red.shade700,
+            HomeFloodRiskLevel.watch => Colors.amber.shade800,
+            HomeFloodRiskLevel.clear => Colors.green.shade700,
+            null => RainGuardColors.primary,
+          };
+    final title = switch ((isLoadingRisk, riskLoadFailed, level)) {
+      (true, _, _) => 'Checking current flood risk',
+      (_, true, _) => 'Current risk information unavailable',
+      (_, _, HomeFloodRiskLevel.high) => 'High risk: Avoid low-lying roads',
+      (_, _, HomeFloodRiskLevel.watch) => 'Flood watch: Stay alert',
+      _ => 'Clear: Stay updated',
+    };
+    final message = switch ((isLoadingRisk, riskLoadFailed, level)) {
+      (true, _, _) => 'Reviewing recent reports and official advisories.',
+      (_, true, _) => 'Pull down to retry before making safety decisions.',
+      (_, _, HomeFloodRiskLevel.high) =>
+        'Check the map before travelling and keep emergency items ready.',
+      (_, _, HomeFloodRiskLevel.watch) =>
+        'Monitor official advisories and avoid flood-prone routes.',
+      _ => 'Monitor alerts and keep your safety essentials within reach.',
+    };
 
     return RainGuardCard(
       padding: const EdgeInsets.all(15),
@@ -380,8 +494,10 @@ class _SafetyActionCard extends StatelessWidget {
               borderRadius: BorderRadius.circular(16),
             ),
             child: Icon(
-              hasActiveRisk
+              level == HomeFloodRiskLevel.high
                   ? Icons.alt_route_rounded
+                  : level == HomeFloodRiskLevel.watch
+                  ? Icons.visibility_outlined
                   : Icons.check_circle_outline_rounded,
               color: color,
               size: 25,
@@ -393,9 +509,7 @@ class _SafetyActionCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  hasActiveRisk
-                      ? 'High risk: Avoid low-lying roads'
-                      : 'Clear: Stay updated',
+                  title,
                   style: const TextStyle(
                     color: RainGuardColors.ink,
                     fontSize: 12,
@@ -404,9 +518,7 @@ class _SafetyActionCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 3),
                 Text(
-                  hasActiveRisk
-                      ? 'Check the map before travelling and keep emergency items ready.'
-                      : 'Monitor alerts and keep your safety essentials within reach.',
+                  message,
                   style: const TextStyle(
                     color: RainGuardColors.secondaryText,
                     fontSize: 8,
