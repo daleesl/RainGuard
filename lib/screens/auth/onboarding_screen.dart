@@ -20,7 +20,6 @@ class OnboardingScreen extends StatelessWidget {
   static const _mapChip = RainGuardColors.softBlue;
   static const _reportChip = RainGuardColors.softGreen;
   static const _reportDot = RainGuardColors.success;
-  static const _homeIndicator = RainGuardColors.homeIndicator;
 
   static const seenPreferenceKey = 'has_seen_onboarding';
   // Tweak these if you want to adjust the onboarding rhythm later.
@@ -189,17 +188,6 @@ class OnboardingScreen extends StatelessWidget {
                               child: const Text('I already have an account'),
                             ),
                           ],
-                        ),
-                      ),
-                      SizedBox(height: 18 * verticalScale),
-                      Center(
-                        child: Container(
-                          width: 134 * scale,
-                          height: 5,
-                          decoration: BoxDecoration(
-                            color: _homeIndicator,
-                            borderRadius: BorderRadius.circular(3),
-                          ),
                         ),
                       ),
                       SizedBox(height: bottomSafeSpace),
