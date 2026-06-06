@@ -15,11 +15,11 @@ class RainGuardAppBar extends StatelessWidget implements PreferredSizeWidget {
         children: [
           Image.asset(
             'assets/images/rainguard-icon-transparent.png',
-            width: 25,
-            height: 32,
+            width: 30,
+            height: 38,
             fit: BoxFit.contain,
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 10),
           const Text('RainGuard', style: RainGuardTextStyles.appBarTitle),
         ],
       ),
