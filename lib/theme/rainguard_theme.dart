@@ -60,8 +60,8 @@ class RainGuardTextStyles {
   const RainGuardTextStyles._();
 
   static const appBarTitle = TextStyle(
-    fontWeight: FontWeight.w800,
-    fontSize: 14,
+    fontWeight: FontWeight.w900,
+    fontSize: 17,
   );
 
   static const pageTitle = TextStyle(
