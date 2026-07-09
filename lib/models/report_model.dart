@@ -208,7 +208,7 @@ class Report {
       'description': description,
       'image_url': urls.isNotEmpty ? urls.first : null,
       'image_urls': urls,
-      'flood_level': floodLevel,
+      'flood_level': type == ReportType.flood ? floodLevel : null,
       'user_id': userId,
       'reporter_name': reporterName,
       'reporter_display_name': reporterDisplayName,
