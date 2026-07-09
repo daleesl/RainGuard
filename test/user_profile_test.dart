@@ -34,5 +34,24 @@ void main() {
       expect(profile.publicReporterName, 'resident');
       expect(profile.verificationStatus, 'unverified');
     });
+
+    test('preserves explicit verification workflow statuses', () {
+      for (final status in ['pending', 'verified', 'rejected']) {
+        final profile = UserProfile.fromMap({
+          'email': '$status@example.com',
+          'verification_status': status,
+        }, 'uid-$status');
+
+        expect(profile.verificationStatus, status);
+      }
+    });
+
+    test('uses a safe public reporter name when no identity fields exist', () {
+      final profile = UserProfile.fromMap(const {}, 'uid-3');
+
+      expect(profile.displayName, 'RainGuard user');
+      expect(profile.firstNameOrDisplay, 'RainGuard');
+      expect(profile.publicReporterName, 'RainGuard U.');
+    });
   });
 }

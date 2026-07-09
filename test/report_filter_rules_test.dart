@@ -36,6 +36,30 @@ void main() {
 
       expect(filtered.map((report) => report.id), ['verified-1']);
     });
+
+    test('returns an empty list when the filter has no matches', () {
+      final filtered = filterMapReports(
+        [_report(id: 'rain-only', type: ReportType.rain)],
+        MapReportFilter.flood,
+      );
+
+      expect(filtered, isEmpty);
+    });
+
+    test('keeps report order after filtering', () {
+      final orderedReports = [
+        _report(id: 'flood-first', type: ReportType.flood),
+        _report(id: 'rain-middle', type: ReportType.rain),
+        _report(id: 'flood-last', type: ReportType.flood),
+      ];
+
+      final filtered = filterMapReports(orderedReports, MapReportFilter.flood);
+
+      expect(filtered.map((report) => report.id), [
+        'flood-first',
+        'flood-last',
+      ]);
+    });
   });
 }
 
