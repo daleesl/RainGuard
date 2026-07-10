@@ -17,7 +17,7 @@ Main users:
 Mobile app:
 - Flutter and Dart
 - Firebase Auth, Cloud Firestore, Firebase Storage, Firebase Cloud Messaging
-- OpenWeather API
+- OpenWeather API through a Firebase Functions proxy
 - OpenStreetMap with `flutter_map` and `flutter_map_marker_cluster`
 - `geolocator` for GPS
 - `image_picker` and `flutter_image_compress` for report images
@@ -109,6 +109,16 @@ Important `users` fields:
 - `updated_at`
 - `last_login_at`
 
+Important `users/{uid}/fcm_tokens` fields:
+- `token`
+- `platform`
+- `notification_preference`
+- `notification_latitude`
+- `notification_longitude`
+- `notification_radius_km`
+- `created_at`
+- `updated_at`
+
 Admin accounts:
 - Admin users sign in through Firebase Auth.
 - Their Firestore document must be `users/{adminAuthUid}`.
@@ -186,7 +196,7 @@ Planned capstone ML direction:
 - Possible inputs: rainfall, humidity, temperature, wind speed, pressure, water level if available, and historical flood/hazard data.
 
 Possible data/API sources:
-- OpenWeather API for near real-time weather.
+- OpenWeather API through Firebase Functions for near real-time weather without exposing the API key in the mobile app.
 - PAGASA/public weather data if accessible.
 - UP NOAH hazard maps/data if accessible.
 - Kaggle datasets only as supporting data, because generic datasets may not match Barangay Lingga conditions.

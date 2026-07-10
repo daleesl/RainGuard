@@ -255,6 +255,10 @@ class NotificationTokenService {
     final user = _auth.currentUser;
     if (user == null || token.isEmpty) return;
 
+    final userSnapshot = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .get();
     final tokenRef = FirebaseFirestore.instance
         .collection('users')
         .doc(user.uid)
@@ -265,9 +269,40 @@ class NotificationTokenService {
     await tokenRef.set({
       'token': token,
       'platform': defaultTargetPlatform.name,
+      ..._notificationPreferenceFields(userSnapshot.data()),
       if (!snapshot.exists) 'created_at': FieldValue.serverTimestamp(),
       'updated_at': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
+  }
+
+  static Map<String, Object?> _notificationPreferenceFields(
+    Map<String, dynamic>? userData,
+  ) {
+    final preference =
+        userData?['notification_preference'] as String? ?? 'all_reports';
+
+    if (preference == 'nearby_only') {
+      final latitude = userData?['notification_latitude'];
+      final longitude = userData?['notification_longitude'];
+      final radiusKm = userData?['notification_radius_km'];
+
+      return {
+        'notification_preference': preference,
+        if (latitude is num) 'notification_latitude': latitude,
+        if (longitude is num) 'notification_longitude': longitude,
+        if (radiusKm is num) 'notification_radius_km': radiusKm,
+        if (latitude is! num) 'notification_latitude': FieldValue.delete(),
+        if (longitude is! num) 'notification_longitude': FieldValue.delete(),
+        if (radiusKm is! num) 'notification_radius_km': FieldValue.delete(),
+      };
+    }
+
+    return {
+      'notification_preference': preference,
+      'notification_latitude': FieldValue.delete(),
+      'notification_longitude': FieldValue.delete(),
+      'notification_radius_km': FieldValue.delete(),
+    };
   }
 
   static String _tokenDocumentId(String token) {

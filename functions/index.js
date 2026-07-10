@@ -5,12 +5,94 @@ const {
   onDocumentCreated,
   onDocumentWritten,
 } = require("firebase-functions/v2/firestore");
+const { onRequest } = require("firebase-functions/v2/https");
 const logger = require("firebase-functions/logger");
+const { defineSecret } = require("firebase-functions/params");
 
 initializeApp();
 
 const db = getFirestore();
 const messaging = getMessaging();
+const openWeatherApiKey = defineSecret("OPENWEATHER_API_KEY");
+
+exports.getWeather = onRequest(
+  {
+    cors: true,
+    secrets: [openWeatherApiKey],
+  },
+  async (req, res) => {
+    if (req.method !== "GET") {
+      res.status(405).json({ error: "Method not allowed." });
+      return;
+    }
+
+    const lat = Number(singleQueryValue(req.query.lat));
+    const lon = Number(singleQueryValue(req.query.lon));
+
+    if (
+      !Number.isFinite(lat) ||
+      !Number.isFinite(lon) ||
+      lat < -90 ||
+      lat > 90 ||
+      lon < -180 ||
+      lon > 180
+    ) {
+      res.status(400).json({ error: "Valid lat and lon are required." });
+      return;
+    }
+
+    const apiKey = openWeatherApiKey.value();
+    if (!apiKey) {
+      logger.error("OpenWeather API key is not configured.");
+      res.status(500).json({ error: "Weather service is not configured." });
+      return;
+    }
+
+    const weatherUrl = new URL(
+      "https://api.openweathermap.org/data/2.5/weather",
+    );
+    weatherUrl.searchParams.set("lat", lat.toString());
+    weatherUrl.searchParams.set("lon", lon.toString());
+    weatherUrl.searchParams.set("units", "metric");
+    weatherUrl.searchParams.set("appid", apiKey);
+
+    try {
+      const weatherResponse = await fetch(weatherUrl);
+      const weatherData = await weatherResponse.json();
+
+      if (!weatherResponse.ok) {
+        logger.warn("OpenWeather request failed", {
+          status: weatherResponse.status,
+          message: weatherData?.message,
+        });
+        res.status(502).json({ error: "Unable to load weather data." });
+        return;
+      }
+
+      const temp = Number(weatherData?.main?.temp);
+      const description = weatherData?.weather?.[0]?.main;
+      const location = weatherData?.name;
+
+      if (!Number.isFinite(temp) || typeof description !== "string") {
+        logger.warn("OpenWeather returned unexpected weather shape", {
+          hasMain: Boolean(weatherData?.main),
+          hasWeather: Array.isArray(weatherData?.weather),
+        });
+        res.status(502).json({ error: "Weather data was incomplete." });
+        return;
+      }
+
+      res.json({
+        temp,
+        description,
+        location: typeof location === "string" ? location : "Calamba",
+      });
+    } catch (error) {
+      logger.error("Weather proxy request failed", { error });
+      res.status(502).json({ error: "Unable to load weather data." });
+    }
+  },
+);
 
 exports.notifyUsersOnReportCreated = onDocumentCreated(
   "reports/{reportId}",
@@ -30,6 +112,7 @@ exports.notifyUsersOnReportCreated = onDocumentCreated(
     const userSettingsById = new Map();
     let skippedReporterTokens = 0;
     let skippedPreferenceTokens = 0;
+    let fallbackUserSettingsReads = 0;
 
     for (const doc of tokenDocs.docs) {
       const tokenOwnerUserId = doc.ref.parent.parent?.id || "";
@@ -38,11 +121,17 @@ exports.notifyUsersOnReportCreated = onDocumentCreated(
         continue;
       }
 
-      const userSettings = await getUserNotificationSettings(
-        tokenOwnerUserId,
-        userSettingsById,
-      );
-      if (!shouldNotifyUser(report, userSettings)) {
+      const { settings: notificationSettings, usedFallback } =
+        await getNotificationSettingsForToken(
+          doc,
+          tokenOwnerUserId,
+          userSettingsById,
+        );
+      if (usedFallback) {
+        fallbackUserSettingsReads += 1;
+      }
+
+      if (!shouldNotifyUser(report, notificationSettings)) {
         skippedPreferenceTokens += 1;
         continue;
       }
@@ -70,6 +159,12 @@ exports.notifyUsersOnReportCreated = onDocumentCreated(
       logger.info("Skipped notification tokens by user preference", {
         reportId,
         count: skippedPreferenceTokens,
+      });
+    }
+    if (fallbackUserSettingsReads > 0) {
+      logger.info("Used user notification settings fallback", {
+        reportId,
+        count: fallbackUserSettingsReads,
       });
     }
 
@@ -299,6 +394,43 @@ function chunk(items, size) {
   return chunks;
 }
 
+async function getNotificationSettingsForToken(tokenDoc, userId, cache) {
+  const tokenSettings = notificationSettingsFromToken(tokenDoc.data() || {});
+  if (tokenSettings != null) {
+    return { settings: tokenSettings, usedFallback: false };
+  }
+
+  const userSettings = await getUserNotificationSettings(userId, cache);
+  return { settings: userSettings, usedFallback: true };
+}
+
+function notificationSettingsFromToken(tokenData) {
+  const preference =
+    typeof tokenData.notification_preference === "string"
+      ? tokenData.notification_preference
+      : "";
+
+  if (!preference) return null;
+
+  const settings = { notification_preference: preference };
+  if (preference !== "nearby_only") return settings;
+
+  const latitude = tokenData.notification_latitude;
+  const longitude = tokenData.notification_longitude;
+  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+    return null;
+  }
+
+  settings.notification_latitude = latitude;
+  settings.notification_longitude = longitude;
+  settings.notification_radius_km = Number.isFinite(
+    tokenData.notification_radius_km,
+  )
+    ? tokenData.notification_radius_km
+    : 5;
+  return settings;
+}
+
 async function getUserNotificationSettings(userId, cache) {
   if (!userId) return {};
   if (cache.has(userId)) return cache.get(userId);
@@ -374,4 +506,8 @@ function distanceKm(lat1, lng1, lat2, lng2) {
 
 function toRadians(degrees) {
   return degrees * (Math.PI / 180);
+}
+
+function singleQueryValue(value) {
+  return Array.isArray(value) ? value[0] : value;
 }

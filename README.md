@@ -20,7 +20,7 @@ RainGuard is a Flutter/Firebase capstone app for community rain, flood, risk, an
 - `flutter_map` with OpenStreetMap tiles
 - `geolocator` for device location
 - `image_picker` for report images
-- OpenWeather API through `.env`
+- OpenWeather API through a Firebase Functions proxy
 - Nominatim reverse geocoding
 - Google Fonts Poppins
 
@@ -44,11 +44,11 @@ ios/
 
 Important areas:
 
-- `lib/main.dart` initializes environment loading, Firebase, app theme, and app startup.
+- `lib/main.dart` initializes Firebase, app theme, and app startup.
 - `lib/screens/` contains Home, Map, Notifications, Settings, Splash, and auth screens.
 - `lib/services/` contains Firebase, location, weather, geocoding, storage, report, and notification token logic.
 - `lib/models/` contains shared data models such as reports and user profiles.
-- `functions/index.js` sends push notifications when new reports are created.
+- `functions/index.js` sends push notifications when new reports are created and proxies weather requests.
 
 ## Setup
 
@@ -64,13 +64,7 @@ flutter doctor
 flutter pub get
 ```
 
-3. Create a local `.env` file in the project root:
-
-```env
-OPENWEATHER_API_KEY=your_openweather_api_key
-```
-
-4. Configure Firebase for your local environment.
+3. Configure Firebase for your local environment.
 
 This project expects Firebase configuration files to exist locally, but they are intentionally ignored by Git:
 
@@ -83,11 +77,17 @@ Generate them with FlutterFire CLI when needed:
 flutterfire configure
 ```
 
-5. Install Cloud Functions dependencies when working on notifications:
+4. Install Cloud Functions dependencies when working on backend features:
 
 ```bash
 cd functions
 npm install
+```
+
+5. Store the OpenWeather key as a Firebase Functions secret before deploying the weather proxy:
+
+```bash
+firebase functions:secrets:set OPENWEATHER_API_KEY
 ```
 
 ## Running The App
@@ -124,10 +124,16 @@ Never commit local secrets, service account files, `.env`, Firebase admin creden
 
 ## Deployment Notes
 
-Deploy Cloud Functions with:
+Deploy all Cloud Functions with:
 
 ```bash
 firebase deploy --only functions
+```
+
+Deploy only the weather proxy with:
+
+```bash
+firebase deploy --only functions:getWeather
 ```
 
 Before pushing changes, check:

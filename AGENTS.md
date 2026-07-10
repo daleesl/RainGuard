@@ -45,15 +45,15 @@ Use this file as the first stop for any AI assistant or coding agent working in 
 - Maps: `flutter_map`, `flutter_map_marker_cluster`, OpenStreetMap tiles, `latlong2`.
 - Device location: `geolocator`.
 - Image upload: `image_picker`, `flutter_image_compress`, plus Firebase Storage.
-- Weather: OpenWeather API through `WeatherService`.
+- Weather: OpenWeather API through Firebase Functions and `WeatherService`.
 - Reverse geocoding: Nominatim through `GeocodingService`.
 - Local caching and draft persistence: `shared_preferences` plus app document storage through `path_provider`.
-- Environment loading: `flutter_dotenv` from `.env`.
+- Environment loading: no client `.env` is required for the mobile app.
 - Typography: Google Fonts Poppins through `google_fonts`.
 
 ## Project Structure
 
-- `lib/main.dart` initializes dotenv, Firebase, app theme, and `MainWrapper`.
+- `lib/main.dart` initializes Firebase, app theme, and `MainWrapper`.
 - `lib/theme/rainguard_theme.dart` contains shared RainGuard colors, radii, shadows, text styles, and app theme.
 - `lib/screens/` contains top-level screens and navigation surfaces.
 - `lib/screens/auth/` contains `OnboardingScreen`, `LoginScreen`, and `SignupScreen`.
@@ -113,7 +113,8 @@ Use this file as the first stop for any AI assistant or coding agent working in 
   - `created_at`
   - `updated_at`
   - `last_login_at`
-- User notification tokens are stored under `users/{uid}/fcm_tokens/{token}` with `token`, `platform`, `created_at`, and `updated_at`.
+- User notification tokens are stored under `users/{uid}/fcm_tokens/{token}` with `token`, `platform`, denormalized notification preference fields, `created_at`, and `updated_at`.
+- Token-level notification preference fields are `notification_preference`, `notification_latitude`, `notification_longitude`, and `notification_radius_km`; location/radius fields are kept only for `nearby_only`.
 - Report types currently modeled in Dart: `rain`, `flood`.
 - Risk levels currently modeled in Dart: `safe`, `risk`, `flood`.
 - New report document IDs reuse the client draft/submission ID so offline retries remain idempotent.
@@ -132,7 +133,7 @@ Use this file as the first stop for any AI assistant or coding agent working in 
 - `NotificationTokenService`: Firebase Cloud Messaging permission, token registration, token refresh persistence, and logout cleanup.
 - `NotificationPreferenceService`: user notification preference reads/writes, including nearby alert location.
 - `ReportDraftService`: local pending report draft persistence and app-owned draft image copies for weak or unavailable connections.
-- `WeatherService`: OpenWeather API calls for the fixed Lingga/Calamba weather context.
+- `WeatherService`: calls the Firebase weather proxy for the fixed Lingga/Calamba weather context.
 - `GeocodingService`: Nominatim reverse geocoding with a valid User-Agent and respectful request behavior.
 
 ## Implementation Scope Rules
@@ -201,7 +202,7 @@ Use this file as the first stop for any AI assistant or coding agent working in 
 - Do not commit `.env`.
 - Keep `.env`, `.env.local`, and other local secret files out of Git.
 - Use `.env.example` for safe placeholders only.
-- `OPENWEATHER_API_KEY` is loaded from `.env`; do not hardcode it.
+- `OPENWEATHER_API_KEY` must be stored as a Firebase Functions secret; do not hardcode it or package it in the mobile app.
 - Do not commit IDE-local state such as `.idea/`.
 - `AGENTS.md` should be committed when it contains project instructions and no secrets, because it helps future agents and collaborators understand the app.
 - Treat all client-side values as public unless proven otherwise.

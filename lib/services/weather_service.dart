@@ -1,10 +1,12 @@
 import 'dart:convert';
+
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+
+import '../firebase_options.dart';
 
 class WeatherService {
-  static String get _apiKey => dotenv.env['OPENWEATHER_API_KEY'] ?? '';
+  static const String _functionsRegion = 'us-central1';
   static const Duration _cacheDuration = Duration(minutes: 15);
   static const String _cacheKeyTemp = 'cached_temp';
   static const String _cacheKeyDesc = 'cached_desc';
@@ -25,30 +27,24 @@ class WeatherService {
       return _cachedWeatherFromPrefs(prefs);
     }
 
-    final url = Uri.parse(
-      'https://api.openweathermap.org/data/2.5/weather?lat=$lat&lon=$lon&units=metric&appid=$_apiKey',
-    );
+    final url = _weatherFunctionUri(lat, lon);
 
     try {
       final response = await http.get(url);
 
       if (response.statusCode == 200) {
-        final data = json.decode(response.body);
+        final data = json.decode(response.body) as Map<String, dynamic>;
+        final weather = _weatherFromFunctionResponse(data);
 
-        final double temp = (data['main']['temp'] as num).toDouble();
-        final String description = data['weather'][0]['main'].toString();
-        final String locationName = data['name'].toString();
-
-        await prefs.setDouble(_cacheKeyTemp, temp);
-        await prefs.setString(_cacheKeyDesc, description);
-        await prefs.setString(_cacheKeyName, locationName);
+        await prefs.setDouble(_cacheKeyTemp, weather['temp'] as double);
+        await prefs.setString(
+          _cacheKeyDesc,
+          weather['description'] as String,
+        );
+        await prefs.setString(_cacheKeyName, weather['location'] as String);
         await prefs.setString(_cacheKeyTime, DateTime.now().toIso8601String());
 
-        return {
-          'temp': temp,
-          'description': description,
-          'location': locationName,
-        };
+        return weather;
       } else {
         throw Exception('Failed to load weather data: ${response.body}');
       }
@@ -58,6 +54,37 @@ class WeatherService {
       }
       rethrow;
     }
+  }
+
+  static Uri _weatherFunctionUri(double lat, double lon) {
+    final projectId = DefaultFirebaseOptions.currentPlatform.projectId;
+
+    return Uri.https(
+      '$_functionsRegion-$projectId.cloudfunctions.net',
+      'getWeather',
+      {
+        'lat': lat.toStringAsFixed(6),
+        'lon': lon.toStringAsFixed(6),
+      },
+    );
+  }
+
+  static Map<String, dynamic> _weatherFromFunctionResponse(
+    Map<String, dynamic> data,
+  ) {
+    final temp = data['temp'];
+    final description = data['description'];
+    final location = data['location'];
+
+    if (temp is! num) {
+      throw const FormatException('Weather response is missing temperature.');
+    }
+
+    return {
+      'temp': temp.toDouble(),
+      'description': description is String ? description : 'Unknown',
+      'location': location is String ? location : 'Unknown Location',
+    };
   }
 
   static Map<String, dynamic> _cachedWeatherFromPrefs(

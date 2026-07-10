@@ -127,5 +127,34 @@ class NotificationPreferenceService {
         .collection('users')
         .doc(user.uid)
         .set(update, SetOptions(merge: true));
+
+    await _syncCurrentUserTokenPreferences(update);
+  }
+
+  static Future<void> _syncCurrentUserTokenPreferences(
+    Map<String, dynamic> preferenceUpdate,
+  ) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final tokenSnapshot = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .collection('fcm_tokens')
+        .get();
+    if (tokenSnapshot.docs.isEmpty) return;
+
+    final batch = FirebaseFirestore.instance.batch();
+    for (final tokenDoc in tokenSnapshot.docs) {
+      batch.set(
+        tokenDoc.reference,
+        {
+          ...preferenceUpdate,
+          'updated_at': FieldValue.serverTimestamp(),
+        },
+        SetOptions(merge: true),
+      );
+    }
+    await batch.commit();
   }
 }
