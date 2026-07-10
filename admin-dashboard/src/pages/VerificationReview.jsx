@@ -20,7 +20,15 @@ const checklist = [
 ]
 
 export function VerificationReview() {
-  const { users, pendingUsers, status, error } = useUsers()
+  const {
+    users,
+    pendingUsers,
+    status,
+    error,
+    hasMore,
+    isLoadingMore,
+    loadMore,
+  } = useUsers()
   const [selectedId, setSelectedId] = useState('')
   const [searchTerm, setSearchTerm] = useState('')
   const [message, setMessage] = useState('')
@@ -141,7 +149,9 @@ export function VerificationReview() {
               ) : null}
               {status === 'ready' && applicants.length === 0 ? (
                 <TableState>
-                  No submitted ID verification requests yet.
+                  {hasMore
+                    ? 'No matching applicants in the loaded records yet.'
+                    : 'No submitted ID verification requests yet.'}
                 </TableState>
               ) : null}
               {applicants.map((applicant) => (
@@ -163,6 +173,20 @@ export function VerificationReview() {
                   </span>
                 </button>
               ))}
+              {hasMore ? (
+                <div className="table-load-more">
+                  <button
+                    className="panel-secondary"
+                    disabled={isLoadingMore}
+                    onClick={loadMore}
+                    type="button"
+                  >
+                    {isLoadingMore
+                      ? 'Loading older applicants...'
+                      : 'Load more applicants'}
+                  </button>
+                </div>
+              ) : null}
             </div>
           </article>
 

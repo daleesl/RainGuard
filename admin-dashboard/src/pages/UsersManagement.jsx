@@ -16,7 +16,14 @@ import {
 } from '../services/userActions'
 
 export function UsersManagement({ onOpenVerification }) {
-  const { users, error, status } = useUsers()
+  const {
+    users,
+    error,
+    status,
+    hasMore,
+    isLoadingMore,
+    loadMore,
+  } = useUsers()
   const { calambaReports } = useReports()
   const [now] = useState(() => Date.now())
   const [searchTerm, setSearchTerm] = useState('')
@@ -135,7 +142,7 @@ export function UsersManagement({ onOpenVerification }) {
                 <span>Actions</span>
               </div>
 
-              {visibleUsers.slice(0, 8).map((user) => (
+              {visibleUsers.map((user) => (
                 <div
                   className="users-table users-table-row"
                   key={user.id}
@@ -165,6 +172,18 @@ export function UsersManagement({ onOpenVerification }) {
               ) : null}
               {status === 'ready' && visibleUsers.length === 0 ? (
                 <TableState>No resident account matches the current data.</TableState>
+              ) : null}
+              {hasMore ? (
+                <div className="table-load-more">
+                  <button
+                    className="panel-secondary"
+                    disabled={isLoadingMore}
+                    onClick={loadMore}
+                    type="button"
+                  >
+                    {isLoadingMore ? 'Loading older users...' : 'Load more users'}
+                  </button>
+                </div>
               ) : null}
             </div>
           </article>
