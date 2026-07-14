@@ -27,7 +27,7 @@ class SettingsProfileCard extends StatelessWidget {
         border: Border.all(color: RainGuardColors.border),
         boxShadow: [
           BoxShadow(
-            color: Colors.blueGrey.withOpacity(0.08),
+            color: Colors.blueGrey.withValues(alpha: 0.08),
             blurRadius: 22,
             offset: const Offset(0, 12),
           ),

@@ -132,7 +132,7 @@ class _ManualLocationPickerState extends State<ManualLocationPicker> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: RainGuardColors.softBlue.withOpacity(0.58),
+                  color: RainGuardColors.softBlue.withValues(alpha: 0.58),
                   borderRadius: BorderRadius.circular(14),
                 ),
                 child: Row(

@@ -64,7 +64,7 @@ class DuplicateReportDialog {
                     width: double.infinity,
                     padding: const EdgeInsets.all(11),
                     decoration: BoxDecoration(
-                      color: RainGuardColors.softBlue.withOpacity(0.55),
+                      color: RainGuardColors.softBlue.withValues(alpha: 0.55),
                       borderRadius: BorderRadius.circular(14),
                     ),
                     child: const Text(

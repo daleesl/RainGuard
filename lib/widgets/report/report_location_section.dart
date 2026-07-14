@@ -94,7 +94,7 @@ class _LocationChoiceCard extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 11),
           decoration: BoxDecoration(
             color: isSelected
-                ? RainGuardColors.softBlue.withOpacity(0.78)
+                ? RainGuardColors.softBlue.withValues(alpha: 0.78)
                 : Colors.white,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
@@ -164,9 +164,9 @@ class _ManualLocationSummary extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: RainGuardColors.warningFill.withOpacity(0.62),
+        color: RainGuardColors.warningFill.withValues(alpha: 0.62),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: RainGuardColors.warningText.withOpacity(0.2)),
+        border: Border.all(color: RainGuardColors.warningText.withValues(alpha: 0.2)),
       ),
       child: Row(
         children: [

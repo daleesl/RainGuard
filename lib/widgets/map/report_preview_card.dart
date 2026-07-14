@@ -36,7 +36,7 @@ class ReportPreviewCard extends StatelessWidget {
           border: Border.all(color: RainGuardColors.border),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.14),
+              color: Colors.black.withValues(alpha: 0.14),
               blurRadius: 28,
               offset: const Offset(0, 14),
             ),
@@ -166,7 +166,7 @@ class _PhotoThumb extends StatelessWidget {
       child: Container(
         width: 62,
         height: 62,
-        color: color.withOpacity(0.10),
+        color: color.withValues(alpha: 0.10),
         child: imageUrl == null
             ? Icon(MapHelper.getReportIcon(reportType), color: color, size: 26)
             : Image.network(

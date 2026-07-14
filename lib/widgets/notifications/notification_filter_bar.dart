@@ -99,7 +99,7 @@ class _NotificationFilterChip extends StatelessWidget {
             borderRadius: BorderRadius.circular(14),
             border: Border.all(
               color: isSelected
-                  ? RainGuardColors.primary.withOpacity(0.28)
+                  ? RainGuardColors.primary.withValues(alpha: 0.28)
                   : RainGuardColors.border,
             ),
           ),

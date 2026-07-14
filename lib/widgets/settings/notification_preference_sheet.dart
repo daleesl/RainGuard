@@ -173,7 +173,7 @@ class _NotificationPreferenceOption extends StatelessWidget {
                       width: 36,
                       height: 36,
                       decoration: BoxDecoration(
-                        color: RainGuardColors.primary.withOpacity(0.10),
+                        color: RainGuardColors.primary.withValues(alpha: 0.10),
                         borderRadius: BorderRadius.circular(13),
                       ),
                       child: Icon(

@@ -77,8 +77,8 @@ class ReportMapCard extends StatelessWidget {
                 polygons: [
                   Polygon(
                     points: linggaMonitoringBoundary,
-                    color: RainGuardColors.primary.withOpacity(0.06),
-                    borderColor: RainGuardColors.primary.withOpacity(0.62),
+                    color: RainGuardColors.primary.withValues(alpha: 0.06),
+                    borderColor: RainGuardColors.primary.withValues(alpha: 0.62),
                     borderStrokeWidth: 1.4,
                   ),
                 ],
@@ -194,11 +194,11 @@ class _MapFilterBar extends StatelessWidget {
             scrollDirection: Axis.horizontal,
             child: DecoratedBox(
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.94),
+                color: Colors.white.withValues(alpha: 0.94),
                 borderRadius: BorderRadius.circular(99),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.08),
+                    color: Colors.black.withValues(alpha: 0.08),
                     blurRadius: 16,
                     offset: const Offset(0, 8),
                   ),
@@ -277,7 +277,7 @@ class _BoundaryToggle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: Colors.white.withOpacity(0.94),
+      color: Colors.white.withValues(alpha: 0.94),
       borderRadius: BorderRadius.circular(99),
       child: InkWell(
         onTap: () => onChanged(!isVisible),
@@ -289,7 +289,7 @@ class _BoundaryToggle extends StatelessWidget {
             border: Border.all(color: RainGuardColors.border),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.06),
+                color: Colors.black.withValues(alpha: 0.06),
                 blurRadius: 12,
                 offset: const Offset(0, 6),
               ),
@@ -340,7 +340,7 @@ class _ReportClusterMarker extends StatelessWidget {
         border: Border.all(color: Colors.white, width: 3),
         boxShadow: [
           BoxShadow(
-            color: RainGuardColors.primary.withOpacity(0.28),
+            color: RainGuardColors.primary.withValues(alpha: 0.28),
             blurRadius: 18,
             offset: const Offset(0, 8),
           ),
@@ -372,7 +372,7 @@ class _PendingDraftMarker extends StatelessWidget {
         border: Border.all(color: Colors.white, width: 3),
         boxShadow: [
           BoxShadow(
-            color: Colors.amber.shade800.withOpacity(0.28),
+            color: Colors.amber.shade800.withValues(alpha: 0.28),
             blurRadius: 14,
             offset: const Offset(0, 7),
           ),
@@ -398,11 +398,11 @@ class _MapBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.94),
+        color: Colors.white.withValues(alpha: 0.94),
         borderRadius: BorderRadius.circular(99),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
+            color: Colors.black.withValues(alpha: 0.08),
             blurRadius: 16,
             offset: const Offset(0, 8),
           ),

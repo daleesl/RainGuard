@@ -198,7 +198,7 @@ class SettingsSwitchTile extends StatelessWidget {
             else
               Switch(
                 value: value,
-                activeColor: Colors.white,
+                activeThumbColor: Colors.white,
                 activeTrackColor: RainGuardColors.primary,
                 onChanged: onChanged,
               ),

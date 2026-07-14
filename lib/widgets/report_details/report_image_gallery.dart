@@ -54,7 +54,7 @@ class _ReportImageGalleryState extends State<_ReportImageGallery> {
                         vertical: 6,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.58),
+                        color: Colors.black.withValues(alpha: 0.58),
                         borderRadius: BorderRadius.circular(99),
                       ),
                       child: Text(
@@ -76,7 +76,7 @@ class _ReportImageGalleryState extends State<_ReportImageGallery> {
                       vertical: 6,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.50),
+                      color: Colors.black.withValues(alpha: 0.50),
                       borderRadius: BorderRadius.circular(99),
                     ),
                     child: const Row(
@@ -117,7 +117,7 @@ class _ReportImageGalleryState extends State<_ReportImageGallery> {
                           decoration: BoxDecoration(
                             color: index == _currentIndex
                                 ? Colors.white
-                                : Colors.white.withOpacity(0.55),
+                                : Colors.white.withValues(alpha: 0.55),
                             borderRadius: BorderRadius.circular(99),
                           ),
                         ),

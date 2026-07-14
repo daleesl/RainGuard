@@ -14,10 +14,10 @@ class MapOverlayLabel extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.86),
+            color: Colors.white.withValues(alpha: 0.86),
             borderRadius: BorderRadius.circular(99),
             border: Border.all(
-              color: RainGuardColors.primary.withOpacity(0.22),
+              color: RainGuardColors.primary.withValues(alpha: 0.22),
             ),
           ),
           child: Text(

@@ -170,7 +170,7 @@ class HomeWeatherRiskCard extends StatelessWidget {
                   width: 86,
                   padding: const EdgeInsets.symmetric(vertical: 10),
                   decoration: BoxDecoration(
-                    color: riskColor.withOpacity(0.10),
+                    color: riskColor.withValues(alpha: 0.10),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Column(

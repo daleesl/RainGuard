@@ -144,7 +144,7 @@ class _PendingDraftNavBanner extends StatelessWidget {
         decoration: BoxDecoration(
           color: RainGuardColors.warningFill,
           border: Border(
-            top: BorderSide(color: RainGuardColors.warningText.withOpacity(0.2)),
+            top: BorderSide(color: RainGuardColors.warningText.withValues(alpha: 0.2)),
           ),
         ),
         child: Row(

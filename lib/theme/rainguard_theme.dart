@@ -44,7 +44,7 @@ class RainGuardShadows {
   static List<BoxShadow> card({double opacity = 0.07}) {
     return [
       BoxShadow(
-        color: Colors.blueGrey.withOpacity(opacity),
+        color: Colors.blueGrey.withValues(alpha: opacity),
         blurRadius: 20,
         offset: const Offset(0, 10),
       ),

@@ -34,10 +34,10 @@ class ReportPhotoSection extends StatelessWidget {
             width: double.infinity,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
             decoration: BoxDecoration(
-              color: RainGuardColors.softBlue.withOpacity(0.72),
+              color: RainGuardColors.softBlue.withValues(alpha: 0.72),
               borderRadius: BorderRadius.circular(18),
               border: Border.all(
-                color: RainGuardColors.primary.withOpacity(0.28),
+                color: RainGuardColors.primary.withValues(alpha: 0.28),
                 width: 1.2,
               ),
             ),
@@ -109,7 +109,7 @@ class ReportPhotoSection extends StatelessWidget {
           width: double.infinity,
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: RainGuardColors.softBlue.withOpacity(0.54),
+            color: RainGuardColors.softBlue.withValues(alpha: 0.54),
             borderRadius: BorderRadius.circular(14),
           ),
           child: Column(
@@ -201,7 +201,7 @@ class _PickedReportImage extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.58),
+              color: Colors.black.withValues(alpha: 0.58),
               borderRadius: BorderRadius.circular(99),
             ),
             child: Text(
@@ -218,7 +218,7 @@ class _PickedReportImage extends StatelessWidget {
           top: 4,
           right: 4,
           child: Material(
-            color: Colors.black.withOpacity(0.58),
+            color: Colors.black.withValues(alpha: 0.58),
             shape: const CircleBorder(),
             child: InkWell(
               customBorder: const CircleBorder(),

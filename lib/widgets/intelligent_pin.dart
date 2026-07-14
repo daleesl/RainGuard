@@ -33,7 +33,7 @@ class IntelligentPin extends StatelessWidget {
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: reportColor.withOpacity(isFlood ? 0.34 : 0.22),
+                        color: reportColor.withValues(alpha: isFlood ? 0.34 : 0.22),
                         blurRadius: isFlood ? 12 : 6,
                         offset: const Offset(0, 4),
                       ),

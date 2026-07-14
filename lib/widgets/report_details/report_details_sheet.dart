@@ -97,7 +97,7 @@ class _ReportDetailsHeader extends StatelessWidget {
           width: 48,
           height: 48,
           decoration: BoxDecoration(
-            color: riskColor.withOpacity(0.12),
+            color: riskColor.withValues(alpha: 0.12),
             borderRadius: BorderRadius.circular(16),
           ),
           child: Icon(

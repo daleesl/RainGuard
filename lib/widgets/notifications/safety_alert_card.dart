@@ -41,7 +41,7 @@ class SafetyAlertCard extends StatelessWidget {
                               width: 42,
                               height: 42,
                               decoration: BoxDecoration(
-                                color: color.withOpacity(0.10),
+                                color: color.withValues(alpha: 0.10),
                                 borderRadius: BorderRadius.circular(15),
                               ),
                               child: Icon(

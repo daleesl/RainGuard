@@ -34,7 +34,7 @@ class RainGuardPrimaryButton extends StatelessWidget {
           elevation: 0,
           backgroundColor: RainGuardColors.primary,
           foregroundColor: Colors.white,
-          disabledBackgroundColor: RainGuardColors.primary.withOpacity(0.55),
+          disabledBackgroundColor: RainGuardColors.primary.withValues(alpha: 0.55),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(radius ?? 18 * scale),
           ),

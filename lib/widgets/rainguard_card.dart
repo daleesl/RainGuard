@@ -48,7 +48,7 @@ class RainGuardCard extends StatelessWidget {
         border: Border.all(color: borderColor),
         boxShadow: [
           BoxShadow(
-            color: shadowColor.withOpacity(shadowOpacity),
+            color: shadowColor.withValues(alpha: shadowOpacity),
             blurRadius: blurRadius,
             offset: shadowOffset,
           ),
