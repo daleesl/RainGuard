@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:latlong2/latlong.dart';
+
 import '../models/report_model.dart';
 import '../services/geocoding_service.dart';
 import '../services/report_service.dart';
-import '../theme/rainguard_theme.dart';
 import '../utils/location_constants.dart';
 import 'report/manual_location_picker.dart';
 import 'report/duplicate_report_dialog.dart';
 import 'report/report_location_section.dart';
-import 'report/report_photo_section.dart';
+import 'report/report_modal_sections.dart';
 import 'report/report_type_section.dart';
 import 'report/verification_required_dialog.dart';
 import 'settings/verification_sheet.dart';
@@ -143,8 +143,7 @@ class _ReportModalState extends State<ReportModal> {
   }
 
   Future<void> _submitReport({bool skipDuplicateCheck = false}) async {
-    if (_locationMode == ReportLocationMode.manual &&
-        _manualLocation == null) {
+    if (_locationMode == ReportLocationMode.manual && _manualLocation == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Choose a location on the map first.')),
       );
@@ -241,26 +240,7 @@ class _ReportModalState extends State<ReportModal> {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'Report Update',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.close),
-                  onPressed: () => Navigator.pop(context),
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                ),
-              ],
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Share your observations to help the community stay safe',
-              style: TextStyle(color: Colors.grey.shade600, fontSize: 8),
-            ),
+            const ReportModalHeader(),
             const SizedBox(height: 20),
 
             ReportTypeSection(
@@ -291,42 +271,11 @@ class _ReportModalState extends State<ReportModal> {
 
             const SizedBox(height: 20),
 
-            // Description
-            const Text(
-              'Description',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-            ),
-            const SizedBox(height: 8),
-            TextFormField(
-              controller: _descriptionController,
-              maxLines: 3,
-              decoration: InputDecoration(
-                hintText: "Describe the situation...",
-                hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 8),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 14,
-                ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide(color: Colors.grey.shade300),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide(color: Colors.grey.shade300),
-                ),
-              ),
-            ),
+            ReportDescriptionField(controller: _descriptionController),
 
             const SizedBox(height: 20),
 
-            // Upload Photo
-            const Text(
-              'Upload Photo',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-            ),
-            const SizedBox(height: 8),
-            ReportPhotoSection(
+            ReportPhotoInputSection(
               images: _pickedImages,
               maxImages: _maxImages,
               onAddImages: _pickImage,
@@ -336,36 +285,9 @@ class _ReportModalState extends State<ReportModal> {
 
             const SizedBox(height: 25),
 
-            // Submit Button
-            SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: ElevatedButton(
-                onPressed: _isSubmitting ? null : _submitReport,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: RainGuardColors.primary,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-                child: _isSubmitting
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(
-                          color: Colors.white,
-                          strokeWidth: 2,
-                        ),
-                      )
-                    : const Text(
-                        'Submit Report',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-              ),
+            ReportSubmitButton(
+              isSubmitting: _isSubmitting,
+              onSubmit: () => _submitReport(),
             ),
             const SizedBox(height: 10), // Padding below button for modal
           ],
