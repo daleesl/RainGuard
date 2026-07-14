@@ -138,6 +138,7 @@ class _MapScreenState extends State<MapScreen> {
           final filteredReports = _filteredReports(reports);
           final selectedReport = _selectedReport(filteredReports);
           final hasSelectedReport = selectedReport != null;
+          final isEmptyState = filteredReports.isEmpty && snapshot.connectionState != ConnectionState.waiting;
 
           return Stack(
             children: [
@@ -154,7 +155,7 @@ class _MapScreenState extends State<MapScreen> {
                   onReportTap: _selectReport,
                   onPendingDraftTap: _showPendingDraftDetails,
                   onAddTap: _showAddReportModal,
-                  addButtonBottom: hasSelectedReport ? 206 : 22,
+                  addButtonBottom: hasSelectedReport ? 206 : (isEmptyState ? 96 : 22),
                 ),
               ),
               if (snapshot.connectionState == ConnectionState.waiting &&
@@ -174,8 +175,7 @@ class _MapScreenState extends State<MapScreen> {
                     ),
                   ),
                 ),
-              if (filteredReports.isEmpty &&
-                  snapshot.connectionState != ConnectionState.waiting)
+              if (isEmptyState)
                 const Positioned(
                   left: 16,
                   right: 16,
@@ -233,11 +233,11 @@ class _MapLoadingBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.94),
+        color: Colors.white.withValues(alpha: 0.94),
         borderRadius: BorderRadius.circular(99),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
+            color: Colors.black.withValues(alpha: 0.08),
             blurRadius: 16,
             offset: const Offset(0, 8),
           ),
@@ -311,7 +311,7 @@ class _EmptyMapHint extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.10),
+            color: Colors.black.withValues(alpha: 0.10),
             blurRadius: 22,
             offset: const Offset(0, 12),
           ),
