@@ -19,7 +19,7 @@ Use this file as the first stop for any AI assistant or coding agent working in 
 
 - App name: RainGuard.
 - Product purpose: help users monitor weather, view local flood/risk reports on a map, submit community reports, and review report notifications.
-- Current primary location context: Calamba, Laguna. Home weather uses the fixed Barangay Lingga/Calamba coordinates, report submission uses actual device GPS, and the map centers on Calamba reports.
+- Current primary location context: Barangay Quiling, Talisay, Batangas. Home weather uses the fixed Barangay Quiling/Talisay coordinates, report submission uses actual device GPS, and the map centers on Quiling reports.
 - Home flood risk uses unresolved community flood reports from the last 6 hours plus published official watch/warning alerts from the last 24 hours. Historical, resolved, rejected, duplicate-hidden, and clearly future-dated records must not keep Home in an active-risk state. Refresh this assessment periodically and when the app resumes.
 - Current navigation: Home, Map, Notification, Settings.
 - Entry flow: Splash -> first-time Onboarding -> Login / Sign up -> MainWrapper.
@@ -31,7 +31,7 @@ Use this file as the first stop for any AI assistant or coding agent working in 
 - A polished Figma concept exists for splash, onboarding, login, sign-up, Google authentication, and settings: https://www.figma.com/design/Zg7npN5AdMrGB3P5aUlOsY
 - Sign-up should remain low-friction. Identity verification is optional during initial sign-up.
 - Filing reports must require verification. Unverified users may browse the Home, Map, and Notifications surfaces, but report submission must route to the verification flow.
-- Verification should confirm user identity with a valid ID. Do not require the ID address to match Barangay Lingga because users may have recently relocated.
+- Verification should confirm user identity with a valid ID. Do not require the ID address to match Barangay Quiling because users may have recently relocated.
 - Do not require proof of address or a barangay/address text field unless the user explicitly asks for that later.
 - Users must be able to start or manage verification from Settings.
 - User-facing copy should stay focused on rainfall, flood safety, community reporting, risk awareness, and emergency readiness.
@@ -61,7 +61,7 @@ Use this file as the first stop for any AI assistant or coding agent working in 
 - `lib/widgets/settings/` contains reusable Settings components such as profile card, settings tiles, logout tile, and verification sheet.
 - `lib/models/` contains shared app data models such as `Report` and `UserProfile`.
 - `lib/services/` contains service classes for auth, user profiles, weather, geocoding, location, storage upload, and report submission.
-- `lib/utils/` contains helpers and constants such as report icon/label/risk mapping and Calamba/Lingga location constants.
+- `lib/utils/` contains helpers and constants such as report icon/label/risk mapping and Quiling/Talisay location constants.
 - Platform folders (`android/`, `ios/`, `web/`, `windows/`, `linux/`, `macos/`) should only be changed when the task requires platform configuration.
 
 ## Current Screen Responsibilities
@@ -71,9 +71,9 @@ Use this file as the first stop for any AI assistant or coding agent working in 
 - `LoginScreen`: email/password login and navigation to sign-up.
 - `SignupScreen`: first name, last name, and email/password account creation.
 - `MainWrapper`: bottom navigation with Home, Map, Notification, and Settings.
-- `HomeScreen`: fixed Lingga/Calamba weather summary, current flood risk assessment with source reason and last-updated time, quick actions, preparedness tips, and hotlines sheet.
-- `MapScreen`: Calamba-centered OpenStreetMap view, Firestore report pins, report details, and add-report bottom sheet.
-- `MapScreen`: Calamba-centered OpenStreetMap view, Firestore report pins, local pending draft pins, report details, and add-report bottom sheet.
+- `HomeScreen`: fixed Quiling/Talisay weather summary, current flood risk assessment with source reason and last-updated time, quick actions, preparedness tips, and hotlines sheet.
+- `MapScreen`: Quiling-centered OpenStreetMap view, Firestore report pins, report details, and add-report bottom sheet.
+- `MapScreen`: Quiling-centered OpenStreetMap view, Firestore report pins, local pending draft pins, report details, and add-report bottom sheet.
 - `NotificationScreen`: Firestore-based community report alerts, summary metrics, alert cards, and empty state.
 - `SettingsScreen`: dynamic profile card, verification entry, app/account settings, and logout flow.
 
@@ -94,6 +94,7 @@ Use this file as the first stop for any AI assistant or coding agent working in 
   - `image_url`
   - `image_urls`
   - `flood_level`
+  - `rain_intensity`
   - `status`
   - `created_at`
 - Firestore collection: `users`.
@@ -117,6 +118,7 @@ Use this file as the first stop for any AI assistant or coding agent working in 
 - Token-level notification preference fields are `notification_preference`, `notification_latitude`, `notification_longitude`, and `notification_radius_km`; location/radius fields are kept only for `nearby_only`.
 - Report types currently modeled in Dart: `rain`, `flood`.
 - Risk levels currently modeled in Dart: `safe`, `risk`, `flood`.
+- Rain reports may include `rain_intensity`; flood reports may include `flood_level`.
 - New report document IDs reuse the client draft/submission ID so offline retries remain idempotent.
 - Keep Firestore field names stable unless a task explicitly requires a data migration or coordinated backend change.
 - When changing report data shape, update `lib/models/report_model.dart` and every read/write path together.
@@ -133,7 +135,7 @@ Use this file as the first stop for any AI assistant or coding agent working in 
 - `NotificationTokenService`: Firebase Cloud Messaging permission, token registration, token refresh persistence, and logout cleanup.
 - `NotificationPreferenceService`: user notification preference reads/writes, including nearby alert location.
 - `ReportDraftService`: local pending report draft persistence and app-owned draft image copies for weak or unavailable connections.
-- `WeatherService`: calls the Firebase weather proxy for the fixed Lingga/Calamba weather context.
+- `WeatherService`: calls the Firebase weather proxy for the fixed Quiling/Talisay weather context.
 - `GeocodingService`: Nominatim reverse geocoding with a valid User-Agent and respectful request behavior.
 
 ## Implementation Scope Rules
@@ -172,10 +174,10 @@ Use this file as the first stop for any AI assistant or coding agent working in 
 ## Map and Location Rules
 
 - Do not remove fallback coordinates unless replacing them with a better documented fallback.
-- Keep Calamba/Lingga coordinates centralized in `lib/utils/location_constants.dart`.
-- Home weather should use Lingga/Calamba fixed coordinates for capstone scope consistency.
+- Keep Quiling/Talisay coordinates centralized in `lib/utils/location_constants.dart`.
+- Home weather should use Quiling/Talisay fixed coordinates for capstone scope consistency.
 - Report submission should use actual GPS coordinates when the device provides them.
-- The map should center on Calamba by default and display reports from Firestore.
+- The map should center on Quiling by default and display reports from Firestore.
 - Handle denied, disabled, and unavailable location states gracefully.
 - Keep OpenStreetMap/Nominatim usage respectful:
   - Include a valid `User-Agent` for Nominatim requests.

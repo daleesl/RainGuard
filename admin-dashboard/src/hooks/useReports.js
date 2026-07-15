@@ -10,7 +10,7 @@ import {
 } from 'firebase/firestore'
 import { db } from '../firebase'
 import { friendlyFirebaseError } from '../utils/firebaseErrors'
-import { isCalambaReport, parseReport } from '../utils/reports'
+import { isLocalReport, parseReport } from '../utils/reports'
 
 const REPORT_PAGE_SIZE = 50
 
@@ -55,8 +55,8 @@ export function useReports() {
     [firstPageReports, olderReports],
   )
 
-  const calambaReports = useMemo(
-    () => reports.filter((report) => isCalambaReport(report)),
+  const localReports = useMemo(
+    () => reports.filter((report) => isLocalReport(report)),
     [reports],
   )
 
@@ -90,7 +90,7 @@ export function useReports() {
 
   return {
     reports,
-    calambaReports,
+    localReports,
     status,
     error,
     hasMore,

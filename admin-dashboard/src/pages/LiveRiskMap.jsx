@@ -39,7 +39,7 @@ const metricConfig = [
 ]
 
 export function LiveRiskMap() {
-  const { reports, calambaReports, status, error } = useReports()
+  const { reports, localReports, status, error } = useReports()
   const [activeFilter, setActiveFilter] = useState('active')
   const [modalReportId, setModalReportId] = useState('')
   const [selectedReportId, setSelectedReportId] = useState('')
@@ -51,7 +51,7 @@ export function LiveRiskMap() {
 
   const filteredReports = useMemo(() => {
     const normalizedSearch = searchTerm.trim().toLowerCase()
-    const visibleReports = calambaReports.filter((report) => {
+    const visibleReports = localReports.filter((report) => {
       if (activeFilter === 'active') return isDefaultMapReport(report)
       if (activeFilter === 'today') return isToday(report.createdAt)
       if (activeFilter === 'week') return isThisWeek(report.createdAt)
@@ -75,7 +75,7 @@ export function LiveRiskMap() {
         .toLowerCase()
         .includes(normalizedSearch),
     )
-  }, [activeFilter, calambaReports, searchTerm])
+  }, [activeFilter, localReports, searchTerm])
 
   const selectedReport = useMemo(
     () =>
@@ -110,9 +110,9 @@ export function LiveRiskMap() {
   const modalReport = useMemo(
     () =>
       filteredReports.find((report) => report.id === modalReportId) ||
-      calambaReports.find((report) => report.id === modalReportId) ||
+      localReports.find((report) => report.id === modalReportId) ||
       null,
-    [calambaReports, filteredReports, modalReportId],
+    [filteredReports, localReports, modalReportId],
   )
 
   function clearFilters() {
@@ -155,7 +155,7 @@ export function LiveRiskMap() {
             Create Alert
           </PrimaryActionButton>
         }
-        description="Monitor real-time Calamba flood/rain reports and active advisories."
+        description="Monitor real-time Quiling/Talisay flood/rain reports and active advisories."
         search={{
           ariaLabel: 'Search admin records',
           onChange: setSearchTerm,
@@ -183,8 +183,8 @@ export function LiveRiskMap() {
         <section className="map-and-details">
           <LiveReportMap
             activeFilter={activeFilter}
-            calambaReports={calambaReports}
             filteredReports={filteredReports}
+            localReports={localReports}
             onClearFilters={clearFilters}
             onFilterChange={setActiveFilter}
             onSelectReport={selectReport}

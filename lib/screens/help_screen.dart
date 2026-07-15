@@ -37,7 +37,7 @@ class HelpScreen extends StatelessWidget {
             icon: Icons.map_outlined,
             title: 'View community reports',
             body:
-                'Open the map to see rain, flood, and risk reports submitted around Barangay Lingga and nearby Calamba areas.',
+                'Open the map to see rain, flood, and risk reports submitted around Barangay Quiling and nearby Talisay areas.',
           ),
           _HelpCard(
             icon: Icons.add_location_alt_outlined,

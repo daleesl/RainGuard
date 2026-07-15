@@ -27,9 +27,9 @@ class MapScreen extends StatefulWidget {
 }
 
 class _MapScreenState extends State<MapScreen> {
-  static const _calambaCenter = LatLng(
-    RainGuardCoverage.calambaMapLatitude,
-    RainGuardCoverage.calambaMapLongitude,
+  static const _quilingCenter = LatLng(
+    RainGuardCoverage.mapLatitude,
+    RainGuardCoverage.mapLongitude,
   );
 
   final MapController _mapController = MapController();
@@ -138,14 +138,16 @@ class _MapScreenState extends State<MapScreen> {
           final filteredReports = _filteredReports(reports);
           final selectedReport = _selectedReport(filteredReports);
           final hasSelectedReport = selectedReport != null;
-          final isEmptyState = filteredReports.isEmpty && snapshot.connectionState != ConnectionState.waiting;
+          final isEmptyState =
+              filteredReports.isEmpty &&
+              snapshot.connectionState != ConnectionState.waiting;
 
           return Stack(
             children: [
               Positioned.fill(
                 child: ReportMapCard(
                   mapController: _mapController,
-                  initialCenter: _calambaCenter,
+                  initialCenter: _quilingCenter,
                   reports: filteredReports,
                   pendingDrafts: _pendingDrafts,
                   activeFilter: _activeFilter,
@@ -155,7 +157,9 @@ class _MapScreenState extends State<MapScreen> {
                   onReportTap: _selectReport,
                   onPendingDraftTap: _showPendingDraftDetails,
                   onAddTap: _showAddReportModal,
-                  addButtonBottom: hasSelectedReport ? 206 : (isEmptyState ? 96 : 22),
+                  addButtonBottom: hasSelectedReport
+                      ? 206
+                      : (isEmptyState ? 96 : 22),
                 ),
               ),
               if (snapshot.connectionState == ConnectionState.waiting &&

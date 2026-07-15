@@ -24,7 +24,7 @@ export function UsersManagement({ onOpenVerification }) {
     isLoadingMore,
     loadMore,
   } = useUsers()
-  const { calambaReports } = useReports()
+  const { localReports } = useReports()
   const [now] = useState(() => Date.now())
   const [searchTerm, setSearchTerm] = useState('')
   const [message, setMessage] = useState('')
@@ -33,13 +33,13 @@ export function UsersManagement({ onOpenVerification }) {
 
   const reportCounts = useMemo(() => {
     const counts = new Map()
-    calambaReports.forEach((report) => {
+    localReports.forEach((report) => {
       if (report.userId) {
         counts.set(report.userId, (counts.get(report.userId) || 0) + 1)
       }
     })
     return counts
-  }, [calambaReports])
+  }, [localReports])
 
   const residentUsers = useMemo(
     () => users.filter((user) => user.role !== 'admin'),

@@ -99,7 +99,7 @@ class _ManualLocationPickerState extends State<ManualLocationPicker> {
                   child: FlutterMap(
                     options: MapOptions(
                       initialCenter: widget.initialPoint,
-                      initialZoom: RainGuardCoverage.calambaMapZoom,
+                      initialZoom: RainGuardCoverage.mapZoom,
                       onTap: (_, point) {
                         setState(() => _selectedPoint = point);
                       },

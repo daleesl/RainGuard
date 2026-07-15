@@ -1,13 +1,13 @@
 # RainGuard
 
-RainGuard is a Flutter/Firebase capstone app for community rain, flood, risk, and safety reporting in Calamba, Laguna. It helps users monitor local weather, view community reports on a map, submit verified reports, and receive report notifications.
+RainGuard is a Flutter/Firebase capstone app for community rain, flood, risk, and safety reporting in Barangay Quiling, Talisay, Batangas. It helps users monitor local weather, view community reports on a map, submit verified reports, and receive report notifications.
 
 ## Features
 
 - Splash, first-time onboarding, login, sign-up, and Google authentication
 - Firebase Auth account handling with Firestore user profiles
-- Home dashboard with Lingga/Calamba weather, flood risk context, safety tips, and hotlines
-- Calamba-centered OpenStreetMap report map
+- Home dashboard with Quiling/Talisay weather, flood risk context, safety tips, and hotlines
+- Quiling-centered OpenStreetMap report map
 - Community report submission with GPS location and multiple image support
 - Firestore-based notification feed for recent reports
 - Push notification token registration and Firebase Cloud Function report alerts

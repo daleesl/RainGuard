@@ -10,12 +10,12 @@ import {
   useMapEvents,
 } from 'react-leaflet'
 import {
-  LINGGA_MONITORING_AREA_LABEL,
-  LINGGA_MONITORING_AREA_LABEL_POINT,
-  LINGGA_MONITORING_BOUNDARY,
+  MONITORING_AREA_LABEL,
+  MONITORING_AREA_LABEL_POINT,
+  MONITORING_BOUNDARY,
 } from '../../utils/monitoringArea'
 import {
-  CALAMBA_CENTER,
+  QUILING_CENTER,
   getReportColor,
 } from '../../utils/reports'
 
@@ -32,8 +32,8 @@ const mapFilters = [
 
 export function LiveReportMap({
   activeFilter,
-  calambaReports,
   filteredReports,
+  localReports,
   onClearFilters,
   onFilterChange,
   onSelectReport,
@@ -42,11 +42,12 @@ export function LiveReportMap({
   status,
 }) {
   const [isBoundaryVisible, setIsBoundaryVisible] = useState(true)
+  const hasMonitoringBoundary = MONITORING_BOUNDARY.length > 0
 
   return (
     <article className="map-card">
       <div className="card-heading">
-        <h3>Calamba Report Map</h3>
+        <h3>Quiling Report Map</h3>
         <div className="map-filter-control" aria-label="Map report filters">
           {mapFilters.map((filter) => (
             <button
@@ -63,7 +64,7 @@ export function LiveReportMap({
 
       <div className="leaflet-shell">
         <MapContainer
-          center={CALAMBA_CENTER}
+          center={QUILING_CENTER}
           className="risk-map"
           scrollWheelZoom
           zoom={14}
@@ -73,22 +74,26 @@ export function LiveReportMap({
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
-          {isBoundaryVisible ? <LinggaMonitoringBoundary /> : null}
+          {isBoundaryVisible && hasMonitoringBoundary ? (
+            <MonitoringBoundary />
+          ) : null}
           <ClusteredReportMarkers
             onOpenReport={onSelectReport}
             reports={filteredReports}
           />
         </MapContainer>
-        <div className="monitoring-area-toolbar" aria-label="Map overlays">
-          <button
-            aria-pressed={isBoundaryVisible}
-            className={isBoundaryVisible ? 'is-active' : ''}
-            onClick={() => setIsBoundaryVisible((isVisible) => !isVisible)}
-            type="button"
-          >
-            Boundary
-          </button>
-        </div>
+        {hasMonitoringBoundary ? (
+          <div className="monitoring-area-toolbar" aria-label="Map overlays">
+            <button
+              aria-pressed={isBoundaryVisible}
+              className={isBoundaryVisible ? 'is-active' : ''}
+              onClick={() => setIsBoundaryVisible((isVisible) => !isVisible)}
+              type="button"
+            >
+              Boundary
+            </button>
+          </div>
+        ) : null}
         <div className="map-legend" aria-label="Map legend">
           <span>
             <i className="legend-dot legend-dot-flood" /> Flood
@@ -103,9 +108,7 @@ export function LiveReportMap({
             <i className="legend-dot legend-dot-safe" /> Safe
           </span>
         </div>
-        <span className="map-caption">
-          Calamba, Laguna report activity
-        </span>
+        <span className="map-caption">Quiling, Talisay report activity</span>
       </div>
 
       {status === 'loading' ? (
@@ -129,7 +132,7 @@ export function LiveReportMap({
           Clear filters
         </button>
         <span>
-          {reports.length - calambaReports.length} outside Calamba/PH
+          {reports.length - localReports.length} outside Quiling/Talisay area
         </span>
         <span>{status === 'ready' ? 'Firebase live' : 'Syncing'}</span>
       </div>
@@ -137,12 +140,12 @@ export function LiveReportMap({
   )
 }
 
-function LinggaMonitoringBoundary() {
+function MonitoringBoundary() {
   const labelIcon = useMemo(
     () =>
       L.divIcon({
         className: '',
-        html: `<span class="monitoring-area-label">${LINGGA_MONITORING_AREA_LABEL}</span>`,
+        html: `<span class="monitoring-area-label">${MONITORING_AREA_LABEL}</span>`,
         iconAnchor: [94, 14],
         iconSize: [188, 28],
       }),
@@ -160,12 +163,12 @@ function LinggaMonitoringBoundary() {
           opacity: 0.62,
           weight: 1.4,
         }}
-        positions={LINGGA_MONITORING_BOUNDARY}
+        positions={MONITORING_BOUNDARY}
       />
       <Marker
         icon={labelIcon}
         interactive={false}
-        position={LINGGA_MONITORING_AREA_LABEL_POINT}
+        position={MONITORING_AREA_LABEL_POINT}
         zIndexOffset={120}
       />
     </>

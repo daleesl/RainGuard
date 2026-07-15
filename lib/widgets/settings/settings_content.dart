@@ -113,10 +113,7 @@ class SettingsContent extends StatelessWidget {
           onEmergencyInfoTap: onEmergencyInfoTap,
         ),
         const SizedBox(height: 10),
-        SettingsLogoutTile(
-          isLoading: isLoggingOut,
-          onTap: onLogoutTap,
-        ),
+        SettingsLogoutTile(isLoading: isLoggingOut, onTap: onLogoutTap),
       ],
     );
   }
@@ -250,7 +247,7 @@ class _LocationSettingsSection extends StatelessWidget {
         SettingsTile(
           icon: Icons.place_outlined,
           title: 'Default Barangay Location',
-          subtitle: 'Barangay Lingga, Calamba',
+          subtitle: 'Barangay Quiling, Talisay',
           onTap: onBarangayLocationTap,
         ),
         SettingsSwitchTile(

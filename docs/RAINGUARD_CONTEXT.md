@@ -6,7 +6,7 @@ Use this file to give ChatGPT, groupmates, or future contributors a quick and ac
 
 RainGuard is a Flutter/Firebase mobile app with a React/Vite admin dashboard for community rain and flood reporting, local risk monitoring, user verification, safety alerts, and barangay decision support.
 
-Current location focus: Barangay Lingga and Calamba, Laguna, Philippines.
+Current location focus: Barangay Quiling, Talisay, Batangas, Philippines.
 
 Main users:
 - Residents use the mobile app to view weather, see reports on a map, receive alerts, and submit verified community reports.
@@ -40,8 +40,8 @@ Backend/support:
 - Splash: checks auth and onboarding state.
 - Onboarding: first-time introduction.
 - Login / Sign up: Firebase email/password authentication. Google sign-in is currently hidden from the auth UI while it is unavailable.
-- Home: Lingga/Calamba weather, current flood-risk assessment, source reason, last-updated time, quick actions, and tips.
-- Map: Calamba-centered report map with report pins, clusters, filters, selected report preview, and report submission.
+- Home: Quiling/Talisay weather, current flood-risk assessment, source reason, last-updated time, quick actions, and tips.
+- Map: Quiling-centered report map with report pins, clusters, filters, selected report preview, and report submission.
 - Notifications: community report alerts and safety alerts.
 - Settings: account info, verification, password reset, help, emergency info, and logout.
 
@@ -79,6 +79,7 @@ Important `reports` fields:
 - `image_url`
 - `image_urls`
 - `flood_level`
+- `rain_intensity`
 - `status`
 - `created_at`
 
@@ -90,6 +91,8 @@ Current risk levels:
 - `safe`
 - `risk`
 - `flood`
+
+Rain reports may include `rain_intensity`. Flood reports may include `flood_level`, displayed to users as estimated flood water.
 
 Important `users` fields:
 - `uid`
@@ -130,7 +133,7 @@ Admin accounts:
 - Unverified residents can browse Home, Map, Notifications, and Settings.
 - Report submission requires identity verification.
 - Verification uses a valid ID photo. Selfie is not required.
-- Do not require the ID address to match Barangay Lingga.
+- Do not require the ID address to match Barangay Quiling.
 - Do not store passwords in Firestore.
 - Do not delete old reports just to declutter the map. Filter or hide them from default views instead.
 - User map should show active/recent reports by default.
@@ -161,7 +164,7 @@ Admin accounts:
 - Flutter report logic was split into smaller services.
 - Flutter notification feed and report feed services were improved.
 - Mobile map report filters were added.
-- Barangay Lingga monitoring boundary is sourced from `docs/geo/lingga-boundary.geojson`.
+- The app currently centers on Barangay Quiling coordinates. No verified Quiling boundary polygon is active yet.
 - Shared Flutter state widgets were added for empty, loading, error, and section header states.
 - Lightweight tests were added for parsing and duplicate helper logic.
 - Home flood risk no longer counts historical/resolved reports as current danger and now includes current official alerts.
@@ -199,7 +202,7 @@ Possible data/API sources:
 - OpenWeather API through Firebase Functions for near real-time weather without exposing the API key in the mobile app.
 - PAGASA/public weather data if accessible.
 - UP NOAH hazard maps/data if accessible.
-- Kaggle datasets only as supporting data, because generic datasets may not match Barangay Lingga conditions.
+- Kaggle datasets only as supporting data, because generic datasets may not match Barangay Quiling conditions.
 
 Recommended order:
 1. Finish and stabilize the mobile app and admin dashboard.

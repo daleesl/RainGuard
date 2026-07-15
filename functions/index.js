@@ -85,7 +85,7 @@ exports.getWeather = onRequest(
       res.json({
         temp,
         description,
-        location: typeof location === "string" ? location : "Calamba",
+        location: typeof location === "string" ? location : "Quiling, Talisay",
       });
     } catch (error) {
       logger.error("Weather proxy request failed", { error });
@@ -169,7 +169,7 @@ exports.notifyUsersOnReportCreated = onDocumentCreated(
     }
 
     const reportType = report.report_type === "flood" ? "Flood" : "Rain";
-    const location = "Calamba";
+    const location = "Quiling, Talisay";
     const description =
       typeof report.description === "string" && report.description.trim()
         ? report.description.trim()

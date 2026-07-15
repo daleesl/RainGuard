@@ -32,7 +32,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   Timer? _riskRefreshTimer;
   String _weatherTemp = '-- \u00B0C';
   String _weatherDesc = 'Loading...';
-  String _locationName = RainGuardCoverage.linggaLabel;
+  String _locationName = RainGuardCoverage.primaryLabel;
   bool _isLoadingWeather = true;
   bool _isLoadingRisk = true;
   bool _riskLoadFailed = false;
@@ -92,15 +92,15 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   Future<void> _fetchWeatherData() async {
     try {
       final weatherData = await WeatherService.getWeather(
-        RainGuardCoverage.linggaLatitude,
-        RainGuardCoverage.linggaLongitude,
+        RainGuardCoverage.primaryLatitude,
+        RainGuardCoverage.primaryLongitude,
       );
 
       if (!mounted) return;
       setState(() {
         _weatherTemp = '${weatherData['temp'].round()} \u00B0C';
         _weatherDesc = weatherData['description'];
-        _locationName = RainGuardCoverage.linggaLabel;
+        _locationName = RainGuardCoverage.primaryLabel;
         _isLoadingWeather = false;
       });
     } catch (e) {
@@ -109,7 +109,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       setState(() {
         _weatherTemp = 'N/A';
         _weatherDesc = 'Unavailable';
-        _locationName = RainGuardCoverage.linggaLabel;
+        _locationName = RainGuardCoverage.primaryLabel;
         _isLoadingWeather = false;
       });
     }

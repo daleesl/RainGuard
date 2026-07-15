@@ -25,7 +25,7 @@ import {
 } from '../utils/reports'
 
 export function DashboardPage({ onNavigate }) {
-  const { calambaReports, error: reportsError, status: reportsStatus } = useReports()
+  const { localReports, error: reportsError, status: reportsStatus } = useReports()
   const { users, pendingUsers, error: usersError } = useUsers()
   const { alerts, error: alertsError } = useAlerts()
   const [now] = useState(() => Date.now())
@@ -36,10 +36,10 @@ export function DashboardPage({ onNavigate }) {
   )
 
   const metrics = useMemo(() => {
-    const activeReports = calambaReports.filter(
+    const activeReports = localReports.filter(
       (report) => !['resolved', 'duplicate_hidden'].includes(report.status),
     )
-    const verifiedReports = calambaReports.filter(
+    const verifiedReports = localReports.filter(
       (report) => report.status === 'verified',
     )
     const floodReports = activeReports.filter(
@@ -53,17 +53,17 @@ export function DashboardPage({ onNavigate }) {
       floodReports: floodReports.length,
       pendingIds: pendingUsers.filter((user) => user.role !== 'admin').length,
       registeredResidents: residentUsers.length,
-      reportsToday: calambaReports.filter((report) => isToday(report.createdAt)).length,
+      reportsToday: localReports.filter((report) => isToday(report.createdAt)).length,
       verifiedReports: verifiedReports.length,
     }
-  }, [alerts, calambaReports, pendingUsers, residentUsers])
+  }, [alerts, localReports, pendingUsers, residentUsers])
 
   const recentReports = useMemo(
     () =>
-      calambaReports
+      localReports
         .filter((report) => report.status !== 'duplicate_hidden')
         .slice(0, 5),
-    [calambaReports],
+    [localReports],
   )
 
   const recentAlerts = useMemo(
@@ -75,7 +75,7 @@ export function DashboardPage({ onNavigate }) {
     {
       id: 'liveMap',
       title: 'Live Risk Map',
-      description: 'Monitor clustered rain and flood reports across Calamba.',
+      description: 'Monitor clustered rain and flood reports across Quiling.',
       icon: Map,
       meta: `${metrics.activeReports} active reports`,
     },

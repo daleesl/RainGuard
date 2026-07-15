@@ -18,7 +18,7 @@ import {
 } from '../services/alertActions'
 import { formatAlertLabel } from '../utils/alerts'
 
-const alertAreas = ['Lingga', 'Aplaya', 'Calamba', 'All residents']
+const alertAreas = ['Quiling', 'Talisay', 'All residents']
 const riskLevels = ['advisory', 'watch', 'warning', 'critical']
 
 export function AlertsManagement() {
@@ -29,10 +29,10 @@ export function AlertsManagement() {
     isLoadingMore,
     loadMore,
   } = useAlerts()
-  const [alertTitle, setAlertTitle] = useState('Heavy rainfall near Lingga Creek')
-  const [area, setArea] = useState('Lingga')
+  const [alertTitle, setAlertTitle] = useState('Heavy rainfall near Quiling')
+  const [area, setArea] = useState('Quiling')
   const [message, setMessage] = useState(
-    'Avoid low-lying roads near Lingga Creek. Monitor updates and submit reports only when safe.',
+    'Avoid low-lying roads near Quiling. Monitor updates and submit reports only when safe.',
   )
   const [pendingDeleteAlert, setPendingDeleteAlert] = useState(null)
   const [pendingPublishStatus, setPendingPublishStatus] = useState('')

@@ -68,7 +68,10 @@ class ThemeInfoSheet extends StatelessWidget {
                     ),
                   ),
                 ),
-                Icon(Icons.check_circle_rounded, color: RainGuardColors.primary),
+                Icon(
+                  Icons.check_circle_rounded,
+                  color: RainGuardColors.primary,
+                ),
               ],
             ),
           ),
@@ -114,7 +117,7 @@ class BarangayLocationSheet extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           const Text(
-            'RainGuard is focused on Barangay Lingga, Calamba for this capstone. Weather summaries and default map context use this area, while submitted reports still use the user\'s actual GPS when available.',
+            'RainGuard is focused on Barangay Quiling, Talisay for this capstone. Weather summaries and default map context use this area, while submitted reports still use the user\'s actual GPS when available.',
             style: TextStyle(
               color: RainGuardColors.secondaryText,
               fontSize: 9,
@@ -135,7 +138,7 @@ class BarangayLocationSheet extends StatelessWidget {
                 SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    'Barangay Lingga, Calamba',
+                    'Barangay Quiling, Talisay',
                     style: TextStyle(
                       color: RainGuardColors.ink,
                       fontSize: 12,
