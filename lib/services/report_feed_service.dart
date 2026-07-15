@@ -20,6 +20,25 @@ class ReportFeedService {
         .map((snapshot) => parseReports(snapshot.docs));
   }
 
+  static Stream<List<Report>> userReportsStream({
+    required String userId,
+    int limitCount = defaultNotificationReportLimit,
+  }) {
+    final cleanUserId = userId.trim();
+    if (cleanUserId.isEmpty) return Stream.value(const <Report>[]);
+
+    return FirebaseFirestore.instance
+        .collection('reports')
+        .where('user_id', isEqualTo: cleanUserId)
+        .limit(limitCount)
+        .snapshots()
+        .map((snapshot) {
+          final reports = parseReports(snapshot.docs);
+          reports.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+          return reports;
+        });
+  }
+
   static Stream<List<Report>> activeMapReportsStream({
     int limitCount = defaultMapReportLimit,
   }) {

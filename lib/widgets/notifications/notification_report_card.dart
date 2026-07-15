@@ -18,13 +18,11 @@ class NotificationReportCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = _statusColor(report);
-    final freshnessColor = MapHelper.getReportColor(report);
-    final freshnessLabel = MapHelper.getFreshnessName(report.freshness);
     final reportName = MapHelper.getReportTypeName(report.type);
-    final reporterName = report.reporterName ?? 'Anonymous reporter';
-    final imageCount = report.allImageUrls.length;
-    final hasImage = imageCount > 0;
+    final color = report.isAdminVerified
+        ? Colors.green.shade700
+        : RainGuardColors.primary;
+    final label = report.isAdminVerified ? 'Verified' : 'Community';
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
@@ -34,10 +32,9 @@ class NotificationReportCard extends StatelessWidget {
           onTap: onTap,
           borderRadius: BorderRadius.circular(22),
           child: Ink(
+            padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: report.isArchived
-                  ? Colors.blueGrey.shade50
-                  : Colors.white,
+              color: Colors.white,
               borderRadius: BorderRadius.circular(22),
               border: Border.all(color: RainGuardColors.border),
               boxShadow: [
@@ -48,81 +45,58 @@ class NotificationReportCard extends StatelessWidget {
                 ),
               ],
             ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(22),
-              child: IntrinsicHeight(
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Container(width: 5, color: color),
-                    Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.all(15),
+            child: Stack(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(right: 22),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _ReportThumbnail(report: report),
+                      const SizedBox(width: 13),
+                      Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Container(
-                                  width: 42,
-                                  height: 42,
-                                  decoration: BoxDecoration(
-                                    color: color.withValues(alpha: 0.10),
-                                    borderRadius: BorderRadius.circular(15),
-                                  ),
-                                  child: Icon(
-                                    MapHelper.getReportIcon(report.type),
-                                    color: color,
-                                    size: 22,
-                                  ),
+                            Padding(
+                              padding: const EdgeInsets.only(right: 92),
+                              child: Text(
+                                '$reportName Report',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: RainGuardColors.ink,
+                                  fontWeight: FontWeight.w900,
+                                  fontSize: 12,
+                                  height: 1.25,
                                 ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        _title(report, reportName),
-                                        maxLines: 2,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: const TextStyle(
-                                          color: RainGuardColors.ink,
-                                          fontWeight: FontWeight.w900,
-                                          fontSize: 12,
-                                          height: 1.25,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 5),
-                                      Text(
-                                        'Reported by $reporterName',
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: const TextStyle(
-                                          fontSize: 8,
-                                          color:
-                                              RainGuardColors.secondaryText,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                NotificationSeverityChip(
-                                  color: color,
-                                  label: MapHelper.getRiskLevelName(
-                                    report.risk,
-                                  ),
-                                ),
-                              ],
+                              ),
                             ),
-                            const SizedBox(height: 13),
+                            const SizedBox(height: 8),
+                            _MetaLine(
+                              icon: Icons.place_rounded,
+                              label: _locationLabel(report),
+                            ),
+                            const SizedBox(height: 5),
+                            _MetaLine(
+                              icon: Icons.verified_user_outlined,
+                              label: report.isAdminVerified
+                                  ? 'Verified community report'
+                                  : 'Reported by community resident',
+                            ),
+                            const SizedBox(height: 5),
+                            _MetaLine(
+                              icon: report.type == ReportType.flood
+                                  ? Icons.water_drop_outlined
+                                  : Icons.thunderstorm_outlined,
+                              label:
+                                  '${report.observationLabel}: ${report.observationValue}',
+                            ),
+                            const SizedBox(height: 10),
                             Text(
                               report.description.isNotEmpty
                                   ? report.description
-                                  : '$reportName was reported near your monitored area.',
+                                  : '$reportName conditions were reported nearby.',
                               maxLines: 3,
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(
@@ -131,50 +105,32 @@ class NotificationReportCard extends StatelessWidget {
                                 color: RainGuardColors.ink,
                               ),
                             ),
-                            const SizedBox(height: 13),
-                            Wrap(
-                              spacing: 8,
-                              runSpacing: 8,
-                              crossAxisAlignment: WrapCrossAlignment.center,
-                              children: [
-                                NotificationMetaPill(
-                                  color: freshnessColor,
-                                  icon: Icons.access_time_rounded,
-                                  label:
-                                      '${timeago.format(report.createdAt)} - $freshnessLabel',
-                                ),
-                                if (report.floodLevel != null)
-                                  NotificationMetaPill(
-                                    color: color,
-                                    icon: Icons.water_drop_outlined,
-                                    label: report.floodLevel!,
-                                  ),
-                                if (hasImage)
-                                  NotificationMetaPill(
-                                    color: RainGuardColors.primary,
-                                    icon: Icons.image_outlined,
-                                    label: imageCount > 1
-                                        ? '$imageCount photos'
-                                        : 'Photo attached',
-                                  ),
-                              ],
+                            const SizedBox(height: 11),
+                            NotificationMetaPill(
+                              color: RainGuardColors.primary,
+                              icon: Icons.access_time_rounded,
+                              label: timeago.format(report.createdAt),
                             ),
                           ],
                         ),
                       ),
-                    ),
-                    const Padding(
-                      padding: EdgeInsets.only(right: 10),
-                      child: Center(
-                        child: Icon(
-                          Icons.chevron_right_rounded,
-                          color: RainGuardColors.secondaryText,
-                        ),
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
+                Positioned(
+                  top: 0,
+                  right: 0,
+                  child: NotificationSeverityChip(color: color, label: label),
+                ),
+                const Positioned(
+                  top: 42,
+                  right: 0,
+                  child: Icon(
+                    Icons.chevron_right_rounded,
+                    color: RainGuardColors.secondaryText,
+                  ),
+                ),
+              ],
             ),
           ),
         ),
@@ -182,20 +138,74 @@ class NotificationReportCard extends StatelessWidget {
     );
   }
 
-  String _title(Report report, String reportName) {
-    if (report.isArchived) return 'Archived $reportName report';
-    if (report.risk == RiskLevel.flood) {
-      return '$reportName report needs attention';
-    }
-    return '$reportName update near monitored area';
+  String _locationLabel(Report report) {
+    final location = report.locationName;
+    if (location != null && location.isNotEmpty) return location;
+    return 'Quiling, Talisay';
   }
+}
 
-  Color _statusColor(Report report) {
-    if (report.isArchived) return Colors.blueGrey.shade500;
-    if (report.risk == RiskLevel.flood) return Colors.red.shade700;
-    if (report.risk == RiskLevel.risk || report.type == ReportType.rain) {
-      return Colors.amber.shade800;
-    }
-    return Colors.green.shade700;
+class _ReportThumbnail extends StatelessWidget {
+  const _ReportThumbnail({required this.report});
+
+  final Report report;
+
+  @override
+  Widget build(BuildContext context) {
+    final imageUrls = report.allImageUrls;
+    final imageUrl = imageUrls.isEmpty ? null : imageUrls.first;
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        width: 82,
+        height: 92,
+        color: RainGuardColors.softBlue,
+        child: imageUrl == null
+            ? Icon(
+                MapHelper.getReportIcon(report.type),
+                color: RainGuardColors.primary,
+                size: 30,
+              )
+            : Image.network(
+                imageUrl,
+                fit: BoxFit.cover,
+                errorBuilder: (_, _, _) => Icon(
+                  MapHelper.getReportIcon(report.type),
+                  color: RainGuardColors.primary,
+                  size: 30,
+                ),
+              ),
+      ),
+    );
+  }
+}
+
+class _MetaLine extends StatelessWidget {
+  const _MetaLine({required this.icon, required this.label});
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, color: RainGuardColors.primary, size: 14),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: RainGuardColors.secondaryText,
+              fontSize: 8,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+      ],
+    );
   }
 }

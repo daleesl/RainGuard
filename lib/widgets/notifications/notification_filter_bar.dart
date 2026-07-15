@@ -3,22 +3,39 @@ import 'package:flutter/material.dart';
 import '../../theme/rainguard_theme.dart';
 import '../rainguard_card.dart';
 
-enum NotificationFilter { all, flood, rain }
+enum NotificationFilter {
+  all,
+  official,
+  community,
+  pending,
+  verified,
+  resolved,
+}
+
+class NotificationFilterOption {
+  const NotificationFilterOption({
+    required this.filter,
+    required this.icon,
+    required this.label,
+    this.count,
+  });
+
+  final NotificationFilter filter;
+  final IconData icon;
+  final String label;
+  final int? count;
+}
 
 class NotificationFilterBar extends StatelessWidget {
   const NotificationFilterBar({
     super.key,
     required this.selectedFilter,
-    required this.totalCount,
-    required this.floodCount,
-    required this.rainCount,
+    required this.options,
     required this.onChanged,
   });
 
   final NotificationFilter selectedFilter;
-  final int totalCount;
-  final int floodCount;
-  final int rainCount;
+  final List<NotificationFilterOption> options;
   final ValueChanged<NotificationFilter> onChanged;
 
   @override
@@ -27,39 +44,42 @@ class NotificationFilterBar extends StatelessWidget {
       padding: const EdgeInsets.all(8),
       radius: 18,
       shadowOpacity: 0.04,
-      child: Row(
-        children: [
-          Expanded(
-            child: _NotificationFilterChip(
-              label: 'All',
-              count: totalCount,
-              icon: Icons.notifications_none_rounded,
-              isSelected: selectedFilter == NotificationFilter.all,
-              onTap: () => onChanged(NotificationFilter.all),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          if (options.length <= 3) {
+            return Row(
+              children: [
+                for (final option in options) ...[
+                  Expanded(child: _buildChip(option)),
+                  if (option != options.last) const SizedBox(width: 8),
+                ],
+              ],
+            );
+          }
+
+          return SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                for (final option in options) ...[
+                  _buildChip(option),
+                  if (option != options.last) const SizedBox(width: 8),
+                ],
+              ],
             ),
-          ),
-          const SizedBox(width: 6),
-          Expanded(
-            child: _NotificationFilterChip(
-              label: 'Flood',
-              count: floodCount,
-              icon: Icons.waves_rounded,
-              isSelected: selectedFilter == NotificationFilter.flood,
-              onTap: () => onChanged(NotificationFilter.flood),
-            ),
-          ),
-          const SizedBox(width: 6),
-          Expanded(
-            child: _NotificationFilterChip(
-              label: 'Rain',
-              count: rainCount,
-              icon: Icons.thunderstorm_outlined,
-              isSelected: selectedFilter == NotificationFilter.rain,
-              onTap: () => onChanged(NotificationFilter.rain),
-            ),
-          ),
-        ],
+          );
+        },
       ),
+    );
+  }
+
+  Widget _buildChip(NotificationFilterOption option) {
+    return _NotificationFilterChip(
+      label: option.label,
+      count: option.count,
+      icon: option.icon,
+      isSelected: selectedFilter == option.filter,
+      onTap: () => onChanged(option.filter),
     );
   }
 }
@@ -67,14 +87,14 @@ class NotificationFilterBar extends StatelessWidget {
 class _NotificationFilterChip extends StatelessWidget {
   const _NotificationFilterChip({
     required this.label,
-    required this.count,
+    this.count,
     required this.icon,
     required this.isSelected,
     required this.onTap,
   });
 
   final String label;
-  final int count;
+  final int? count;
   final IconData icon;
   final bool isSelected;
   final VoidCallback onTap;
@@ -92,8 +112,9 @@ class _NotificationFilterChip extends StatelessWidget {
         borderRadius: BorderRadius.circular(14),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 160),
-          constraints: const BoxConstraints(minHeight: 48),
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 9),
+          constraints: const BoxConstraints(minHeight: 42),
+          padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 9),
+          alignment: Alignment.center,
           decoration: BoxDecoration(
             color: isSelected ? RainGuardColors.softBlue : Colors.white,
             borderRadius: BorderRadius.circular(14),
@@ -104,22 +125,17 @@ class _NotificationFilterChip extends StatelessWidget {
             ),
           ),
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(icon, size: 16, color: color),
-              const SizedBox(width: 5),
-              Flexible(
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: Text(
-                    '$label ($count)',
-                    maxLines: 1,
-                    style: TextStyle(
-                      color: color,
-                      fontSize: 9,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
+              Icon(icon, size: 15, color: color),
+              const SizedBox(width: 6),
+              Text(
+                count == null ? label : '$label ($count)',
+                maxLines: 1,
+                style: TextStyle(
+                  color: color,
+                  fontSize: 9,
+                  fontWeight: FontWeight.w900,
                 ),
               ),
             ],
