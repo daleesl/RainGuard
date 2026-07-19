@@ -61,23 +61,28 @@ class _InfoTile extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 8,
-              color: emphasizeLabel
-                  ? RainGuardColors.primary
-                  : RainGuardColors.secondaryText,
-              fontWeight: FontWeight.w900,
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              label,
+              maxLines: 1,
+              style: TextStyle(
+                fontSize: 8,
+                color: emphasizeLabel
+                    ? RainGuardColors.primary
+                    : RainGuardColors.secondaryText,
+                fontWeight: FontWeight.w900,
+              ),
             ),
           ),
           const SizedBox(height: 8),
           Text(
             value,
-            maxLines: 1,
+            maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(
-              fontSize: 12,
+              fontSize: 11,
               color: RainGuardColors.ink,
               fontWeight: FontWeight.w900,
             ),

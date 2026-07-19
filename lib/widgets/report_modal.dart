@@ -28,6 +28,7 @@ class _ReportModalState extends State<ReportModal> {
 
   ReportType selectedType = ReportType.rain;
   String? selectedFloodLevel;
+  String? selectedRainIntensity;
   final TextEditingController _descriptionController = TextEditingController();
   bool _isSubmitting = false;
   final List<XFile> _pickedImages = [];
@@ -80,8 +81,8 @@ class _ReportModalState extends State<ReportModal> {
           initialPoint:
               _manualLocation ??
               const LatLng(
-                RainGuardCoverage.calambaMapLatitude,
-                RainGuardCoverage.calambaMapLongitude,
+                RainGuardCoverage.mapLatitude,
+                RainGuardCoverage.mapLongitude,
               ),
         );
       },
@@ -158,6 +159,7 @@ class _ReportModalState extends State<ReportModal> {
       await ReportService.submitCommunityReport(
         type: selectedType,
         floodLevel: selectedFloodLevel,
+        rainIntensity: selectedRainIntensity,
         description: _descriptionController.text,
         images: _pickedImages,
         manualLocation: _locationMode == ReportLocationMode.manual
@@ -245,15 +247,22 @@ class _ReportModalState extends State<ReportModal> {
 
             ReportTypeSection(
               selectedFloodLevel: selectedFloodLevel,
+              selectedRainIntensity: selectedRainIntensity,
               selectedType: selectedType,
               onFloodLevelChanged: (value) {
                 setState(() => selectedFloodLevel = value);
+              },
+              onRainIntensityChanged: (value) {
+                setState(() => selectedRainIntensity = value);
               },
               onTypeChanged: (type) {
                 setState(() {
                   selectedType = type;
                   if (selectedType != ReportType.flood) {
                     selectedFloodLevel = null;
+                  }
+                  if (selectedType != ReportType.rain) {
+                    selectedRainIntensity = null;
                   }
                 });
               },

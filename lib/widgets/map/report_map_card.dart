@@ -45,6 +45,7 @@ class ReportMapCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final hasMonitoringBoundary = monitoringBoundary.isNotEmpty;
     final markers = reports
         .map(
           (report) => Marker(
@@ -65,34 +66,34 @@ class ReportMapCard extends StatelessWidget {
           mapController: mapController,
           options: MapOptions(
             initialCenter: initialCenter,
-            initialZoom: RainGuardCoverage.calambaMapZoom,
+            initialZoom: RainGuardCoverage.mapZoom,
           ),
           children: [
             TileLayer(
               urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
               userAgentPackageName: 'com.example.rainguard',
             ),
-            if (isBoundaryVisible)
+            if (isBoundaryVisible && hasMonitoringBoundary)
               PolygonLayer(
                 polygons: [
                   Polygon(
-                    points: linggaMonitoringBoundary,
+                    points: monitoringBoundary,
                     color: RainGuardColors.primary.withValues(alpha: 0.06),
-                    borderColor: RainGuardColors.primary.withValues(alpha: 0.62),
+                    borderColor: RainGuardColors.primary.withValues(
+                      alpha: 0.62,
+                    ),
                     borderStrokeWidth: 1.4,
                   ),
                 ],
               ),
-            if (isBoundaryVisible)
+            if (isBoundaryVisible && hasMonitoringBoundary)
               MarkerLayer(
                 markers: [
                   Marker(
                     width: 188,
                     height: 28,
-                    point: linggaMonitoringAreaLabelPoint,
-                    child: const MapOverlayLabel(
-                      label: linggaMonitoringAreaLabel,
-                    ),
+                    point: monitoringAreaLabelPoint,
+                    child: const MapOverlayLabel(label: monitoringAreaLabel),
                   ),
                 ],
               ),
@@ -152,15 +153,16 @@ class ReportMapCard extends StatelessWidget {
             ],
           ),
         ),
-        Positioned(
-          top: 50,
-          left: 14,
-          right: 14,
-          child: _BoundaryToolbar(
-            isVisible: isBoundaryVisible,
-            onChanged: onToggleBoundary,
+        if (hasMonitoringBoundary)
+          Positioned(
+            top: 50,
+            left: 14,
+            right: 14,
+            child: _BoundaryToolbar(
+              isVisible: isBoundaryVisible,
+              onChanged: onToggleBoundary,
+            ),
           ),
-        ),
         Positioned(
           right: 18,
           bottom: addButtonBottom,
@@ -245,10 +247,7 @@ class _MapFilterBar extends StatelessWidget {
 }
 
 class _BoundaryToolbar extends StatelessWidget {
-  const _BoundaryToolbar({
-    required this.isVisible,
-    required this.onChanged,
-  });
+  const _BoundaryToolbar({required this.isVisible, required this.onChanged});
 
   final bool isVisible;
   final ValueChanged<bool> onChanged;
@@ -257,19 +256,13 @@ class _BoundaryToolbar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Align(
       alignment: Alignment.centerRight,
-      child: _BoundaryToggle(
-        isVisible: isVisible,
-        onChanged: onChanged,
-      ),
+      child: _BoundaryToggle(isVisible: isVisible, onChanged: onChanged),
     );
   }
 }
 
 class _BoundaryToggle extends StatelessWidget {
-  const _BoundaryToggle({
-    required this.isVisible,
-    required this.onChanged,
-  });
+  const _BoundaryToggle({required this.isVisible, required this.onChanged});
 
   final bool isVisible;
   final ValueChanged<bool> onChanged;
@@ -299,9 +292,7 @@ class _BoundaryToggle extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(
-                isVisible
-                    ? Icons.layers_rounded
-                    : Icons.layers_clear_rounded,
+                isVisible ? Icons.layers_rounded : Icons.layers_clear_rounded,
                 size: 13,
                 color: isVisible
                     ? RainGuardColors.primary

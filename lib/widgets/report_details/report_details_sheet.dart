@@ -232,8 +232,8 @@ class _ReportDetailsInfoGrid extends StatelessWidget {
           children: [
             Expanded(
               child: _InfoTile(
-                label: 'Risk level',
-                value: MapHelper.getRiskLevelName(report.risk),
+                label: report.observationLabel,
+                value: report.observationValue,
                 emphasizeLabel: true,
               ),
             ),
@@ -250,24 +250,14 @@ class _ReportDetailsInfoGrid extends StatelessWidget {
         Row(
           children: [
             Expanded(
-              child: _InfoTile(
-                label: 'Reporter',
-                value: reporterName,
-              ),
+              child: _InfoTile(label: 'Reporter', value: reporterName),
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: _InfoTile(
-                label: 'Created',
-                value: createdLabel,
-              ),
+              child: _InfoTile(label: 'Created', value: createdLabel),
             ),
           ],
         ),
-        if (report.floodLevel != null) ...[
-          const SizedBox(height: 12),
-          _InfoTile(label: 'Flood level', value: report.floodLevel!),
-        ],
       ],
     );
   }
