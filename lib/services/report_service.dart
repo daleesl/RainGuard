@@ -61,6 +61,7 @@ class ReportService {
     required ReportType type,
     required String description,
     String? floodLevel,
+    String? rainIntensity,
     XFile? image,
     List<XFile> images = const [],
     LatLng? manualLocation,
@@ -70,6 +71,7 @@ class ReportService {
       type: type,
       description: description,
       floodLevel: floodLevel,
+      rainIntensity: rainIntensity,
       image: image,
       images: images,
       manualLocation: manualLocation,
@@ -134,6 +136,7 @@ class ReportService {
     required ReportType type,
     required String description,
     required String? floodLevel,
+    required String? rainIntensity,
     required XFile? image,
     required List<XFile> images,
     required LatLng? manualLocation,
@@ -146,6 +149,7 @@ class ReportService {
       draftId: FirebaseFirestore.instance.collection('reports').doc().id,
       type: type,
       floodLevel: floodLevel,
+      rainIntensity: rainIntensity,
       description: description.trim(),
       location: location,
       selectedImages: _selectedImages(image: image, images: images),
@@ -288,7 +292,12 @@ class ReportService {
       'flood_level': request.type == ReportType.flood
           ? request.floodLevel
           : null,
-      'risk_level': RiskLevel.risk.name,
+      'rain_intensity': request.type == ReportType.rain
+          ? request.rainIntensity
+          : null,
+      'risk_level': request.type == ReportType.flood
+          ? RiskLevel.flood.name
+          : RiskLevel.risk.name,
       'description': request.description,
       'image_url': imageUrl,
       'image_urls': imageUrls,
@@ -306,6 +315,7 @@ class ReportService {
       id: request.draftId,
       type: request.type,
       floodLevel: request.floodLevel,
+      rainIntensity: request.rainIntensity,
       description: request.description,
       latitude: request.location.latitude,
       longitude: request.location.longitude,
@@ -331,6 +341,7 @@ class _ReportRequest {
     required this.draftId,
     required this.type,
     required this.floodLevel,
+    required this.rainIntensity,
     required this.description,
     required this.location,
     required this.selectedImages,
@@ -342,6 +353,7 @@ class _ReportRequest {
       draftId: draft.id,
       type: draft.type,
       floodLevel: draft.floodLevel,
+      rainIntensity: draft.rainIntensity,
       description: draft.description,
       location: ReportSubmissionLocation(
         latitude: draft.latitude,
@@ -356,6 +368,7 @@ class _ReportRequest {
   final String draftId;
   final ReportType type;
   final String? floodLevel;
+  final String? rainIntensity;
   final String description;
   final ReportSubmissionLocation location;
   final List<XFile> selectedImages;

@@ -16,6 +16,7 @@ class Report {
   final String? imageUrl;
   final List<String> imageUrls;
   final String? floodLevel;
+  final String? rainIntensity;
   final String? userId;
   final String? reporterName;
   final String? reporterDisplayName;
@@ -34,6 +35,7 @@ class Report {
     this.imageUrl,
     this.imageUrls = const [],
     this.floodLevel,
+    this.rainIntensity,
     this.userId,
     this.reporterName,
     this.reporterDisplayName,
@@ -45,17 +47,19 @@ class Report {
 
   factory Report.fromFirestore(Map<String, dynamic> data, String id) {
     final imageUrls = _parseImageUrls(data);
+    final type = _parseReportType(data['report_type']);
 
     return Report(
       id: id,
       latitude: (data['latitude'] ?? 0.0).toDouble(),
       longitude: (data['longitude'] ?? 0.0).toDouble(),
-      type: _parseReportType(data['report_type']),
-      risk: _parseRiskLevel(data['risk_level']),
+      type: type,
+      risk: _parseRiskLevel(data['risk_level'], type),
       description: data['description'] ?? '',
       imageUrl: imageUrls.isNotEmpty ? imageUrls.first : data['image_url'],
       imageUrls: imageUrls,
       floodLevel: data['flood_level'],
+      rainIntensity: _parseOptionalString(data['rain_intensity']),
       userId: data['user_id'],
       reporterName: data['reporter_name'],
       reporterDisplayName: data['reporter_display_name'],
@@ -100,7 +104,7 @@ class Report {
     }
   }
 
-  static RiskLevel _parseRiskLevel(String? riskStr) {
+  static RiskLevel _parseRiskLevel(String? riskStr, ReportType type) {
     switch (riskStr?.toLowerCase()) {
       case 'safe':
         return RiskLevel.safe;
@@ -108,6 +112,7 @@ class Report {
         return RiskLevel.flood;
       case 'risk':
       default:
+        if (type == ReportType.flood) return RiskLevel.flood;
         // Default to "risk" if missing or invalid, per requirements
         return RiskLevel.risk;
     }
@@ -189,6 +194,18 @@ class Report {
   bool get isRejected =>
       reviewStatus == 'rejected' || reviewStatus == 'duplicate_hidden';
 
+  String get observationLabel {
+    return type == ReportType.flood
+        ? 'Estimated Flood Water'
+        : 'Rain Intensity';
+  }
+
+  String get observationValue {
+    final value = type == ReportType.flood ? floodLevel : rainIntensity;
+    if (value != null && value.trim().isNotEmpty) return value.trim();
+    return 'Not specified';
+  }
+
   bool get isActiveOnMap {
     if (isResolved || isRejected) return false;
     return age <= const Duration(hours: 72) ||
@@ -204,11 +221,12 @@ class Report {
       'latitude': latitude,
       'longitude': longitude,
       'report_type': type.name,
-      'risk_level': risk.name,
+      'risk_level': type == ReportType.flood ? RiskLevel.flood.name : risk.name,
       'description': description,
       'image_url': urls.isNotEmpty ? urls.first : null,
       'image_urls': urls,
       'flood_level': type == ReportType.flood ? floodLevel : null,
+      'rain_intensity': type == ReportType.rain ? rainIntensity : null,
       'user_id': userId,
       'reporter_name': reporterName,
       'reporter_display_name': reporterDisplayName,

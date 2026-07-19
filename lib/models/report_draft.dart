@@ -13,6 +13,7 @@ class ReportDraft {
     required this.imagePaths,
     required this.createdAt,
     this.floodLevel,
+    this.rainIntensity,
   });
 
   final String id;
@@ -24,6 +25,7 @@ class ReportDraft {
   final List<String> imagePaths;
   final DateTime createdAt;
   final String? floodLevel;
+  final String? rainIntensity;
 
   LatLng get point => LatLng(latitude, longitude);
 
@@ -38,6 +40,7 @@ class ReportDraft {
       'image_paths': imagePaths,
       'created_at': createdAt.toIso8601String(),
       'flood_level': floodLevel,
+      'rain_intensity': rainIntensity,
     };
   }
 
@@ -57,6 +60,7 @@ class ReportDraft {
           DateTime.tryParse(json['created_at']?.toString() ?? '') ??
           DateTime.now(),
       floodLevel: json['flood_level']?.toString(),
+      rainIntensity: json['rain_intensity']?.toString(),
     );
   }
 
