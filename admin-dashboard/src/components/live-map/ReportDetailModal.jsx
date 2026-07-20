@@ -2,9 +2,10 @@ import { X } from 'lucide-react'
 import {
   getReportLabel,
   getReportLocationName,
+  getReportObservationLabel,
+  getReportObservationValue,
   getReportTypeName,
   getReviewStatus,
-  getRiskName,
 } from '../../utils/reports'
 import { StatusChip } from '../StatusChip'
 import { ReportImageCarousel } from './ReportImageCarousel'
@@ -56,9 +57,6 @@ export function ReportDetailModal({
           <div className="simple-modal-details">
             <div className="simple-chip-row">
               <StatusChip>{getReportTypeName(report)}</StatusChip>
-              <StatusChip tone={report.riskLevel === 'safe' ? 'green' : 'red'}>
-                {getRiskName(report)}
-              </StatusChip>
             </div>
 
             <div className="simple-report-title">
@@ -79,6 +77,10 @@ export function ReportDetailModal({
               />
               <ReportInfoItem label="Status" value={getReviewStatus(report)} />
               <ReportInfoItem
+                label={getReportObservationLabel(report)}
+                value={getReportObservationValue(report)}
+              />
+              <ReportInfoItem
                 label="GPS"
                 value={`${report.latitude.toFixed(5)}, ${report.longitude.toFixed(5)}`}
               />
@@ -87,9 +89,6 @@ export function ReportDetailModal({
                 label="Images"
                 value={`${report.imageUrls.length || 0} attached`}
               />
-              {report.floodLevel ? (
-                <ReportInfoItem label="Flood level" value={report.floodLevel} />
-              ) : null}
             </div>
 
             <div className="simple-modal-actions">

@@ -1,6 +1,6 @@
-export const CALAMBA_CENTER = [14.2050462, 121.1582127]
+export const QUILING_CENTER = [14.0943, 121.0370]
 
-const CALAMBA_BOUNDS = {
+const LOCAL_REPORT_BOUNDS = {
   minLat: 13.9,
   maxLat: 14.4,
   minLng: 120.9,
@@ -18,6 +18,7 @@ export function parseReport(id, data) {
     imageUrls,
     locationName: normalizeText(data.location_name),
     locationSource: data.location_source || 'gps',
+    rainIntensity: data.rain_intensity || '',
     reportType: data.report_type || 'report',
     riskLevel: data.risk_level || 'risk',
     reporterName: data.reporter_display_name || data.reporter_name || '',
@@ -49,14 +50,14 @@ export function parseImageUrls(data) {
   return urls
 }
 
-export function isCalambaReport(report) {
+export function isLocalReport(report) {
   return (
     Number.isFinite(report.latitude) &&
     Number.isFinite(report.longitude) &&
-    report.latitude >= CALAMBA_BOUNDS.minLat &&
-    report.latitude <= CALAMBA_BOUNDS.maxLat &&
-    report.longitude >= CALAMBA_BOUNDS.minLng &&
-    report.longitude <= CALAMBA_BOUNDS.maxLng
+    report.latitude >= LOCAL_REPORT_BOUNDS.minLat &&
+    report.latitude <= LOCAL_REPORT_BOUNDS.maxLat &&
+    report.longitude >= LOCAL_REPORT_BOUNDS.minLng &&
+    report.longitude <= LOCAL_REPORT_BOUNDS.maxLng
   )
 }
 
@@ -82,6 +83,18 @@ export function getReportTypeName(report) {
 export function getRiskName(report) {
   const risk = report.riskLevel || 'risk'
   return `${risk.charAt(0).toUpperCase()}${risk.slice(1)}`
+}
+
+export function getReportObservationLabel(report) {
+  return report.reportType === 'flood'
+    ? 'Estimated Flood Water'
+    : 'Rain Intensity'
+}
+
+export function getReportObservationValue(report) {
+  const value =
+    report.reportType === 'flood' ? report.floodLevel : report.rainIntensity
+  return value || 'Not specified'
 }
 
 export function getReviewStatus(report) {

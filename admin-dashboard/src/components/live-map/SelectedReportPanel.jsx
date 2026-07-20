@@ -1,9 +1,10 @@
 import { Fragment } from 'react'
 import {
   getReportLocationName,
+  getReportObservationLabel,
+  getReportObservationValue,
   getReportTypeName,
   getReviewStatus,
-  getRiskName,
 } from '../../utils/reports'
 import { StatusChip } from '../StatusChip'
 import { ReportImageCarousel } from './ReportImageCarousel'
@@ -43,9 +44,6 @@ export function SelectedReportPanel({
                 <StatusChip>
                   {getReportTypeName(report)}
                 </StatusChip>
-                <StatusChip tone={report.riskLevel === 'safe' ? 'green' : 'red'}>
-                  {getRiskName(report)}
-                </StatusChip>
               </div>
             </div>
 
@@ -70,6 +68,10 @@ export function SelectedReportPanel({
               <ReportInfoItem
                 label="Status"
                 value={getReviewStatus(report)}
+              />
+              <ReportInfoItem
+                label={getReportObservationLabel(report)}
+                value={getReportObservationValue(report)}
               />
               <ReportInfoItem
                 label="GPS"

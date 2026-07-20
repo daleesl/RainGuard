@@ -25,9 +25,10 @@ import {
 import {
   getReportLabel,
   getReportLocationName,
+  getReportObservationLabel,
+  getReportObservationValue,
   getReportTypeName,
   getReviewStatus,
-  getRiskName,
   isToday,
 } from '../utils/reports'
 
@@ -62,10 +63,10 @@ const reportFilters = [
 
 export function ReportsManagement({ onOpenMap }) {
   const {
-    calambaReports,
     error,
     hasMore,
     isLoadingMore,
+    localReports,
     loadMore,
     status,
   } = useReports()
@@ -77,7 +78,7 @@ export function ReportsManagement({ onOpenMap }) {
 
   const filteredReports = useMemo(() => {
     const normalizedSearch = searchTerm.trim().toLowerCase()
-    const visibleReports = calambaReports.filter((report) => {
+    const visibleReports = localReports.filter((report) => {
       if (activeFilter === 'today') return isToday(report.createdAt)
       if (activeFilter === 'rain') return report.reportType === 'rain'
       if (activeFilter === 'flood') return report.reportType === 'flood'
@@ -92,7 +93,7 @@ export function ReportsManagement({ onOpenMap }) {
         report.id,
         report.description,
         report.reportType,
-        report.riskLevel,
+        getReportObservationValue(report),
         report.reporterName,
         getReportLocationName(report),
       ]
@@ -100,7 +101,7 @@ export function ReportsManagement({ onOpenMap }) {
         .toLowerCase()
         .includes(normalizedSearch),
     )
-  }, [activeFilter, calambaReports, searchTerm])
+  }, [activeFilter, localReports, searchTerm])
 
   const metrics = useMemo(() => {
     const todayReports = filteredReports.filter((report) =>
@@ -139,11 +140,19 @@ export function ReportsManagement({ onOpenMap }) {
   }
 
   function exportCsv() {
-    const header = ['id', 'type', 'risk', 'location', 'reporter', 'created', 'status']
+    const header = [
+      'id',
+      'type',
+      'observation',
+      'location',
+      'reporter',
+      'created',
+      'status',
+    ]
     const rows = filteredReports.map((report) => [
       report.id,
       getReportTypeName(report),
-      getRiskName(report),
+      getReportObservationValue(report),
       getReportLocationName(report),
       report.reporterName || 'Anonymous',
       report.createdAt?.toISOString?.() || '',
@@ -228,7 +237,7 @@ export function ReportsManagement({ onOpenMap }) {
               <thead>
                 <tr>
                   <th>Report</th>
-                  <th>Risk</th>
+                  <th>Observation</th>
                   <th>Location</th>
                   <th>Description</th>
                   <th>Reporter</th>
@@ -246,7 +255,7 @@ export function ReportsManagement({ onOpenMap }) {
                     </td>
                     <td>
                       <span className={`status-pill ${riskClass(report)}`}>
-                        {getRiskName(report)}
+                        {getReportObservationValue(report)}
                       </span>
                     </td>
                     <td>{getReportLocationName(report)}</td>
@@ -501,9 +510,6 @@ function ReportViewModal({ onClose, onOpenMap, report }) {
           <div className="simple-modal-details">
             <div className="simple-chip-row">
               <StatusChip>{getReportTypeName(report)}</StatusChip>
-              <StatusChip tone={report.riskLevel === 'safe' ? 'green' : 'red'}>
-                {getRiskName(report)}
-              </StatusChip>
               <span className={`status-pill ${statusClass(report)}`}>
                 {getReviewStatus(report)}
               </span>
@@ -522,12 +528,13 @@ function ReportViewModal({ onClose, onOpenMap, report }) {
               <InfoItem label="Reporter" value={report.reporterName || 'Anonymous'} />
               <InfoItem label="Created" value={formatReportDateTime(report.createdAt)} />
               <InfoItem
+                label={getReportObservationLabel(report)}
+                value={getReportObservationValue(report)}
+              />
+              <InfoItem
                 label="Images"
                 value={`${images.length || 0} attached`}
               />
-              {report.floodLevel ? (
-                <InfoItem label="Flood level" value={report.floodLevel} />
-              ) : null}
             </div>
 
             <div className="simple-modal-actions">
