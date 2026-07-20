@@ -42,6 +42,20 @@ void main() {
       expect(report.isAdminVerified, isTrue);
     });
 
+    test('treats flood submissions as flood risk when old data says risk', () {
+      final report = Report.fromFirestore({
+        'latitude': 14.2,
+        'longitude': 121.1,
+        'report_type': 'flood',
+        'risk_level': 'risk',
+        'created_at': Timestamp.fromDate(DateTime(2026, 5, 21, 20, 30)),
+      }, 'legacy-flood-risk');
+
+      expect(report.type, ReportType.flood);
+      expect(report.risk, RiskLevel.flood);
+      expect(report.isActiveOnMap, isTrue);
+    });
+
     test('classifies active recent and archived freshness', () {
       expect(
         _reportCreatedAt(
@@ -63,24 +77,27 @@ void main() {
       );
     });
 
-    test('parses manual location metadata and hides resolved reports from map', () {
-      final report = Report.fromFirestore({
-        'latitude': 14.2,
-        'longitude': 121.1,
-        'report_type': 'flood',
-        'risk_level': 'flood',
-        'location_name': '  Lingga, Calamba  ',
-        'location_source': 'manual',
-        'status': 'resolved',
-        'created_at': Timestamp.fromDate(DateTime(2026, 5, 21, 20, 30)),
-      }, 'manual-report');
+    test(
+      'parses manual location metadata and hides resolved reports from map',
+      () {
+        final report = Report.fromFirestore({
+          'latitude': 14.2,
+          'longitude': 121.1,
+          'report_type': 'flood',
+          'risk_level': 'flood',
+          'location_name': '  Lingga, Calamba  ',
+          'location_source': 'manual',
+          'status': 'resolved',
+          'created_at': Timestamp.fromDate(DateTime(2026, 5, 21, 20, 30)),
+        }, 'manual-report');
 
-      expect(report.isManualLocation, isTrue);
-      expect(report.locationSourceLabel, 'Manually selected');
-      expect(report.locationName, 'Lingga, Calamba');
-      expect(report.isResolved, isTrue);
-      expect(report.isActiveOnMap, isFalse);
-    });
+        expect(report.isManualLocation, isTrue);
+        expect(report.locationSourceLabel, 'Manually selected');
+        expect(report.locationName, 'Lingga, Calamba');
+        expect(report.isResolved, isTrue);
+        expect(report.isActiveOnMap, isFalse);
+      },
+    );
 
     test('writes stable Firestore submission fields', () {
       final createdAt = DateTime(2026, 5, 21, 20, 30);
@@ -111,13 +128,31 @@ void main() {
       expect(data['location_name'], 'Lingga, Calamba');
       expect(data['location_source'], 'manual');
       expect(data['report_type'], 'flood');
-      expect(data['risk_level'], 'risk');
+      expect(data['risk_level'], 'flood');
       expect(data['description'], 'Flood near the chapel');
       expect(data['image_url'], 'https://example.com/first.jpg');
       expect(data['image_urls'], ['https://example.com/first.jpg']);
       expect(data['flood_level'], 'ankle_deep');
+      expect(data['rain_intensity'], isNull);
       expect(data['status'], 'active');
       expect((data['created_at'] as Timestamp).toDate(), createdAt);
+    });
+
+    test('writes rain intensity for rain submissions', () {
+      final data = Report(
+        id: 'rain-report',
+        latitude: 14.2042,
+        longitude: 121.1571,
+        type: ReportType.rain,
+        risk: RiskLevel.risk,
+        description: 'Heavy rain',
+        rainIntensity: 'Heavy rain',
+        createdAt: DateTime(2026, 5, 21, 20, 30),
+      ).toFirestore();
+
+      expect(data['report_type'], 'rain');
+      expect(data['rain_intensity'], 'Heavy rain');
+      expect(data['flood_level'], isNull);
     });
 
     test('does not keep a flood level for rain submissions', () {
@@ -129,11 +164,13 @@ void main() {
         risk: RiskLevel.risk,
         description: 'Heavy rain',
         floodLevel: 'ankle_deep',
+        rainIntensity: 'Moderate rain',
         createdAt: DateTime(2026, 5, 21, 20, 30),
       ).toFirestore();
 
       expect(data['report_type'], 'rain');
       expect(data['flood_level'], isNull);
+      expect(data['rain_intensity'], 'Moderate rain');
     });
   });
 }

@@ -16,6 +16,7 @@ void main() {
         imagePaths: const ['front.jpg', 'side.jpg'],
         createdAt: createdAt,
         floodLevel: 'knee_deep',
+        rainIntensity: 'Heavy rain',
       );
 
       final restored = ReportDraft.fromJson(draft.toJson());
@@ -29,6 +30,7 @@ void main() {
       expect(restored.imagePaths, ['front.jpg', 'side.jpg']);
       expect(restored.createdAt, createdAt);
       expect(restored.floodLevel, 'knee_deep');
+      expect(restored.rainIntensity, 'Heavy rain');
     });
 
     test('uses safe fallbacks for malformed saved draft data', () {
