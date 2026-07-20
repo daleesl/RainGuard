@@ -14,6 +14,8 @@ initializeApp();
 const db = getFirestore();
 const messaging = getMessaging();
 const openWeatherApiKey = defineSecret("OPENWEATHER_API_KEY");
+const WEATHER_CACHE_TTL_MS = 15 * 60 * 1000;
+const WEATHER_CACHE_COLLECTION = "system_cache";
 
 exports.getWeather = onRequest(
   {
@@ -38,6 +40,12 @@ exports.getWeather = onRequest(
       lon > 180
     ) {
       res.status(400).json({ error: "Valid lat and lon are required." });
+      return;
+    }
+
+    const cachedWeather = await getCachedWeather(lat, lon);
+    if (cachedWeather) {
+      res.json(cachedWeather);
       return;
     }
 
@@ -82,17 +90,77 @@ exports.getWeather = onRequest(
         return;
       }
 
-      res.json({
+      const weather = {
         temp,
         description,
         location: typeof location === "string" ? location : "Quiling, Talisay",
-      });
+      };
+
+      await saveCachedWeather(lat, lon, weather);
+      res.json(weather);
     } catch (error) {
       logger.error("Weather proxy request failed", { error });
       res.status(502).json({ error: "Unable to load weather data." });
     }
   },
 );
+
+async function getCachedWeather(lat, lon) {
+  try {
+    const snapshot = await weatherCacheRef(lat, lon).get();
+    if (!snapshot.exists) return null;
+
+    const data = snapshot.data() || {};
+    const fetchedAtMs = Number(data.fetched_at_ms);
+    const temp = Number(data.temp);
+    const description = data.description;
+    const location = data.location;
+
+    if (
+      !Number.isFinite(fetchedAtMs) ||
+      Date.now() - fetchedAtMs > WEATHER_CACHE_TTL_MS ||
+      !Number.isFinite(temp) ||
+      typeof description !== "string" ||
+      typeof location !== "string"
+    ) {
+      return null;
+    }
+
+    return { temp, description, location };
+  } catch (error) {
+    logger.warn("Weather cache read failed; falling back to OpenWeather", {
+      error,
+    });
+    return null;
+  }
+}
+
+async function saveCachedWeather(lat, lon, weather) {
+  try {
+    await weatherCacheRef(lat, lon).set(
+      {
+        ...weather,
+        fetched_at: FieldValue.serverTimestamp(),
+        fetched_at_ms: Date.now(),
+        lat,
+        lon,
+      },
+      { merge: true },
+    );
+  } catch (error) {
+    logger.warn("Weather cache write failed", { error });
+  }
+}
+
+function weatherCacheRef(lat, lon) {
+  return db.collection(WEATHER_CACHE_COLLECTION).doc(weatherCacheKey(lat, lon));
+}
+
+function weatherCacheKey(lat, lon) {
+  const roundedLat = Math.round(lat * 1000);
+  const roundedLon = Math.round(lon * 1000);
+  return `weather_${roundedLat}_${roundedLon}`;
+}
 
 exports.notifyUsersOnReportCreated = onDocumentCreated(
   "reports/{reportId}",
