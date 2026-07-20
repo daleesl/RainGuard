@@ -71,7 +71,7 @@ class ReportTypeSection extends StatelessWidget {
         const SizedBox(height: 16),
         if (selectedType == ReportType.rain) ...[
           const Text(
-            'Rain Intensity',
+            'Rain Intensity *',
             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
           ),
           const SizedBox(height: 8),
@@ -112,7 +112,7 @@ class ReportTypeSection extends StatelessWidget {
         ],
         if (selectedType == ReportType.flood) ...[
           const Text(
-            'Estimated Flood Water',
+            'Estimated Flood Water *',
             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
           ),
           const SizedBox(height: 8),

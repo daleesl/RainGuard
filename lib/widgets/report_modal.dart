@@ -143,7 +143,30 @@ class _ReportModalState extends State<ReportModal> {
         cleanValue != 'Location Error';
   }
 
+  String? _missingRequiredObservationMessage() {
+    if (selectedType == ReportType.rain &&
+        (selectedRainIntensity == null ||
+            selectedRainIntensity!.trim().isEmpty)) {
+      return 'Please select the rain intensity.';
+    }
+
+    if (selectedType == ReportType.flood &&
+        (selectedFloodLevel == null || selectedFloodLevel!.trim().isEmpty)) {
+      return 'Please select the estimated flood water level.';
+    }
+
+    return null;
+  }
+
   Future<void> _submitReport({bool skipDuplicateCheck = false}) async {
+    final missingObservationMessage = _missingRequiredObservationMessage();
+    if (missingObservationMessage != null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(missingObservationMessage)));
+      return;
+    }
+
     if (_locationMode == ReportLocationMode.manual && _manualLocation == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Choose a location on the map first.')),
@@ -192,6 +215,13 @@ class _ReportModalState extends State<ReportModal> {
           );
           if (!mounted || shouldVerify != true) return;
           _showVerificationSheet();
+          return;
+        }
+
+        if (e is ReportCooldownException) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(e.message)));
           return;
         }
 

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:developer' as developer;
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -37,9 +38,28 @@ class ReportVerificationRequiredException implements Exception {
   String toString() => 'Identity verification required: $status';
 }
 
+class ReportCooldownException implements Exception {
+  const ReportCooldownException(this.waitDuration);
+
+  final Duration waitDuration;
+
+  int get remainingSeconds {
+    final seconds = waitDuration.inSeconds;
+    if (seconds < 1) return 1;
+    return seconds;
+  }
+
+  String get message =>
+      'Please wait ${remainingSeconds}s before submitting another report.';
+
+  @override
+  String toString() => message;
+}
+
 class ReportService {
   const ReportService._();
 
+  static const Duration _reportSubmissionCooldown = Duration(minutes: 1);
   static const Duration _duplicateCheckTimeout = Duration(seconds: 5);
   static const Duration _submitTimeout = Duration(seconds: 12);
   static const Duration _submitTimeoutPerImage = Duration(seconds: 8);
@@ -86,7 +106,8 @@ class ReportService {
         request,
       ).timeout(_submitTimeoutFor(request.selectedImages.length));
     } catch (error) {
-      if (error is ReportVerificationRequiredException) {
+      if (error is ReportVerificationRequiredException ||
+          error is ReportCooldownException) {
         rethrow;
       }
 
@@ -206,6 +227,8 @@ class ReportService {
     if (await _isAlreadySubmitted(reportRef)) return;
 
     final reporter = await _verifiedReporter();
+    await _ensureReportCooldown(reporter.userId);
+
     final imageUrls = await _uploadReportImages(
       request.selectedImages,
       reportId: request.draftId,
@@ -223,6 +246,7 @@ class ReportService {
     );
 
     await reportRef.set(reportData);
+    await _markReportCooldownStarted(reporter.userId);
   }
 
   static Future<bool> _isAlreadySubmitted(
@@ -259,6 +283,35 @@ class ReportService {
       reporterDisplayName:
           userProfile?.displayName ?? currentUser.displayName ?? 'Anonymous',
     );
+  }
+
+  static Future<void> _ensureReportCooldown(String userId) async {
+    final userSnapshot = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(userId)
+        .get();
+    final lastSubmittedAt = userSnapshot.data()?['last_report_submitted_at'];
+    if (lastSubmittedAt is! Timestamp) return;
+
+    final elapsed = DateTime.now().difference(lastSubmittedAt.toDate());
+    if (elapsed >= _reportSubmissionCooldown) return;
+
+    throw ReportCooldownException(_reportSubmissionCooldown - elapsed);
+  }
+
+  static Future<void> _markReportCooldownStarted(String userId) async {
+    try {
+      await FirebaseFirestore.instance.collection('users').doc(userId).set({
+        'last_report_submitted_at': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+    } catch (error, stackTrace) {
+      developer.log(
+        'Failed to update report submission cooldown.',
+        name: 'ReportService',
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
   }
 
   static Future<List<String>> _uploadReportImages(
