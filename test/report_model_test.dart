@@ -77,6 +77,38 @@ void main() {
       );
     });
 
+    test('keeps older unresolved reports on the map in a muted state', () {
+      final report = Report.fromFirestore({
+        'latitude': 14.2,
+        'longitude': 121.1,
+        'report_type': 'flood',
+        'risk_level': 'flood',
+        'status': 'active',
+        'created_at': Timestamp.fromDate(
+          DateTime.now().subtract(const Duration(hours: 80)),
+        ),
+      }, 'older-active-report');
+
+      expect(report.isActiveOnMap, isTrue);
+      expect(report.isMutedOnMap, isTrue);
+    });
+
+    test('does not mute recent unresolved map reports', () {
+      final report = Report.fromFirestore({
+        'latitude': 14.2,
+        'longitude': 121.1,
+        'report_type': 'flood',
+        'risk_level': 'flood',
+        'status': 'active',
+        'created_at': Timestamp.fromDate(
+          DateTime.now().subtract(const Duration(hours: 24)),
+        ),
+      }, 'recent-active-report');
+
+      expect(report.isActiveOnMap, isTrue);
+      expect(report.isMutedOnMap, isFalse);
+    });
+
     test(
       'parses manual location metadata and hides resolved reports from map',
       () {
@@ -98,6 +130,22 @@ void main() {
         expect(report.isActiveOnMap, isFalse);
       },
     );
+
+    test('hides rejected and hidden reports from the public map', () {
+      for (final status in ['rejected', 'duplicate_hidden', 'hidden']) {
+        final report = Report.fromFirestore({
+          'latitude': 14.2,
+          'longitude': 121.1,
+          'report_type': 'flood',
+          'risk_level': 'flood',
+          'status': status,
+          'created_at': Timestamp.fromDate(DateTime.now()),
+        }, '$status-report');
+
+        expect(report.isRejected, isTrue);
+        expect(report.isActiveOnMap, isFalse);
+      }
+    });
 
     test('writes stable Firestore submission fields', () {
       final createdAt = DateTime(2026, 5, 21, 20, 30);

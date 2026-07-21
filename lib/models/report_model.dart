@@ -7,6 +7,8 @@ enum ReportType { rain, flood }
 enum ReportFreshness { active, recent, archived }
 
 class Report {
+  static const Duration mapCurrentWindow = Duration(hours: 72);
+
   final String id;
   final double latitude;
   final double longitude;
@@ -192,7 +194,9 @@ class Report {
   bool get isResolved => reviewStatus == 'resolved';
 
   bool get isRejected =>
-      reviewStatus == 'rejected' || reviewStatus == 'duplicate_hidden';
+      reviewStatus == 'rejected' ||
+      reviewStatus == 'duplicate_hidden' ||
+      reviewStatus == 'hidden';
 
   String get observationLabel {
     return type == ReportType.flood
@@ -208,11 +212,13 @@ class Report {
 
   bool get isActiveOnMap {
     if (isResolved || isRejected) return false;
-    return age <= const Duration(hours: 72) ||
+    return age <= mapCurrentWindow ||
         reviewStatus == 'active' ||
         reviewStatus == 'pending' ||
         reviewStatus == 'verified';
   }
+
+  bool get isMutedOnMap => isActiveOnMap && age > mapCurrentWindow;
 
   Map<String, dynamic> toFirestore() {
     final urls = allImageUrls;
