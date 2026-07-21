@@ -14,27 +14,15 @@ class MapHelper {
   }
 
   static Color getReportColor(Report report) {
-    if (report.freshness == ReportFreshness.archived) {
+    if (report.isMutedOnMap) {
       return Colors.blueGrey.shade400;
     }
 
-    final riskColor = getRiskColor(report.risk);
-    if (report.freshness == ReportFreshness.recent) {
-      return Color.lerp(riskColor, Colors.blueGrey.shade400, 0.35) ??
-          riskColor;
-    }
-    return riskColor;
+    return getRiskColor(report.risk);
   }
 
   static double getReportOpacity(Report report) {
-    switch (report.freshness) {
-      case ReportFreshness.active:
-        return 1;
-      case ReportFreshness.recent:
-        return 0.72;
-      case ReportFreshness.archived:
-        return 0.48;
-    }
+    return report.isMutedOnMap ? 0.48 : 1;
   }
 
   static IconData getReportIcon(ReportType type) {
