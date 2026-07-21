@@ -62,7 +62,7 @@ class NotificationFilterBar extends StatelessWidget {
             child: Row(
               children: [
                 for (final option in options) ...[
-                  _buildChip(option),
+                  SizedBox(width: 118, child: _buildChip(option)),
                   if (option != options.last) const SizedBox(width: 8),
                 ],
               ],
@@ -113,7 +113,7 @@ class _NotificationFilterChip extends StatelessWidget {
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 160),
           constraints: const BoxConstraints(minHeight: 42),
-          padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 9),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 9),
           alignment: Alignment.center,
           decoration: BoxDecoration(
             color: isSelected ? RainGuardColors.softBlue : Colors.white,
@@ -125,17 +125,22 @@ class _NotificationFilterChip extends StatelessWidget {
             ),
           ),
           child: Row(
-            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(icon, size: 15, color: color),
-              const SizedBox(width: 6),
-              Text(
-                count == null ? label : '$label ($count)',
-                maxLines: 1,
-                style: TextStyle(
-                  color: color,
-                  fontSize: 9,
-                  fontWeight: FontWeight.w900,
+              const SizedBox(width: 5),
+              Flexible(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    count == null ? label : '$label ($count)',
+                    maxLines: 1,
+                    style: TextStyle(
+                      color: color,
+                      fontSize: 9,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
                 ),
               ),
             ],

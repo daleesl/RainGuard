@@ -28,9 +28,12 @@ class NotificationScreen extends StatefulWidget {
 }
 
 class _NotificationScreenState extends State<NotificationScreen> {
+  static const int _myReportsPageSize = 5;
+
   _NotificationTab _selectedTab = _NotificationTab.community;
   NotificationFilter _communityFilter = NotificationFilter.all;
   NotificationFilter _myReportsFilter = NotificationFilter.all;
+  int _myReportsLimit = _myReportsPageSize;
   late final Stream<NotificationFeed> _feedStream =
       NotificationFeedService.feedStream();
 
@@ -124,10 +127,17 @@ class _NotificationScreenState extends State<NotificationScreen> {
               else
                 _MyReportsStreamView(
                   currentUserId: currentUserId,
+                  limitCount: _myReportsLimit,
                   selectedFilter: _myReportsFilter,
                   onFilterChanged: (filter) {
                     if (filter == _myReportsFilter) return;
-                    setState(() => _myReportsFilter = filter);
+                    setState(() {
+                      _myReportsFilter = filter;
+                      _myReportsLimit = _myReportsPageSize;
+                    });
+                  },
+                  onLoadMore: () {
+                    setState(() => _myReportsLimit += _myReportsPageSize);
                   },
                   onReportTap: (report) =>
                       ReportDetailsDialog.show(context, report),
@@ -173,14 +183,18 @@ class _NotificationScreenState extends State<NotificationScreen> {
 class _MyReportsStreamView extends StatelessWidget {
   const _MyReportsStreamView({
     required this.currentUserId,
+    required this.limitCount,
     required this.selectedFilter,
     required this.onFilterChanged,
+    required this.onLoadMore,
     required this.onReportTap,
   });
 
   final String? currentUserId;
+  final int limitCount;
   final NotificationFilter selectedFilter;
   final ValueChanged<NotificationFilter> onFilterChanged;
+  final VoidCallback onLoadMore;
   final ValueChanged<Report> onReportTap;
 
   @override
@@ -200,7 +214,10 @@ class _MyReportsStreamView extends StatelessWidget {
     }
 
     return StreamBuilder<List<Report>>(
-      stream: ReportFeedService.userReportsStream(userId: userId),
+      stream: ReportFeedService.userReportsStream(
+        userId: userId,
+        limitCount: limitCount + 1,
+      ),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting &&
             !snapshot.hasData) {
@@ -233,10 +250,19 @@ class _MyReportsStreamView extends StatelessWidget {
           );
         }
 
+        final loadedReports = snapshot.data ?? const <Report>[];
+        final hasMoreReports = loadedReports.length > limitCount;
+        final visibleReports = loadedReports.take(limitCount).toList();
+
         return _MyReportsView(
-          reports: snapshot.data ?? const <Report>[],
+          reports: visibleReports,
+          hasMoreReports: hasMoreReports,
+          isLoadingMore:
+              snapshot.connectionState == ConnectionState.waiting &&
+              snapshot.hasData,
           selectedFilter: selectedFilter,
           onFilterChanged: onFilterChanged,
+          onLoadMore: onLoadMore,
           onReportTap: onReportTap,
         );
       },
@@ -319,6 +345,7 @@ class _NotificationTabButton extends StatelessWidget {
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 160),
           height: 50,
+          padding: const EdgeInsets.symmetric(horizontal: 8),
           decoration: BoxDecoration(
             color: isSelected ? RainGuardColors.primary : Colors.transparent,
             borderRadius: BorderRadius.circular(14),
@@ -329,14 +356,16 @@ class _NotificationTabButton extends StatelessWidget {
               Icon(icon, size: 17, color: color),
               const SizedBox(width: 7),
               Flexible(
-                child: Text(
-                  label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: color,
-                    fontSize: 9,
-                    fontWeight: FontWeight.w900,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    style: TextStyle(
+                      color: color,
+                      fontSize: 9,
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
                 ),
               ),
@@ -442,14 +471,20 @@ class _CommunityUpdatesView extends StatelessWidget {
 class _MyReportsView extends StatelessWidget {
   const _MyReportsView({
     required this.reports,
+    required this.hasMoreReports,
+    required this.isLoadingMore,
     required this.selectedFilter,
     required this.onFilterChanged,
+    required this.onLoadMore,
     required this.onReportTap,
   });
 
   final List<Report> reports;
+  final bool hasMoreReports;
+  final bool isLoadingMore;
   final NotificationFilter selectedFilter;
   final ValueChanged<NotificationFilter> onFilterChanged;
+  final VoidCallback onLoadMore;
   final ValueChanged<Report> onReportTap;
 
   @override
@@ -508,6 +543,40 @@ class _MyReportsView extends StatelessWidget {
             (report) =>
                 MyReportCard(report: report, onTap: () => onReportTap(report)),
           ),
+        if (hasMoreReports) ...[
+          const SizedBox(height: 6),
+          Center(
+            child: OutlinedButton.icon(
+              onPressed: isLoadingMore ? null : onLoadMore,
+              icon: Icon(
+                isLoadingMore
+                    ? Icons.hourglass_empty_rounded
+                    : Icons.expand_more_rounded,
+                size: 16,
+              ),
+              label: Text(
+                isLoadingMore ? 'Loading more...' : 'Load more reports',
+              ),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: RainGuardColors.primary,
+                side: BorderSide(
+                  color: RainGuardColors.primary.withValues(alpha: 0.22),
+                ),
+                textStyle: const TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w900,
+                ),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 11,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
+            ),
+          ),
+        ],
       ],
     );
   }
