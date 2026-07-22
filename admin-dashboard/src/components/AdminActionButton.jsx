@@ -1,14 +1,14 @@
 const ACTION_TONE_CLASSES = {
   danger:
-    'bg-[#ffe4e4] text-[#e24d4d] hover:bg-[#ffd8d8] focus-visible:bg-[#ffd8d8]',
+    'bg-[#fee2e2] text-[#dc2626] hover:bg-[#fecaca] focus-visible:bg-[#fecaca]',
   ghost:
-    'border border-[#d9e7ef] bg-white text-[#102033] hover:border-[#1778d4] hover:text-[#1778d4] focus-visible:border-[#1778d4] focus-visible:text-[#1778d4]',
+    'border border-[#cbd5e1] bg-white text-[#475569] hover:border-[#64748b] hover:text-[#334155] focus-visible:border-[#64748b] focus-visible:text-[#334155]',
   primary:
-    'bg-[#e7f4ff] text-[#1778d4] hover:bg-[#d9ecff] focus-visible:bg-[#d9ecff]',
+    'bg-[#dbeafe] text-[#2563eb] hover:bg-[#bfdbfe] focus-visible:bg-[#bfdbfe]',
   resolve:
-    'bg-[#e7f4ff] text-[#1778d4] hover:bg-[#d9ecff] focus-visible:bg-[#d9ecff]',
+    'bg-[#dbeafe] text-[#2563eb] hover:bg-[#bfdbfe] focus-visible:bg-[#bfdbfe]',
   verify:
-    'bg-[#e7f4ff] text-[#1778d4] hover:bg-[#d9ecff] focus-visible:bg-[#d9ecff]',
+    'bg-[#dcfce7] text-[#16a34a] hover:bg-[#bbf7d0] focus-visible:bg-[#bbf7d0]',
 }
 
 /**

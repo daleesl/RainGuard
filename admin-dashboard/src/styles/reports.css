@@ -245,6 +245,7 @@
 .status-pill {
   min-width: 68px;
   height: 24px;
+  max-width: 100%;
   border-radius: 99px;
   padding: 0 12px;
   display: inline-flex;
@@ -254,12 +255,37 @@
   font-weight: 900;
 }
 
-.status-new,
+.observation-pill {
+  min-width: 86px;
+  white-space: nowrap;
+}
+
 .status-safe {
   background: #e7f8f3;
   color: #188269;
 }
 
+.status-new {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.status-verified {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.status-resolved {
+  background: #dbeafe;
+  color: #2563eb;
+}
+
+.status-hidden {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.status-review,
 .status-risk {
   background: #fff5dc;
   color: #b26b00;
@@ -342,6 +368,38 @@
   line-height: 1.55;
 }
 
+.confirm-reason-field {
+  display: grid;
+  gap: 8px;
+  padding: 14px 20px 0;
+}
+
+.confirm-reason-field span {
+  color: #102033;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.confirm-reason-field textarea {
+  width: 100%;
+  min-height: 88px;
+  resize: vertical;
+  border: 1px solid #d9e7ef;
+  border-radius: 14px;
+  background: #f7fbfe;
+  color: #102033;
+  font: inherit;
+  font-size: 12px;
+  line-height: 1.45;
+  outline: none;
+  padding: 12px 14px;
+}
+
+.confirm-reason-field textarea:focus {
+  border-color: #1778d4;
+  box-shadow: 0 0 0 3px rgba(23, 120, 212, 0.12);
+}
+
 .confirm-modal-actions {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -354,6 +412,12 @@
 .confirm-modal-actions .panel-danger {
   min-height: 42px;
   margin-top: 0;
+}
+
+.confirm-modal-actions .panel-primary:disabled,
+.confirm-modal-actions .panel-danger:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
 }
 
 .report-detail-panel {

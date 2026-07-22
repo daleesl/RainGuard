@@ -533,6 +533,22 @@
   color: #ffffff;
 }
 
+.panel-verify {
+  background: #16a34a;
+  color: #ffffff;
+}
+
+.panel-resolve {
+  background: #2563eb;
+  color: #ffffff;
+}
+
+.panel-view {
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #475569;
+}
+
 .panel-secondary {
   margin-top: 12px;
   border: 1px solid #d9e7ef;
@@ -554,6 +570,18 @@
 
 .panel-secondary:hover {
   background: #f4fafd;
+}
+
+.panel-verify:hover {
+  background: #15803d;
+}
+
+.panel-resolve:hover {
+  background: #1d4ed8;
+}
+
+.panel-view:hover {
+  background: #f8fafc;
 }
 
 .panel-danger:hover {
