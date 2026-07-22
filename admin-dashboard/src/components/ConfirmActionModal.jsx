@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { X } from 'lucide-react'
 
 export function ConfirmActionModal({
@@ -6,8 +7,20 @@ export function ConfirmActionModal({
   message,
   onCancel,
   onConfirm,
+  reasonLabel = 'Reason',
+  reasonPlaceholder = 'Add a short reason...',
+  requiresReason = false,
   title,
 }) {
+  const [reason, setReason] = useState('')
+  const trimmedReason = reason.trim()
+  const canConfirm = !requiresReason || trimmedReason.length > 0
+
+  function handleConfirm() {
+    if (!canConfirm) return
+    onConfirm(trimmedReason)
+  }
+
   return (
     <div
       aria-labelledby="confirm-action-title"
@@ -37,13 +50,26 @@ export function ConfirmActionModal({
 
         <p className="confirm-modal-message">{message}</p>
 
+        {requiresReason ? (
+          <label className="confirm-reason-field">
+            <span>{reasonLabel}</span>
+            <textarea
+              onChange={(event) => setReason(event.target.value)}
+              placeholder={reasonPlaceholder}
+              rows={4}
+              value={reason}
+            />
+          </label>
+        ) : null}
+
         <div className="confirm-modal-actions">
           <button className="panel-secondary" onClick={onCancel} type="button">
             Cancel
           </button>
           <button
             className={intent === 'danger' ? 'panel-danger' : 'panel-primary'}
-            onClick={onConfirm}
+            disabled={!canConfirm}
+            onClick={handleConfirm}
             type="button"
           >
             {confirmLabel}
