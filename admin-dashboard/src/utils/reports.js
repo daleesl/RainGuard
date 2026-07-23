@@ -7,6 +7,41 @@ const LOCAL_REPORT_BOUNDS = {
   maxLng: 121.4,
 }
 
+const FLOOD_OBSERVATION_LABELS = {
+  ankle_deep: {
+    detail: 'Ankle level - up to 20 cm',
+    short: 'Ankle level',
+  },
+  'ankle level - up to 20 cm': {
+    detail: 'Ankle level - up to 20 cm',
+    short: 'Ankle level',
+  },
+  knee_deep: {
+    detail: 'Knee level - around 21-50 cm',
+    short: 'Knee level',
+  },
+  'knee level - around 21-50 cm': {
+    detail: 'Knee level - around 21-50 cm',
+    short: 'Knee level',
+  },
+  waist_deep: {
+    detail: 'Waist level - around 51-100 cm',
+    short: 'Waist level',
+  },
+  'waist level - around 51-100 cm': {
+    detail: 'Waist level - around 51-100 cm',
+    short: 'Waist level',
+  },
+  chest_deep: {
+    detail: 'Chest level or higher - above 100 cm',
+    short: 'Chest level+',
+  },
+  'chest level or higher - above 100 cm': {
+    detail: 'Chest level or higher - above 100 cm',
+    short: 'Chest level+',
+  },
+}
+
 export function parseReport(id, data) {
   const imageUrls = parseImageUrls(data)
 
@@ -14,6 +49,10 @@ export function parseReport(id, data) {
     id,
     description: data.description || '',
     floodLevel: data.flood_level || '',
+    hidden: data.hidden === true,
+    hiddenAt: parseDate(data.hidden_at),
+    hiddenBy: data.hidden_by || '',
+    hiddenReason: normalizeText(data.hidden_reason),
     imageUrl: imageUrls[0] || '',
     imageUrls,
     locationName: normalizeText(data.location_name),
@@ -94,18 +133,54 @@ export function getReportObservationLabel(report) {
 export function getReportObservationValue(report) {
   const value =
     report.reportType === 'flood' ? report.floodLevel : report.rainIntensity
-  return value || 'Not specified'
+  if (!value) return 'Not specified'
+
+  if (report.reportType === 'flood') {
+    return floodObservationLabel(value).detail
+  }
+
+  return value
+}
+
+export function getReportObservationShortValue(report) {
+  const value =
+    report.reportType === 'flood' ? report.floodLevel : report.rainIntensity
+  if (!value) return 'Not specified'
+
+  if (report.reportType === 'flood') {
+    return floodObservationLabel(value).short
+  }
+
+  return value
 }
 
 export function getReviewStatus(report) {
   if (report.status === 'verified') return 'Verified'
   if (report.status === 'resolved') return 'Resolved'
   if (report.status === 'rejected') return 'Rejected'
-  if (report.status === 'flagged' || report.status === 'duplicate_hidden') {
+  if (
+    report.hidden ||
+    report.status === 'flagged' ||
+    report.status === 'duplicate_hidden' ||
+    report.status === 'hidden'
+  ) {
     return 'Flagged'
   }
   if (report.status === 'review') return 'Review'
   return 'New'
+}
+
+export function isReportResolved(report) {
+  return report.status === 'resolved'
+}
+
+export function isReportHidden(report) {
+  return (
+    report.hidden ||
+    report.status === 'flagged' ||
+    report.status === 'duplicate_hidden' ||
+    report.status === 'hidden'
+  )
 }
 
 export function getReportLocationName(report) {
@@ -148,7 +223,13 @@ export function isThisWeek(date) {
 }
 
 export function isDefaultMapReport(report) {
-  if (report.status === 'resolved' || report.status === 'rejected') {
+  if (
+    report.hidden ||
+    report.status === 'resolved' ||
+    report.status === 'rejected' ||
+    report.status === 'duplicate_hidden' ||
+    report.status === 'hidden'
+  ) {
     return false
   }
 
@@ -179,4 +260,21 @@ function parseDate(value) {
 
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : ''
+}
+
+function floodObservationLabel(value) {
+  const normalizedValue = normalizeText(value)
+  const mappedValue =
+    FLOOD_OBSERVATION_LABELS[normalizedValue.toLowerCase()] || null
+
+  if (mappedValue) return mappedValue
+
+  const readableValue = normalizedValue
+    .replaceAll('_', ' ')
+    .replace(/\b\w/g, (letter) => letter.toUpperCase())
+
+  return {
+    detail: readableValue,
+    short: readableValue.split(' - ')[0],
+  }
 }

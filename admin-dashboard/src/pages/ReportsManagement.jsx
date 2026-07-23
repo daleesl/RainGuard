@@ -18,7 +18,9 @@ import { TableState } from '../components/TableState'
 import { useReports } from '../hooks/useReports'
 import {
   hideDuplicateReport,
+  reopenReport,
   resolveReport,
+  unhideReport,
   unverifyReport,
   verifyReport,
 } from '../services/reportActions'
@@ -26,9 +28,12 @@ import {
   getReportLabel,
   getReportLocationName,
   getReportObservationLabel,
+  getReportObservationShortValue,
   getReportObservationValue,
   getReportTypeName,
   getReviewStatus,
+  isReportHidden,
+  isReportResolved,
   isToday,
 } from '../utils/reports'
 
@@ -59,6 +64,7 @@ const reportFilters = [
   { label: 'Rain', tone: 'green', value: 'rain' },
   { label: 'Flood', tone: 'red', value: 'flood' },
   { label: 'Unreviewed', tone: 'amber', value: 'unreviewed' },
+  { label: 'Flagged', tone: 'red', value: 'flagged' },
 ]
 
 export function ReportsManagement({ onOpenMap }) {
@@ -83,6 +89,9 @@ export function ReportsManagement({ onOpenMap }) {
       if (activeFilter === 'rain') return report.reportType === 'rain'
       if (activeFilter === 'flood') return report.reportType === 'flood'
       if (activeFilter === 'unreviewed') return getReviewStatus(report) === 'New'
+      if (activeFilter === 'flagged') {
+        return getReviewStatus(report) === 'Flagged'
+      }
       return true
     })
 
@@ -125,14 +134,14 @@ export function ReportsManagement({ onOpenMap }) {
     setPendingAction({ ...action, report })
   }
 
-  async function confirmReportAction() {
+  async function confirmReportAction(reason = '') {
     if (!pendingAction) return
     const { action, report, successMessage } = pendingAction
     setPendingAction(null)
     if (!report || !action) return
 
     try {
-      await action(report.id)
+      await action(report.id, reason)
       setActionMessage(successMessage)
     } catch (updateError) {
       setActionMessage(updateError.message)
@@ -254,8 +263,11 @@ export function ReportsManagement({ onOpenMap }) {
                       <strong>{getReportTypeName(report)}</strong>
                     </td>
                     <td>
-                      <span className={`status-pill ${riskClass(report)}`}>
-                        {getReportObservationValue(report)}
+                      <span
+                        className={`status-pill observation-pill ${riskClass(report)}`}
+                        title={getReportObservationValue(report)}
+                      >
+                        {getReportObservationShortValue(report)}
                       </span>
                     </td>
                     <td>{getReportLocationName(report)}</td>
@@ -310,46 +322,93 @@ export function ReportsManagement({ onOpenMap }) {
                               ? 'Remove verified status'
                               : 'Mark report as verified'
                           }
-                          tone="verify"
+                          tone={report.status === 'verified' ? 'ghost' : 'verify'}
                         >
                           {report.status === 'verified' ? 'Unverify' : 'Verify'}
                         </AdminActionButton>
-                        <AdminActionButton
-                          icon={RotateCcw}
-                          onClick={() =>
-                            requestReportAction(report, {
-                              confirmLabel: 'Resolve report',
-                              intent: 'primary',
-                              message:
-                                'This marks the report as resolved so admins know the issue no longer needs active handling.',
-                              successMessage: 'Report marked as resolved.',
-                              title: 'Resolve this report?',
-                              action: resolveReport,
-                            })
-                          }
-                          title="Mark report as resolved"
-                          tone="resolve"
-                        >
-                          Resolve
-                        </AdminActionButton>
-                        <AdminActionButton
-                          icon={EyeOff}
-                          onClick={() =>
-                            requestReportAction(report, {
-                              confirmLabel: 'Hide report',
-                              intent: 'danger',
-                              message:
-                                'This hides the report from admin review because it is a duplicate or invalid entry.',
-                              successMessage: 'Report hidden as duplicate.',
-                              title: 'Hide this report?',
-                              action: hideDuplicateReport,
-                            })
-                          }
-                          title="Hide duplicate report"
-                          tone="danger"
-                        >
-                          Hide
-                        </AdminActionButton>
+                        {isReportResolved(report) ? (
+                          <AdminActionButton
+                            icon={RotateCcw}
+                            onClick={() =>
+                              requestReportAction(report, {
+                                confirmLabel: 'Reopen report',
+                                intent: 'primary',
+                                message:
+                                  'This returns the report to the active review queue and can make it visible again in active admin views.',
+                                successMessage: 'Report reopened.',
+                                title: 'Reopen this report?',
+                                action: reopenReport,
+                              })
+                            }
+                            title="Reopen resolved report"
+                            tone="resolve"
+                          >
+                            Reopen
+                          </AdminActionButton>
+                        ) : (
+                          <AdminActionButton
+                            icon={RotateCcw}
+                            onClick={() =>
+                              requestReportAction(report, {
+                                confirmLabel: 'Resolve report',
+                                intent: 'primary',
+                                message:
+                                  'This marks the report as resolved so admins know the issue no longer needs active handling.',
+                                successMessage: 'Report marked as resolved.',
+                                title: 'Resolve this report?',
+                                action: resolveReport,
+                              })
+                            }
+                            title="Mark report as resolved"
+                            tone="resolve"
+                          >
+                            Resolve
+                          </AdminActionButton>
+                        )}
+                        {isReportHidden(report) ? (
+                          <AdminActionButton
+                            icon={Eye}
+                            onClick={() =>
+                              requestReportAction(report, {
+                                confirmLabel: 'Unhide report',
+                                intent: 'primary',
+                                message:
+                                  'This returns the report to the active review queue and allows it to appear again in public views when eligible.',
+                                successMessage: 'Report unhidden.',
+                                title: 'Unhide this report?',
+                                action: unhideReport,
+                              })
+                            }
+                            title="Unhide report"
+                            tone="ghost"
+                          >
+                            Unhide
+                          </AdminActionButton>
+                        ) : (
+                          <AdminActionButton
+                            icon={EyeOff}
+                            onClick={() =>
+                              requestReportAction(report, {
+                                confirmLabel: 'Hide report',
+                                intent: 'danger',
+                                message:
+                                  'This hides the report from public views because it is duplicate, invalid, or unclear.',
+                                reasonLabel: 'Hide reason',
+                                reasonPlaceholder:
+                                  'Example: Duplicate report, unclear photo, invalid location...',
+                                requiresReason: true,
+                                successMessage:
+                                  'Report hidden from public views.',
+                                title: 'Hide this report?',
+                                action: hideDuplicateReport,
+                              })
+                            }
+                            title="Hide report"
+                            tone="danger"
+                          >
+                            Hide
+                          </AdminActionButton>
+                        )}
                         <AdminActionButton
                           icon={Eye}
                           onClick={() => setSelectedReport(report)}
@@ -403,6 +462,9 @@ export function ReportsManagement({ onOpenMap }) {
           message={pendingAction.message}
           onCancel={() => setPendingAction(null)}
           onConfirm={confirmReportAction}
+          reasonLabel={pendingAction.reasonLabel}
+          reasonPlaceholder={pendingAction.reasonPlaceholder}
+          requiresReason={pendingAction.requiresReason}
           title={pendingAction.title}
         />
       ) : null}
@@ -430,9 +492,12 @@ function riskClass(report) {
 
 function statusClass(report) {
   const statusValue = getReviewStatus(report)
-  if (statusValue === 'Verified') return 'status-safe'
-  if (statusValue === 'Flagged') return 'status-flood'
-  if (statusValue === 'Review') return 'status-risk'
+  if (statusValue === 'Verified') return 'status-verified'
+  if (statusValue === 'Resolved') return 'status-resolved'
+  if (statusValue === 'Flagged' || statusValue === 'Rejected') {
+    return 'status-hidden'
+  }
+  if (statusValue === 'Review') return 'status-review'
   return 'status-new'
 }
 
@@ -531,6 +596,9 @@ function ReportViewModal({ onClose, onOpenMap, report }) {
                 label={getReportObservationLabel(report)}
                 value={getReportObservationValue(report)}
               />
+              {report.hiddenReason ? (
+                <InfoItem label="Hide Reason" value={report.hiddenReason} />
+              ) : null}
               <InfoItem
                 label="Images"
                 value={`${images.length || 0} attached`}
