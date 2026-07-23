@@ -5,6 +5,8 @@ import {
   getReportObservationValue,
   getReportTypeName,
   getReviewStatus,
+  isReportHidden,
+  isReportResolved,
 } from '../../utils/reports'
 import { StatusChip } from '../StatusChip'
 import { ReportImageCarousel } from './ReportImageCarousel'
@@ -69,6 +71,12 @@ export function SelectedReportPanel({
                 label="Status"
                 value={getReviewStatus(report)}
               />
+              {report.hiddenReason ? (
+                <ReportInfoItem
+                  label="Hide Reason"
+                  value={report.hiddenReason}
+                />
+              ) : null}
               <ReportInfoItem
                 label={getReportObservationLabel(report)}
                 value={getReportObservationValue(report)}
@@ -82,7 +90,11 @@ export function SelectedReportPanel({
 
           <div className="selected-actions">
             <button
-              className="panel-primary"
+              className={
+                report.status === 'verified'
+                  ? 'panel-secondary panel-view'
+                  : 'panel-primary panel-verify'
+              }
               onClick={() =>
                 onRequestAction(
                   report,
@@ -121,53 +133,106 @@ export function SelectedReportPanel({
                 : 'Mark Verified'}
             </button>
             <button
-              className="panel-secondary"
+              className="panel-secondary panel-view"
               onClick={() => onOpenDetails(report)}
               type="button"
             >
               Open Full Details
             </button>
-            <button
-              className="panel-secondary"
-              onClick={() =>
-                onRequestAction(report, {
-                  confirmLabel: 'Resolve report',
-                  intent: 'primary',
-                  message:
-                    'This marks the report as resolved so admins know the issue no longer needs active handling.',
-                  successMessage: 'Report marked as resolved.',
-                  title: 'Resolve this report?',
-                  values: {
-                    status: 'resolved',
-                    report_status: 'resolved',
-                  },
-                })
-              }
-              type="button"
-            >
-              Resolve Report
-            </button>
-            <button
-              className="panel-danger"
-              onClick={() =>
-                onRequestAction(report, {
-                  confirmLabel: 'Hide report',
-                  intent: 'danger',
-                  message:
-                    'This hides the report from admin review because it is a duplicate or invalid entry.',
-                  successMessage: 'Report hidden as duplicate.',
-                  title: 'Hide this report?',
-                  values: {
-                    hidden: true,
-                    status: 'duplicate_hidden',
-                    report_status: 'duplicate_hidden',
-                  },
-                })
-              }
-              type="button"
-            >
-              Hide Duplicate
-            </button>
+            {isReportResolved(report) ? (
+              <button
+                className="panel-secondary panel-resolve"
+                onClick={() =>
+                  onRequestAction(report, {
+                    confirmLabel: 'Reopen report',
+                    intent: 'primary',
+                    message:
+                      'This returns the report to the active review queue and can make it visible again in active admin views.',
+                    successMessage: 'Report reopened.',
+                    title: 'Reopen this report?',
+                    values: {
+                      hidden: false,
+                      status: 'active',
+                      report_status: 'active',
+                    },
+                  })
+                }
+                type="button"
+              >
+                Reopen Report
+              </button>
+            ) : (
+              <button
+                className="panel-secondary panel-resolve"
+                onClick={() =>
+                  onRequestAction(report, {
+                    confirmLabel: 'Resolve report',
+                    intent: 'primary',
+                    message:
+                      'This marks the report as resolved so admins know the issue no longer needs active handling.',
+                    successMessage: 'Report marked as resolved.',
+                    title: 'Resolve this report?',
+                    values: {
+                      hidden: false,
+                      status: 'resolved',
+                      report_status: 'resolved',
+                    },
+                  })
+                }
+                type="button"
+              >
+                Resolve Report
+              </button>
+            )}
+            {isReportHidden(report) ? (
+              <button
+                className="panel-secondary"
+                onClick={() =>
+                  onRequestAction(report, {
+                    confirmLabel: 'Unhide report',
+                    intent: 'primary',
+                    message:
+                      'This returns the report to the active review queue and allows it to appear again in public views when eligible.',
+                    successMessage: 'Report unhidden.',
+                    title: 'Unhide this report?',
+                    values: {
+                      hidden: false,
+                      status: 'active',
+                      report_status: 'active',
+                    },
+                  })
+                }
+                type="button"
+              >
+                Unhide Report
+              </button>
+            ) : (
+              <button
+                className="panel-danger"
+                onClick={() =>
+                  onRequestAction(report, {
+                    confirmLabel: 'Hide report',
+                    intent: 'danger',
+                    message:
+                      'This hides the report from public views because it is duplicate, invalid, or unclear.',
+                    reasonLabel: 'Hide reason',
+                    reasonPlaceholder:
+                      'Example: Duplicate report, unclear photo, invalid location...',
+                    requiresReason: true,
+                    successMessage: 'Report hidden from public views.',
+                    title: 'Hide this report?',
+                    values: {
+                      hidden: true,
+                      status: 'duplicate_hidden',
+                      report_status: 'duplicate_hidden',
+                    },
+                  })
+                }
+                type="button"
+              >
+                Hide Report
+              </button>
+            )}
           </div>
         </Fragment>
       ) : (

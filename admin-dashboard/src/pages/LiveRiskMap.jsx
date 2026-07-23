@@ -8,8 +8,16 @@ import { MetricCard } from '../components/MetricCard'
 import { PageTopbar } from '../components/PageTopbar'
 import { PrimaryActionButton } from '../components/PrimaryActionButton'
 import { useReports } from '../hooks/useReports'
-import { updateReportStatus as saveReportStatus } from '../services/reportActions'
-import { isDefaultMapReport, isThisWeek, isToday } from '../utils/reports'
+import {
+  hiddenReportAuditValues,
+  updateReportStatus as saveReportStatus,
+} from '../services/reportActions'
+import {
+  getReviewStatus,
+  isDefaultMapReport,
+  isThisWeek,
+  isToday,
+} from '../utils/reports'
 
 const metricConfig = [
   {
@@ -57,6 +65,9 @@ export function LiveRiskMap() {
       if (activeFilter === 'week') return isThisWeek(report.createdAt)
       if (activeFilter === 'resolved') return report.status === 'resolved'
       if (activeFilter === 'rejected') return report.status === 'rejected'
+      if (activeFilter === 'flagged') {
+        return getReviewStatus(report) === 'Flagged'
+      }
       if (activeFilter === 'all') return true
       return true
     })
@@ -140,11 +151,15 @@ export function LiveRiskMap() {
     setPendingAction({ ...action, report })
   }
 
-  async function confirmReportAction() {
+  async function confirmReportAction(reason = '') {
     if (!pendingAction) return
     const { report, successMessage, values } = pendingAction
     setPendingAction(null)
-    await updateReportStatus(report, values, successMessage)
+    const actionValues = pendingAction.requiresReason
+      ? { ...values, ...hiddenReportAuditValues(reason) }
+      : values
+
+    await updateReportStatus(report, actionValues, successMessage)
   }
 
   return (
@@ -223,6 +238,9 @@ export function LiveRiskMap() {
           message={pendingAction.message}
           onCancel={() => setPendingAction(null)}
           onConfirm={confirmReportAction}
+          reasonLabel={pendingAction.reasonLabel}
+          reasonPlaceholder={pendingAction.reasonPlaceholder}
+          requiresReason={pendingAction.requiresReason}
           title={pendingAction.title}
         />
       ) : null}

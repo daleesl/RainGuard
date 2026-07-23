@@ -76,6 +76,12 @@ export function ReportDetailModal({
                 stacked
               />
               <ReportInfoItem label="Status" value={getReviewStatus(report)} />
+              {report.hiddenReason ? (
+                <ReportInfoItem
+                  label="Hide Reason"
+                  value={report.hiddenReason}
+                />
+              ) : null}
               <ReportInfoItem
                 label={getReportObservationLabel(report)}
                 value={getReportObservationValue(report)}

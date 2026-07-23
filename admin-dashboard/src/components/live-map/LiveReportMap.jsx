@@ -26,6 +26,7 @@ const mapFilters = [
   { label: 'Today', value: 'today' },
   { label: 'Week', value: 'week' },
   { label: 'Resolved', value: 'resolved' },
+  { label: 'Flagged', value: 'flagged' },
   { label: 'Rejected', value: 'rejected' },
   { label: 'All', value: 'all' },
 ]
